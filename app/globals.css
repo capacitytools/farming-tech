@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+html, body {
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  @apply bg-forest-50 text-forest-900 dark:bg-forest-900 dark:text-forest-50;
+}
+
+/* Hide scrollbars on horizontal tribe/story rails, keep scroll functional */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+@layer components {
+  /* Core frosted-glass card used across dashboard widgets */
+  .glass-card {
+    @apply bg-white/70 dark:bg-forest-800/50 backdrop-blur-xl border border-white/40 dark:border-forest-700/40 shadow-glass rounded-3xl;
+  }
+
+  .glass-card-sm {
+    @apply bg-white/60 dark:bg-forest-800/40 backdrop-blur-lg border border-white/30 dark:border-forest-700/30 shadow-glass-sm rounded-2xl;
+  }
+
+  /* Big thumb-friendly primary button for outdoor/sunlight use */
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 rounded-2xl bg-forest-600 text-white font-bold text-base py-4 px-6 shadow-glass-sm active:scale-95 transition-transform;
+  }
+
+  .btn-secondary {
+    @apply flex items-center justify-center gap-2 rounded-2xl bg-white dark:bg-forest-800 text-forest-700 dark:text-forest-100 font-bold text-base py-4 px-6 border-2 border-forest-200 dark:border-forest-700 active:scale-95 transition-transform;
+  }
+
+  .app-heading {
+    @apply text-2xl font-extrabold tracking-tight text-forest-900 dark:text-white;
+  }
+}
