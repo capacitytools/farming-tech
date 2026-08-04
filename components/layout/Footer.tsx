@@ -1,5 +1,12 @@
 import { Phone, Mail, Facebook, Instagram, Youtube } from 'lucide-react';
 
+// Real social links — update here if any of these ever change
+const SOCIAL_LINKS = [
+  { icon: Facebook, href: 'https://www.facebook.com/myFarmTech', label: 'Facebook' },
+  { icon: Instagram, href: 'https://www.instagram.com/myfarmtech', label: 'Instagram' },
+  { icon: Youtube, href: 'https://www.youtube.com/@AnimalsTipss', label: 'YouTube' },
+];
+
 export default function Footer() {
   return (
     <footer className="px-4 py-8 mt-6 border-t border-forest-100 dark:border-forest-800">
@@ -30,16 +37,13 @@ export default function Footer() {
       </div>
 
       <div className="flex justify-center gap-3 mb-4">
-        {[
-          { icon: Facebook, href: 'https://facebook.com' },
-          { icon: Instagram, href: 'https://instagram.com' },
-          { icon: Youtube, href: 'https://youtube.com' },
-        ].map((s, i) => (
+        {SOCIAL_LINKS.map((s) => (
           <a
-            key={i}
+            key={s.label}
             href={s.href}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={s.label}
             className="w-10 h-10 rounded-full bg-forest-50 dark:bg-forest-800 flex items-center justify-center"
           >
             <s.icon className="w-4.5 h-4.5 text-forest-600 dark:text-forest-200" />
