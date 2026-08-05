@@ -1,0 +1,110 @@
+import Image from 'next/image';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
+import AuthForm from '@/components/profile/AuthForm';
+import ApplyRoleCard from '@/components/profile/ApplyRoleCard';
+import SignOutButton from '@/components/profile/SignOutButton';
+import { ScanLine, ShoppingBag, Settings, ChevronRight, ShieldCheck } from 'lucide-react';
+
+export const metadata = {
+  title: 'My Profile',
+};
+
+export default async function ProfilePage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return <AuthForm />;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  const { count: scanCount } = await supabase
+    .from('ai_scans')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id);
+
+  const { count: listingCount } = await supabase
+    .from('livestock_listings')
+    .select('*', { count: 'exact', head: true })
+    .eq('seller_id', user.id);
+
+  return (
+    <div className="px-4 pt-6 pb-8">
+      {/* Profile header */}
+      <div className="flex flex-col items-center text-center mb-6">
+        <div className="w-20 h-20 rounded-full bg-forest-100 dark:bg-forest-800 flex items-center justify-center overflow-hidden mb-3">
+          {profile?.avatar_url ? (
+            <Image src={profile.avatar_url} alt="" width={80} height={80} className="object-cover" />
+          ) : (
+            <span className="text-2xl font-extrabold text-forest-600">
+              {profile?.full_name?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase() ?? '?'}
+            </span>
+          )}
+        </div>
+        <p className="text-lg font-extrabold text-forest-900 dark:text-white flex items-center gap-1.5">
+          {profile?.full_name ?? 'Farmer'}
+          {profile?.is_verified && <ShieldCheck className="w-4.5 h-4.5 text-forest-600" />}
+        </p>
+        <p className="text-sm text-forest-400">{user.email}</p>
+        {profile?.role && profile.role !== 'farmer' && (
+          <span className="mt-2 text-xs font-bold bg-forest-100 dark:bg-forest-800 text-forest-700 dark:text-forest-200 px-3 py-1 rounded-full capitalize">
+            {profile.role}
+          </span>
+        )}
+      </div>
+
+      {/* Admin shortcut */}
+      {profile?.role === 'admin' && (
+        <Link
+          href="/admin"
+          className="glass-card p-4 mb-4 flex items-center justify-between"
+        >
+          <span className="flex items-center gap-3">
+            <span className="w-9 h-9 rounded-xl bg-forest-600 flex items-center justify-center">
+              <Settings className="w-4.5 h-4.5 text-white" />
+            </span>
+            <span className="text-sm font-bold text-forest-900 dark:text-white">Admin Console</span>
+          </span>
+          <ChevronRight className="w-4 h-4 text-forest-300" />
+        </Link>
+      )}
+
+      {/* Quick stats */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="glass-card-sm p-4 flex items-center gap-3">
+          <ScanLine className="w-5 h-5 text-forest-600" />
+          <div>
+            <p className="text-lg font-extrabold text-forest-900 dark:text-white">{scanCount ?? 0}</p>
+            <p className="text-[11px] text-forest-400 font-semibold">AI Scans</p>
+          </div>
+        </div>
+        <div className="glass-card-sm p-4 flex items-center gap-3">
+          <ShoppingBag className="w-5 h-5 text-forest-600" />
+          <div>
+            <p className="text-lg font-extrabold text-forest-900 dark:text-white">{listingCount ?? 0}</p>
+            <p className="text-[11px] text-forest-400 font-semibold">Listings</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Seller/Teacher application */}
+      <div className="mb-4">
+        <ApplyRoleCard
+          userId={user.id}
+          currentRole={profile?.role ?? 'farmer'}
+          isApproved={profile?.is_approved ?? false}
+        />
+      </div>
+
+      <SignOutButton />
+    </div>
+  );
+}
