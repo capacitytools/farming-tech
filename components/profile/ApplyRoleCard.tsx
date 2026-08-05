@@ -1,0 +1,113 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Loader2, ShoppingBag, GraduationCap, CheckCircle2, Clock } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+
+interface Props {
+  userId: string;
+  currentRole: string;
+  isApproved: boolean;
+}
+
+export default function ApplyRoleCard({ userId, currentRole, isApproved }: Props) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [submitting, setSubmitting] = useState<'seller' | 'teacher' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function applyAs(role: 'seller' | 'teacher') {
+    setSubmitting(role);
+    setError(null);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role, is_approved: false })
+        .eq('id', userId);
+      if (error) throw error;
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || 'Could not submit application.');
+    } finally {
+      setSubmitting(null);
+    }
+  }
+
+  // Already applied and pending review
+  if ((currentRole === 'seller' || currentRole === 'teacher') && !isApproved) {
+    return (
+      <div className="glass-card p-5 text-center">
+        <Clock className="w-8 h-8 text-gold-500 mx-auto mb-2" />
+        <p className="font-bold text-forest-900 dark:text-white">
+          Your {currentRole} application is under review
+        </p>
+        <p className="text-xs text-forest-400 mt-1">
+          We'll notify you once the admin approves your account. This usually takes 24-48 hours.
+        </p>
+      </div>
+    );
+  }
+
+  // Already approved
+  if ((currentRole === 'seller' || currentRole === 'teacher') && isApproved) {
+    return (
+      <div className="glass-card p-5 text-center">
+        <CheckCircle2 className="w-8 h-8 text-forest-600 mx-auto mb-2" />
+        <p className="font-bold text-forest-900 dark:text-white">
+          You're an approved {currentRole}!
+        </p>
+        <p className="text-xs text-forest-400 mt-1">
+          {currentRole === 'seller'
+            ? 'Head to the Marketplace to create your first listing.'
+            : 'Head to the Expert Directory to set up your teaching profile.'}
+        </p>
+      </div>
+    );
+  }
+
+  // Plain farmer — show application options
+  return (
+    <div className="glass-card p-5">
+      <p className="font-bold text-forest-900 dark:text-white mb-1">
+        Sell livestock or teach farmers?
+      </p>
+      <p className="text-xs text-forest-400 mb-4">
+        Apply to become a verified Seller or Expert Teacher. Admin approval required.
+      </p>
+
+      {error && (
+        <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-2 rounded-xl mb-3">
+          {error}
+        </p>
+      )}
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => applyAs('seller')}
+          disabled={submitting !== null}
+          className="btn-secondary flex-1"
+        >
+          {submitting === 'seller' ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <ShoppingBag className="w-4 h-4" />
+          )}
+          Sell Livestock
+        </button>
+        <button
+          onClick={() => applyAs('teacher')}
+          disabled={submitting !== null}
+          className="btn-secondary flex-1"
+        >
+          {submitting === 'teacher' ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <GraduationCap className="w-4 h-4" />
+          )}
+          Teach & Consult
+        </button>
+      </div>
+    </div>
+  );
+}
