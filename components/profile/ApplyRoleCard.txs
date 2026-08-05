@@ -111,3 +111,4 @@ export default function ApplyRoleCard({ userId, currentRole, isApproved }: Props
     </div>
   );
 }
+
