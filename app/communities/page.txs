@@ -1,49 +1,29 @@
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-
-export const revalidate = 300;
-
-export const metadata = {
-  title: 'Tribes & Communities',
-  description: 'Join farming Tribes for Poultry, Goats, Fish, Rabbits, Pigs, Dogs and Crops.',
-};
+import { createClient } from "@/lib/supabase/server";
 
 export default async function CommunitiesPage() {
   const supabase = createClient();
-  const { data: tribes } = await supabase
-    .from('tribes')
-    .select('slug, name, icon, description, member_count')
-    .order('member_count', { ascending: false });
+  const { data: tribes } = await supabase.from("tribes").select("*").order("name");
 
   return (
-    <div className="px-4 pt-4">
-      <h1 className="app-heading mb-1">Tribes & Communities</h1>
-      <p className="text-sm text-forest-400 mb-5">
-        Join farmers raising the same animals or crops as you.
-      </p>
-
-      {!tribes?.length ? (
-        <div className="glass-card p-8 text-center">
-          <p className="text-forest-500 font-semibold">No tribes found. Check back soon!</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3">
-          {tribes.map((tribe) => (
-            <Link
-              key={tribe.slug}
+    <div className="p-4 pb-24 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">🌾 Farming Communities (Tribes)</h1>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {tribes && tribes.length > 0 ? (
+          tribes.map((tribe: any) => (
+            <a
+              key={tribe.id}
               href={`/communities/${tribe.slug}`}
-              className="glass-card p-4 flex flex-col items-center text-center gap-2"
+              className="glass-card p-4 rounded-2xl shadow-lg flex flex-col items-center justify-center text-center hover:scale-105 transition-transform"
             >
-              <span className="text-4xl">{tribe.icon}</span>
-              <p className="font-bold text-forest-900 dark:text-white">{tribe.name}</p>
-              <p className="text-xs text-forest-400 line-clamp-2">{tribe.description}</p>
-              <p className="text-xs font-bold text-forest-600 dark:text-gold-400 mt-1">
-                {tribe.member_count.toLocaleString()} members
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
+              <span className="text-4xl mb-2">{tribe.icon}</span>
+              <h2 className="font-bold">{tribe.name}</h2>
+              <p className="text-xs text-gray-600 mt-1">{tribe.member_count} members</p>
+            </a>
+          ))
+        ) : (
+          <p className="text-gray-500 col-span-full text-center py-10">No tribes found.</p>
+        )}
+      </div>
     </div>
   );
 }
