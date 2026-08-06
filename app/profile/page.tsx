@@ -23,28 +23,12 @@ export default async function ProfilePage() {
         </div>
         <h1 className="text-2xl font-bold">{profile?.full_name || "Farmer"}</h1>
         <p className="text-gray-500 mb-4">{user.email}</p>
-        
         <div className="grid grid-cols-2 gap-4 text-left mt-6 border-t pt-4">
-          <div>
-            <p className="text-xs text-gray-500">Role</p>
-            <p className="font-semibold capitalize">{profile?.role || "farmer"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Location</p>
-            <p className="font-semibold">{profile?.location || "Not set"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Phone</p>
-            <p className="font-semibold">{profile?.phone || "Not set"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Status</p>
-            <p className="font-semibold text-green-600">
-              {profile?.is_approved ? "Approved ✅" : "Pending..."}
-            </p>
-          </div>
+          <div><p className="text-xs text-gray-500">Role</p><p className="font-semibold capitalize">{profile?.role || "farmer"}</p></div>
+          <div><p className="text-xs text-gray-500">Location</p><p className="font-semibold">{profile?.location || "Not set"}</p></div>
+          <div><p className="text-xs text-gray-500">Phone</p><p className="font-semibold">{profile?.phone || "Not set"}</p></div>
+          <div><p className="text-xs text-gray-500">Status</p><p className="font-semibold text-green-600">{profile?.is_approved ? "Approved ✅" : "Pending..."}</p></div>
         </div>
-
         <p className="text-sm text-gray-600 mt-6">{profile?.bio || "No bio added yet."}</p>
       </div>
     </div>
