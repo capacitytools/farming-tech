@@ -10,11 +10,20 @@ export default async function MarketPage() {
 
   return (
     <div className="p-4 pb-24 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">🐄 Livestock Marketplace</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">🐄 Livestock Marketplace</h1>
+        <a href="/market/new" className="bg-green-600 text-white px-4 py-2 rounded-xl font-semibold text-sm">
+          + Sell
+        </a>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {listings && listings.length > 0 ? (
           listings.map((listing: any) => (
             <a key={listing.id} href={`/market/${listing.id}`} className="glass-card p-4 rounded-2xl shadow-lg block">
+              {listing.images?.[0] && (
+                <img src={listing.images[0]} alt={listing.title} className="w-full h-36 object-cover rounded-xl mb-3" />
+              )}
               <div className="flex items-center gap-2 mb-2 text-sm text-green-600 font-semibold">
                 <span>{listing.tribes?.icon}</span>
                 <span>{listing.tribes?.name}</span>
