@@ -1,5 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export function createClient() {
   const cookieStore = cookies();
@@ -9,6 +9,18 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: any[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          } catch {
+            /* called from a Server Component - safe to ignore */
+          }
+        },
         get(name: string) {
           return cookieStore.get(name)?.value;
         },
@@ -16,17 +28,17 @@ export function createClient() {
           try {
             cookieStore.set({ name, value, ...options });
           } catch {
-            // called from a Server Component — safe to ignore with middleware refresh
+            /* called from a Server Component - safe to ignore */
           }
         },
         remove(name: string, options: any) {
           try {
-            cookieStore.set({ name, value: '', ...options });
+            cookieStore.set({ name, value: "", ...options });
           } catch {
-            // ignore
+            /* called from a Server Component - safe to ignore */
           }
         },
-      },
+      } as any,
     }
   );
 }
