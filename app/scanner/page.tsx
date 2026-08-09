@@ -35,6 +35,7 @@ const severityStyle: any = {
 export default function ScannerPage() {
   const [preview, setPreview] = useState("");
   const [tribe, setTribe] = useState("");
+  const [otherSubject, setOtherSubject] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
@@ -46,8 +47,8 @@ export default function ScannerPage() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       setLoggedIn(!!user);
-      if (user) {
-        const { data } = await supabase.from("ai_scans").select("*").order("created_at", { ascending: false }).limit(5);        setHistory(data || []);
+      if (user) {        const { data } = await supabase.from("ai_scans").select("*").order("created_at", { ascending: false }).limit(5);
+        setHistory(data || []);
       }
     })();
   }, []);
@@ -66,13 +67,21 @@ export default function ScannerPage() {
       setError("Take or choose a photo first.");
       return;
     }
+    let subject = tribe;
+    if (tribe === "Other") {
+      if (!otherSubject.trim()) {
+        setError("Please type the name of the animal or plant.");
+        return;
+      }
+      subject = otherSubject.trim();
+    }
     setLoading(true);
     setError("");
     try {
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: preview, tribe }),
+        body: JSON.stringify({ image: preview, tribe: subject }),
       });
       const data = await res.json();
       if (!res.ok) setError(data?.error || "Scan failed. Try again.");
@@ -86,19 +95,27 @@ export default function ScannerPage() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">🩺 AI Agri-Doctor</h1>
-      <p className="text-gray-600 text-sm mb-6">Snap a photo of a sick plant or animal and get an instant AI diagnosis + treatment plan.</p>
-
+      <p className="text-gray-600 text-sm mb-6">Snap or upload a photo of a sick plant or animal and get an instant AI diagnosis + treatment plan.</p>
       <div className="glass-card p-5 rounded-2xl shadow-lg mb-6">
-        <label className="block w-full cursor-pointer">
-          <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
-          {preview ? (
-            <img src={preview} alt="scan preview" className="w-full h-56 object-cover rounded-xl" />
-          ) : (
-            <div className="h-40 rounded-xl bg-forest-50 dark:bg-forest-800 flex flex-col items-center justify-center text-forest-600 dark:text-forest-200">
-              <span className="text-4xl mb-2">📷</span>
-              <span className="font-semibold text-sm">Tap to take / choose a photo</span>            </div>
-          )}
-        </label>
+        {preview ? (
+          <img src={preview} alt="scan preview" className="w-full h-56 object-cover rounded-xl mb-3" />
+        ) : (
+          <div className="h-32 rounded-xl bg-forest-50 dark:bg-forest-800 flex flex-col items-center justify-center text-forest-600 dark:text-forest-200 mb-3">
+            <span className="text-4xl mb-2">📷</span>
+            <span className="font-semibold text-sm">Add a photo to start</span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="cursor-pointer bg-forest-600 text-white py-3 rounded-xl font-semibold text-center text-sm">
+            📷 Take Photo
+            <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
+          </label>
+          <label className="cursor-pointer bg-forest-100 dark:bg-forest-800 text-forest-800 dark:text-forest-100 py-3 rounded-xl font-semibold text-center text-sm">
+            🖼️ Upload Image
+            <input type="file" accept="image/*" onChange={onFile} className="hidden" />
+          </label>
+        </div>
 
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mt-4" value={tribe} onChange={(e) => setTribe(e.target.value)}>
           <option value="">What type of farm subject? (optional)</option>
@@ -109,7 +126,17 @@ export default function ScannerPage() {
           <option value="Fish">Fish</option>
           <option value="Dogs">Dogs</option>
           <option value="Crops">Crops / Plants</option>
+          <option value="Other">Other (type the name)</option>
         </select>
+
+        {tribe === "Other" && (
+          <input
+            className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mt-3"
+            placeholder="Type the animal or plant name, e.g. Turkey, Cassava, Snail *"
+            value={otherSubject}
+            onChange={(e) => setOtherSubject(e.target.value)}
+          />
+        )}
 
         <button onClick={diagnose} disabled={loading} className="w-full mt-4 bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50">
           {loading ? "🔬 Analyzing..." : "Diagnose Now"}
@@ -118,7 +145,6 @@ export default function ScannerPage() {
         {error && <p className="text-sm text-red-600 text-center mt-3">{error}</p>}
         {!loggedIn && <p className="text-xs text-gray-500 text-center mt-3">💡 Log in to save your scan history.</p>}
       </div>
-
       {result && (
         <div className="glass-card p-5 rounded-2xl shadow-lg mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -145,7 +171,8 @@ export default function ScannerPage() {
               <ol className="list-decimal pl-5 text-sm text-gray-700 space-y-1">
                 {result.treatment_plan.map((t: string, i: number) => <li key={i}>{t}</li>)}
               </ol>
-            </div>          )}
+            </div>
+          )}
 
           {result.advice && <p className="text-sm text-forest-700 dark:text-forest-200 bg-forest-50 dark:bg-forest-800 p-3 rounded-xl">🌱 {result.advice}</p>}
         </div>
@@ -167,6 +194,5 @@ export default function ScannerPage() {
           </div>
         </div>
       )}
-    </div>
-  );
+    </div>  );
 }
