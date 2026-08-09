@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const base64 = image.includes(",") ? image.split(",")[1] : image;
     const mime = image.startsWith("data:") ? image.split(";")[0].split(":")[1] : "image/jpeg";
 
-    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const prompt = `You are an expert agricultural veterinarian and crop doctor for African farmers. Analyze this farm image (category: ${tribe || "general"}). Return ONLY valid JSON with exactly this structure:
@@ -31,7 +31,12 @@ If the image is not a plant or animal, set diagnosis to "Not a farm subject" and
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();
-      return NextResponse.json({ error: "AI service error. If it mentions the model, set GEMINI_MODEL to gemini-2.5-flash or gemini-1.5-flash in Vercel.", details: errText }, { status: 502 });
+      let reason = "";
+      try {
+        const ej = JSON.parse(errText);
+        reason = ej?.error?.message || "";
+      } catch {}
+      return NextResponse.json({ error: "AI error: " + (reason || "could not reach model " + model) }, { status: 502 });
     }
 
     const aiJson = await aiRes.json();
