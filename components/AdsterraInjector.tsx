@@ -1,45 +1,54 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Script from "next/script";
 
-function injectScript(htmlString: string) {
-  if (!htmlString) return;
-  // Check if it has a src attribute
-  const srcMatch = htmlString.match(/src="([^"]+)"/);
-  if (srcMatch && srcMatch[1]) {
-    const script = document.createElement("script");
-    script.src = srcMatch[1];
-    script.async = true;
-    document.body.appendChild(script);
-  } else if (htmlString.includes("<script")) {
-    // If it has inline code, parse and inject
-    const div = document.createElement("div");
-    div.innerHTML = htmlString;
-    const scripts = div.getElementsByTagName("script");
-    for (let i = 0; i < scripts.length; i++) {
-      const script = document.createElement("script");
-      Array.from(scripts[i].attributes).forEach((attr) => {
-        script.setAttribute(attr.name, attr.value);
-      });
-      script.text = scripts[i].innerHTML;
-      document.body.appendChild(script);
-    }
+function extractSrc(html?: string | null): string | null {
+  if (!html) return null;
+  const m = html.match(/src="([^"]+)"/);
+  return m ? m[1] : null;
+}
+
+function injectInline(html?: string | null) {
+  if (!html || extractSrc(html)) return;
+  if (!html.includes("<script")) return;
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  const scripts = div.getElementsByTagName("script");
+  for (let i = 0; i < scripts.length; i++) {
+    const s = document.createElement("script");
+    Array.from(scripts[i].attributes).forEach((a) => s.setAttribute(a.name, a.value));
+    s.text = scripts[i].innerHTML;
+    document.body.appendChild(s);
   }
 }
 
 export default function AdsterraInjector() {
+  const [ads, setAds] = useState<any>(null);
+
   useEffect(() => {
     (async () => {
       const { createClient } = await import("@/lib/supabase/client");
       const supabase = createClient();
       const { data } = await supabase.from("admin_settings").select("*").eq("id", 1).single();
       if (data) {
-        injectScript(data.adsterra_native_script);
-        injectScript(data.adsterra_push_script);
-        injectScript(data.adsterra_banner_script);
+        setAds(data);
+        injectInline(data.adsterra_native_script);
+        injectInline(data.adsterra_push_script);
+        injectInline(data.adsterra_banner_script);
       }
     })();
   }, []);
 
-  return null;
+  const nativeSrc = extractSrc(ads?.adsterra_native_script);
+  const bannerSrc = extractSrc(ads?.adsterra_banner_script);
+  const pushSrc = extractSrc(ads?.adsterra_push_script);
+
+  return (
+    <>
+      {nativeSrc && <Script src={nativeSrc} strategy="afterInteractive" />}
+      {bannerSrc && <Script src={bannerSrc} strategy="afterInteractive" />}
+      {pushSrc && <Script src={pushSrc} strategy="lazyOnload" />}
+    </>
+  );
 }
