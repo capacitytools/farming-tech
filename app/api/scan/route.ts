@@ -1,71 +1,75 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
-/**
- * POST /api/scan
- * Body: { imageUrl: string, tribeSlug: string }
- *
- * Production wiring:
- * 1. Receive the already-uploaded Supabase Storage image URL from the client
- *    (upload happens client-side via lib/uploadImage.ts into the `scan-images` bucket).
- * 2. Call a vision-capable model (e.g. Claude via the Anthropic API with an image
- *    input, or a specialized agri-vision model) with a structured prompt asking
- *    for diagnosis, confidence, severity, symptoms, and treatment steps as JSON.
- * 3. Persist the structured result to `ai_scans` and return it to the client.
- *
- * This stub validates the request and returns a deterministic placeholder so the
- * frontend flow can be wired and tested end-to-end before the AI model is connected.
- */
-export async function POST(req: NextRequest) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { image, tribe } = body;
+    if (!image) return NextResponse.json({ error: "No image provided" }, { status: 400 });
 
-  if (!user) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return NextResponse.json({ error: "AI not configured. Add GEMINI_API_KEY in Vercel." }, { status: 500 });
+
+    const base64 = image.includes(",") ? image.split(",")[1] : image;
+    const mime = image.startsWith("data:") ? image.split(";")[0].split(":")[1] : "image/jpeg";
+
+    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    const prompt = `You are an expert agricultural veterinarian and crop doctor for African farmers. Analyze this farm image (category: ${tribe || "general"}). Return ONLY valid JSON with exactly this structure:
+{"diagnosis": "string", "confidence": 0-100, "severity": "low|moderate|high|critical", "symptoms": ["string"], "treatment_plan": ["string"], "advice": "string"}
+If the image is not a plant or animal, set diagnosis to "Not a farm subject" and severity to "low".`;
+
+    const aiRes = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ inline_data: { mime_type: mime, data: base64 } }, { text: prompt }] }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0.4 },
+      }),
+    });
+
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      return NextResponse.json({ error: "AI service error. If it mentions the model, set GEMINI_MODEL to gemini-2.5-flash or gemini-1.5-flash in Vercel.", details: errText }, { status: 502 });
+    }
+
+    const aiJson = await aiRes.json();
+    const text = aiJson?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+    let result: any = {};
+    try {
+      result = JSON.parse(text);
+    } catch {
+      result = { diagnosis: text, severity: "moderate", confidence: 50, symptoms: [], treatment_plan: [], advice: "" };
+    }
+
+    const sev = ["low", "moderate", "high", "critical"].includes(result.severity) ? result.severity : "moderate";
+
+    const supabase = createClient();
+    let imageUrl = "";
+    try {
+      const buf = Buffer.from(base64, "base64");
+      const path = `scan-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("scan-images").upload(path, buf, { contentType: mime, upsert: false });
+      if (!upErr) imageUrl = supabase.storage.from("scan-images").getPublicUrl(path).data.publicUrl;
+    } catch {}
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && imageUrl) {
+      await supabase.from("ai_scans").insert({
+        user_id: user.id,
+        image_url: imageUrl,
+        diagnosis: result.diagnosis || null,
+        confidence: Number(result.confidence) || null,
+        severity: sev,
+        symptoms: result.symptoms || [],
+        treatment_plan: result.treatment_plan || [],
+        raw_ai_response: result,
+      });
+    }
+
+    return NextResponse.json({ ok: true, loggedIn: !!user, imageUrl, ...result, severity: sev });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message || "Scan failed" }, { status: 500 });
   }
-
-  const body = await req.json();
-  const { imageUrl, tribeSlug } = body;
-
-  if (!imageUrl) {
-    return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
-  }
-
-  // TODO: replace with real vision-model call
-  const diagnosis = {
-    diagnosis: 'Sample Diagnosis — connect AI model to replace this',
-    confidence: 80,
-    severity: 'moderate' as const,
-    symptoms: ['Sample symptom A', 'Sample symptom B'],
-    treatment_plan: ['Sample treatment step 1', 'Sample treatment step 2'],
-  };
-
-  const { data: tribe } = await supabase
-    .from('tribes')
-    .select('id')
-    .eq('slug', tribeSlug)
-    .single();
-
-  const { data: scan, error } = await supabase
-    .from('ai_scans')
-    .insert({
-      user_id: user.id,
-      tribe_id: tribe?.id ?? null,
-      image_url: imageUrl,
-      diagnosis: diagnosis.diagnosis,
-      confidence: diagnosis.confidence,
-      severity: diagnosis.severity,
-      symptoms: diagnosis.symptoms,
-      treatment_plan: diagnosis.treatment_plan,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ scan });
 }
