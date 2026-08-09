@@ -1,6 +1,27 @@
 import { createClient } from "@/lib/supabase/server";
 import ShareBar from "@/components/ShareBar";
 
+export async function generateMetadata(props: any) {
+  const params = await props.params;
+  const supabase = createClient();
+  const { data: blog } = await supabase
+    .from("blogs")
+    .select("title, excerpt, seo_title, seo_description, cover_image_url, slug")
+    .eq("slug", params.slug)
+    .single();
+  if (!blog) return { title: "Post not found" };
+  return {
+    title: blog.seo_title || blog.title,
+    description: blog.seo_description || blog.excerpt,
+    openGraph: {
+      title: blog.seo_title || blog.title,
+      description: blog.seo_description || blog.excerpt,
+      images: blog.cover_image_url ? [blog.cover_image_url] : [],
+      url: `https://farming-tech.vercel.app/blog/${blog.slug}`,
+    },
+  };
+}
+
 export default async function BlogPostPage(props: any) {
   const params = await props.params;
   const supabase = createClient();
