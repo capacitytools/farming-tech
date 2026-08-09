@@ -22,7 +22,9 @@ export default async function AdminBlogs() {
     <div className="p-4 pb-24 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">📝 Blog Posts</h1>
-       <Link href={`/admin/blogs/edit?id=${blog.id}`} className="text-green-700 font-semibold text-sm">Edit</Link>
+        <Link href="/admin/blogs/new" className="bg-green-600 text-white px-4 py-2 rounded-xl font-semibold">
+          + New Blog
+        </Link>
       </div>
 
       <div className="space-y-3">
@@ -37,7 +39,7 @@ export default async function AdminBlogs() {
                 📅 {blog.published_at ? new Date(blog.published_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : new Date(blog.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
               </p>
               <div className="flex gap-4 mt-2">
-                <Link href={`/admin/blogs/${blog.id}`} className="text-green-700 font-semibold text-sm">Edit</Link>
+                <Link href={`/admin/blogs/edit?id=${blog.id}`} className="text-green-700 font-semibold text-sm">Edit</Link>
                 <a href={`https://farming-tech.vercel.app/blog/${blog.slug}`} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold text-sm">View + Copy link</a>
               </div>
             </div>
