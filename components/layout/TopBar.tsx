@@ -47,7 +47,6 @@ export default function TopBar() {
               <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
             </div>
           </Link>
-
           <div className="flex items-center gap-1">
             <button
               aria-label="Notifications"
@@ -97,8 +96,7 @@ export default function TopBar() {
 
               <div className="px-5 pb-4 space-y-6">
                 {MENU_SECTIONS.map((section) => (
-                  <div key={section.title}>
-                    <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-2 px-1">
+                  <div key={section.title}>                    <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-2 px-1">
                       {section.title}
                     </p>
                     <div className="space-y-1">
@@ -112,7 +110,7 @@ export default function TopBar() {
                             className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"
                           >
                             <span className="flex items-center gap-3">
-                              <span className="w-9 h-9 rounded-xl bg-forest-50 dark:bg-forest-800 flex items-center justify-center">
+                              <span className="w-9 h-9 rounded-xl bg-forest-50 dark:forest-800 flex items-center justify-center">
                                 <Icon className="w-4.5 h-4.5 text-forest-600 dark:text-gold-400" />
                               </span>
                               <span className="text-sm font-semibold text-forest-800 dark:text-forest-100">
@@ -133,9 +131,9 @@ export default function TopBar() {
                   </p>
                   <div className="flex gap-2 px-1">
                     {[
-                      { icon: Facebook, href: 'https://facebook.com' },
-                      { icon: Instagram, href: 'https://instagram.com' },
-                      { icon: Youtube, href: 'https://youtube.com' },
+                      { icon: Facebook, href: 'https://www.facebook.com/share/1DLbDWeBd3/' },
+                      { icon: Instagram, href: 'https://www.instagram.com/myfarmtech' },
+                      { icon: Youtube, href: 'https://youtube.com/@animalstipss' },
                     ].map((s, i) => (
                       <a
                         key={i}
@@ -147,8 +145,7 @@ export default function TopBar() {
                         <s.icon className="w-4.5 h-4.5 text-forest-600 dark:text-forest-200" />
                       </a>
                     ))}
-                  </div>
-                </div>
+                  </div>                </div>
               </div>
             </motion.div>
           </>
