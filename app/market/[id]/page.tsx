@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { currencySymbol } from "@/lib/currency";
 
 export default async function ListingDetailPage(props: any) {
   const params = await props.params;
@@ -16,14 +17,28 @@ export default async function ListingDetailPage(props: any) {
       ) : (
         <>
           <div className="glass-card p-5 rounded-2xl shadow-lg mb-4">
+            {listing.images?.[0] && (
+              <img src={listing.images[0]} alt={listing.title} className="w-full h-56 object-cover rounded-xl mb-4" />
+            )}
             <div className="flex items-center gap-2 text-sm text-green-600 font-semibold mb-2">
-              <span>{listing.tribes?.icon}</span>
-              <span>{listing.tribes?.name}</span>
+              {listing.tribes ? (
+                <>
+                  <span>{listing.tribes.icon}</span>
+                  <span>{listing.tribes.name}</span>
+                </>
+              ) : (
+                <>
+                  <span>🧺</span>
+                  <span>{listing.custom_category}</span>
+                </>
+              )}
               {listing.is_featured && <span className="ml-auto text-amber-500">⭐ Featured</span>}
             </div>
             <h1 className="text-2xl font-bold mb-2">{listing.title}</h1>
             <p className="text-gray-700 mb-4">{listing.description}</p>
-            <div className="text-3xl font-bold text-green-700 mb-4">₦{Number(listing.price).toLocaleString()}</div>
+            <div className="text-3xl font-bold text-green-700 mb-4">
+              {currencySymbol(listing.currency)}{Number(listing.price).toLocaleString()}
+            </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="bg-white/60 rounded-xl p-3"><p className="text-gray-500">Breed</p><p className="font-semibold">{listing.breed || "—"}</p></div>
               <div className="bg-white/60 rounded-xl p-3"><p className="text-gray-500">Age</p><p className="font-semibold">{listing.age || "—"}</p></div>
