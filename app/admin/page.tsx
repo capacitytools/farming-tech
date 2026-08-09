@@ -25,6 +25,7 @@ export default async function AdminDashboard() {
 
   const { data: blogs } = await supabase.from("blogs").select("id, title, status, created_at").order("created_at", { ascending: false }).limit(5);
   const { data: listings } = await supabase.from("livestock_listings").select("id, title, status").eq("status", "pending").limit(5);
+  const { data: notes } = await supabase.from("admin_notes").select("id").limit(10);
   const { data: settings } = await supabase.from("admin_settings").select("*").eq("id", 1).single();
 
   return (
@@ -38,39 +39,18 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Blog Posts</h3>
           <p className="text-sm text-gray-600">{blogs?.length || 0} recent</p>
         </Link>
-        
+
         <Link href="/admin/listings" className="glass-card p-4 rounded-2xl hover:scale-105 transition-transform">
           <div className="text-3xl mb-2">🐄</div>
           <h3 className="font-bold">Pending Listings</h3>
           <p className="text-sm text-gray-600">{listings?.length || 0} awaiting approval</p>
         </Link>
-        
+
+        <Link href="/admin/notes" className="glass-card p-4 rounded-2xl hover:scale-105 transition-transform">
+          <div className="text-3xl mb-2">🗒️</div>
+          <h3 className="font-bold">Notepad</h3>
+          <p className="text-sm text-gray-600">{notes?.length || 0} private documents</p>
+        </Link>
+
         <Link href="/admin/ads" className="glass-card p-4 rounded-2xl hover:scale-105 transition-transform">
-          <div className="text-3xl mb-2">💰</div>
-          <h3 className="font-bold">Adsterra Ads</h3>
-          <p className="text-sm text-gray-600">Manage ad scripts</p>
-        </Link>
-        
-        <Link href="/admin/settings" className="glass-card p-4 rounded-2xl hover:scale-105 transition-transform">
-          <div className="text-3xl mb-2">⚙️</div>
-          <h3 className="font-bold">Site Settings</h3>
-          <p className="text-sm text-gray-600">Announcements & more</p>
-        </Link>
-      </div>
-
-      {settings?.site_announcement && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-6">
-          <p className="font-semibold text-amber-900">📢 Current Announcement:</p>
-          <p className="text-sm text-amber-800 mt-1">{settings.site_announcement}</p>
-        </div>
-      )}
-
-      {settings?.maintenance_mode && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
-          <p className="font-semibold text-red-900">🚧 Maintenance Mode is ON</p>
-          <p className="text-sm text-red-800 mt-1">The site is currently in maintenance mode.</p>
-        </div>
-      )}
-    </div>
-  );
-}
+          <div className="text-3xl mb-2">💰
