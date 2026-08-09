@@ -1,16 +1,19 @@
 {
   "name": "Farming Tech & Business",
-  "short_name": "AgriFTB",
-  "description": "AI-powered farming community, marketplace & agri-doctor for African farmers.",
+  "short_name": "FarmTech",
+  "description": "AI Agri-Doctor, livestock marketplace, farming communities and daily farming insights for African farmers.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0B1F14",
-  "theme_color": "#14532D",
   "orientation": "portrait",
+  "background_color": "#f4f7f2",
+  "theme_color": "#15803d",
   "icons": [
-    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
