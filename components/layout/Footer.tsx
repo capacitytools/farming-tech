@@ -2,9 +2,9 @@ import { Phone, Mail, Facebook, Instagram, Youtube } from 'lucide-react';
 
 // Real social links — update here if any of these ever change
 const SOCIAL_LINKS = [
-  { icon: Facebook, href: 'https://www.facebook.com/myFarmTech', label: 'Facebook' },
+  { icon: Facebook, href: 'https://www.facebook.com/share/1DLbDWeBd3/', label: 'Facebook' },
   { icon: Instagram, href: 'https://www.instagram.com/myfarmtech', label: 'Instagram' },
-  { icon: Youtube, href: 'https://www.youtube.com/@AnimalsTipss', label: 'YouTube' },
+  { icon: Youtube, href: 'https://youtube.com/@animalstipss', label: 'YouTube' },
 ];
 
 export default function Footer() {
