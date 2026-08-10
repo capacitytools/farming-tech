@@ -1,23 +1,27 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import ShareBar from "@/components/ShareBar";
+import AdBanner from "@/components/AdBanner";
 
-export async function generateMetadata(props: any) {
+export async function generateMetadata(props: any): Promise<Metadata> {
   const params = await props.params;
   const supabase = createClient();
-  const { data: blog } = await supabase
-    .from("blogs")
-    .select("title, excerpt, seo_title, seo_description, cover_image_url, slug")
-    .eq("slug", params.slug)
-    .single();
-  if (!blog) return { title: "Post not found" };
+  const { data: post } = await supabase.from("blogs").select("*").eq("slug", params.slug).single();
+  if (!post) return {};
+  const url = `https://farming-tech.vercel.app/blog/${post.slug}`;
   return {
-    title: blog.seo_title || blog.title,
-    description: blog.seo_description || blog.excerpt,
+    title: post.seo_title || post.title,
+    description: post.seo_description || post.excerpt,
     openGraph: {
-      title: blog.seo_title || blog.title,
-      description: blog.seo_description || blog.excerpt,
-      images: blog.cover_image_url ? [blog.cover_image_url] : [],
-      url: `https://farming-tech.vercel.app/blog/${blog.slug}`,
+      title: post.seo_title || post.title,
+      description: post.seo_description || post.excerpt,
+      images: post.cover_image_url ? [post.cover_image_url] : undefined,
+      url,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.seo_title || post.title,
+      description: post.seo_description || post.excerpt,
     },
   };
 }
@@ -25,46 +29,42 @@ export async function generateMetadata(props: any) {
 export default async function BlogPostPage(props: any) {
   const params = await props.params;
   const supabase = createClient();
-  const { data: blog } = await supabase
+  const { data: post } = await supabase
     .from("blogs")
-    .select("*, profiles(full_name)")
+    .select("*, profiles(full_name, avatar_url)")
     .eq("slug", params.slug)
-    .eq("status", "published")
     .single();
 
-  if (!blog) return <div className="p-8 text-center text-gray-500">Post not found.</div>;
+  if (!post || post.status !== "published") {
+    return <div className="p-8 text-center text-gray-500">Post not found.</div>;
+  }
 
-  await supabase.rpc("increment_blog_views", { post_id: blog.id });
+  await supabase.from("blogs").update({ views_count: (post.views_count || 0) + 1 }).eq("id", post.id);
 
-  const url = `https://farming-tech.vercel.app/blog/${blog.slug}`;
-  const date = blog.published_at
-    ? new Date(blog.published_at).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })
-    : "";
+  const url = `https://farming-tech.vercel.app/blog/${post.slug}`;
 
   return (
     <article className="p-4 pb-24 max-w-2xl mx-auto">
-      {blog.cover_image_url && (
-        <img src={blog.cover_image_url} alt={blog.title} className="w-full h-56 object-cover rounded-2xl mb-4" />
-      )}
-      <h1 className="text-2xl font-bold mb-2">{blog.title}</h1>
-      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 mb-2">
-        <span>📅 {date}</span>
-        <span>👁️ {(blog.views_count || 0) + 1} views</span>
-        {blog.category && (
-          <span className="bg-forest-100 dark:bg-forest-800 text-forest-700 dark:text-forest-200 px-2 py-1 rounded-full font-semibold">
-            {blog.category}
-          </span>
-        )}
+      <p className="text-sm text-green-600 font-semibold mb-2">{post.category || "Farming"}</p>
+      <h1 className="text-2xl font-bold mb-3">{post.title}</h1>
+      <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
+        <span>✍️ {post.profiles?.full_name || "Site Admin"}</span>
+        <span>·</span>
+        <span>📅 {new Date(post.published_at || post.created_at).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}</span>
+        <span>·</span>
+        <span>👁️ {post.views_count || 0}</span>
       </div>
-      <p className="text-sm text-gray-500">By {blog.profiles?.full_name || "Site Admin"}</p>
+      {post.cover_image_url && (
+        <img src={post.cover_image_url} alt={post.title} className="w-full h-56 object-cover rounded-2xl mb-4" />
+      )}
+      <ShareBar url={url} title={post.title} />
 
-      <ShareBar url={url} title={blog.title} />
+      <AdBanner type="native" />
 
-      {blog.excerpt && <p className="text-gray-600 italic mb-4">{blog.excerpt}</p>}
-      <div
-        className="text-gray-800 leading-relaxed space-y-3 [&_img]:rounded-xl [&_img]:w-full [&_img]:my-3"
-        dangerouslySetInnerHTML={{ __html: blog.content }}
-      />
+      <div className="prose prose-sm max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: post.content }} />
+
+      <AdBanner type="banner-300" />
+      <AdBanner type="banner-320" />
     </article>
   );
 }
