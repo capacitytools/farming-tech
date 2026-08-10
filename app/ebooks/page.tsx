@@ -49,6 +49,20 @@ export default function EbooksPage() {
       amount: ebook.price,
       currency: ebook.currency,    });
 
+    // Fetch the public key at runtime (fixes "key added after build" problem)
+    let key = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
+    try {
+      const kr = await fetch("/api/payments/key");
+      const kj = await kr.json();
+      if (kj?.key) key = kj.key;
+    } catch {}
+
+    if (!key) {
+      setMessage("Payment key missing — check Vercel environment variables.");
+      setBusy("");
+      return;
+    }
+
     const tryOpen = (tries = 0) => {
       const P = (window as any).PaystackPop;
       if (!P && tries < 10) {
@@ -61,7 +75,7 @@ export default function EbooksPage() {
         return;
       }
       const handler = P.setup({
-        key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+        key,
         email: user.email,
         amount: Math.round(Number(ebook.price) * 100),
         currency: ebook.currency || "NGN",
@@ -82,8 +96,7 @@ export default function EbooksPage() {
   return (
     <div className="p-4 pb-24 max-w-4xl mx-auto">
       <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
-      <h1 className="text-2xl font-bold mb-2">📚 E-Book Store</h1>
-      <p className="text-gray-600 text-sm mb-6">Buy once, download forever. Secure payment via Paystack.</p>
+      <h1 className="text-2xl font-bold mb-2">📚 E-Book Store</h1>      <p className="text-gray-600 text-sm mb-6">Buy once, download forever. Secure payment via Paystack.</p>
       {message && <p className="text-sm text-center text-green-700 mb-4">{message}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -96,7 +109,8 @@ export default function EbooksPage() {
               ) : (
                 <div className="text-6xl mb-4">📗</div>
               )}
-              <h2 className="font-bold text-lg mb-2">{book.title}</h2>              <p className="text-sm text-gray-600 mb-3">{book.description}</p>
+              <h2 className="font-bold text-lg mb-2">{book.title}</h2>
+              <p className="text-sm text-gray-600 mb-3">{book.description}</p>
               <p className="text-green-700 font-bold text-xl mb-4">
                 {currencySymbol(book.currency)}{Number(book.price).toLocaleString()}
               </p>
