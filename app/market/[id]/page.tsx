@@ -11,6 +11,8 @@ export default async function ListingDetailPage(props: any) {
     .eq("id", params.id)
     .single();
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       {!listing ? (
@@ -52,11 +54,18 @@ export default async function ListingDetailPage(props: any) {
             <h2 className="font-bold mb-2">Seller</h2>
             <p className="font-semibold">{listing.profiles?.full_name || "Farmer"}</p>
             {listing.profiles?.phone && <p className="text-sm text-gray-600">📞 {listing.profiles.phone}</p>}
-            {listing.profiles?.whatsapp && (
-              <a className="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded-xl font-semibold" href={`https://wa.me/${listing.profiles.whatsapp}`}>
-                Chat on WhatsApp
-              </a>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {listing.profiles?.whatsapp && (
+                <a className="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded-xl font-semibold" href={`https://wa.me/${listing.profiles.whatsapp}`}>
+                  Chat on WhatsApp
+                </a>
+              )}
+              {user && user.id !== listing.seller_id && (
+                <a className="inline-block mt-3 bg-forest-600 text-white px-4 py-2 rounded-xl font-semibold" href={`/inbox?user=${listing.seller_id}`}>
+                  💬 Message Seller
+                </a>
+              )}
+            </div>
           </div>
 
           <ListingReviews listingId={listing.id} />
