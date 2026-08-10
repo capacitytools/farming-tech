@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Script from "next/script";
 import { createClient } from "@/lib/supabase/client";
 import { currencySymbol } from "@/lib/currency";
 
@@ -26,6 +25,15 @@ export default function EbooksPage() {
 
   useEffect(() => {
     load();
+    (async () => {
+      const ref = new URLSearchParams(window.location.search).get("reference");
+      if (ref) {
+        const r = await fetch(`/api/payments/verify?reference=${ref}`);
+        const j = await r.json();
+        if (j?.ok) setMessage("Payment successful! Your download is ready. 🎉");
+        await load();
+      }
+    })();
   }, []);
 
   function owned(ebookId: string) {
@@ -39,64 +47,28 @@ export default function EbooksPage() {
       return;
     }
     setBusy(ebook.id);
-    const supabase = createClient();
-    const reference = `FT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    await supabase.from("ebook_purchases").insert({
-      user_id: user.id,
-      ebook_id: ebook.id,
-      email: user.email,
-      reference,
-      amount: ebook.price,
-      currency: ebook.currency,    });
-
-    // Fetch the public key at runtime (fixes "key added after build" problem)
-    let key = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "";
-    try {
-      const kr = await fetch("/api/payments/key");
-      const kj = await kr.json();
-      if (kj?.key) key = kj.key;
-    } catch {}
-
-    if (!key) {
-      setMessage("Payment key missing — check Vercel environment variables.");
-      setBusy("");
-      return;
-    }
-
-    const tryOpen = (tries = 0) => {
-      const P = (window as any).PaystackPop;
-      if (!P && tries < 10) {
-        setTimeout(() => tryOpen(tries + 1), 500);
-        return;
-      }
-      if (!P) {
-        setMessage("Payment system still loading — try again.");
+    try {      const res = await fetch("/api/payments/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ebook_id: ebook.id }),
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.url) {
+        setMessage("❌ " + (j?.error || "Could not start payment"));
         setBusy("");
         return;
       }
-      const handler = P.setup({
-        key,
-        email: user.email,
-        amount: Math.round(Number(ebook.price) * 100),
-        currency: ebook.currency || "NGN",
-        ref: reference,
-        callback: async () => {
-          await fetch(`/api/payments/verify?reference=${reference}`);
-          await load();
-          setMessage("Payment successful! Your download is ready. 🎉");
-          setBusy("");
-        },
-        onClose: () => setBusy(""),
-      });
-      handler.openIframe();
-    };
-    tryOpen();
+      window.location.href = j.url;
+    } catch {
+      setMessage("❌ Network error — try again.");
+      setBusy("");
+    }
   }
 
   return (
     <div className="p-4 pb-24 max-w-4xl mx-auto">
-      <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
-      <h1 className="text-2xl font-bold mb-2">📚 E-Book Store</h1>      <p className="text-gray-600 text-sm mb-6">Buy once, download forever. Secure payment via Paystack.</p>
+      <h1 className="text-2xl font-bold mb-2">📚 E-Book Store</h1>
+      <p className="text-gray-600 text-sm mb-6">Buy once, download forever. Secure payment via Paystack.</p>
       {message && <p className="text-sm text-center text-green-700 mb-4">{message}</p>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -124,8 +96,7 @@ export default function EbooksPage() {
                 </button>
               )}
             </div>
-          );
-        })}
+          );        })}
       </div>
       {ebooks.length === 0 && <p className="text-gray-500 text-center py-10">No e-books yet — check back soon!</p>}
     </div>
