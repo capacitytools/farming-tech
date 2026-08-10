@@ -28,7 +28,8 @@ export default function AdminBlogsPage() {
   }
 
   function copyLink(slug: string) {
-    const url = `https://farming-tech.vercel.app/blog/${slug}`;
+    // Note: Update this to your new domain once connected!
+    const url = `https://farmtechbusiness.com/blog/${slug}`; 
     navigator.clipboard.writeText(url);
     setMessage("Link copied! ✅");
     setTimeout(() => setMessage(""), 2000);
@@ -67,7 +68,13 @@ export default function AdminBlogsPage() {
                 {b.cover_image_url && <img src={b.cover_image_url} alt={b.title} className="w-20 h-20 object-cover rounded-lg" />}
                 <div className="flex-1">
                   <h3 className="font-bold text-sm">{b.title}</h3>
-                  <p className="text-xs text-gray-500 mt-1">{b.category || "Uncategorized"} · {b.status}</p>
+                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                    <span>{b.category || "Uncategorized"}</span>
+                    <span>·</span>
+                    <span className={b.status === "published" ? "text-green-600 font-bold" : "text-yellow-600 font-bold"}>{b.status}</span>
+                    <span>·</span>
+                    <span className="font-semibold">👁️ {b.views_count || 0} views</span>
+                  </div>
                   <p className="text-xs text-gray-600 mt-1 line-clamp-2">{b.excerpt}</p>
                   <div className="flex gap-2 mt-2">
                     <a href={`/admin/blogs/edit?id=${b.id}`} className="text-blue-600 text-sm font-semibold">Edit</a>
