@@ -36,6 +36,11 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Analytics</h3>
           <p className="text-sm text-gray-600">Views, sales & growth</p>
         </Link>
+        <Link href="/admin/notifications" className="glass-card p-4 rounded-2xl border-2 border-red-200">
+          <div className="text-3xl mb-2">🔔</div>
+          <h3 className="font-bold">Announcements</h3>
+          <p className="text-sm text-gray-600">Broadcast to all users</p>
+        </Link>
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📝</div>
           <h3 className="font-bold">Blog Posts</h3>
