@@ -29,7 +29,11 @@ export default async function AdminDashboard() {
     <div className="p-4 pb-24 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
       <p className="text-gray-600 mb-6">Welcome back, Site Admin 👋</p>
-
+<Link href="/admin/analytics" className="glass-card p-4 rounded-2xl border-2 border-purple-200">
+          <div className="text-3xl mb-2">📊</div>
+          <h3 className="font-bold">Analytics</h3>
+          <p className="text-sm text-gray-600">Views, sales & growth</p>
+        </Link>
       <div className="grid grid-cols-2 gap-4">
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📝</div>
