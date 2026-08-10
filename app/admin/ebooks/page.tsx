@@ -6,6 +6,7 @@ import { CURRENCIES } from "@/lib/currency";
 
 export default function AdminEbooks() {
   const [ebooks, setEbooks] = useState<any[]>([]);
+  const [editing, setEditing] = useState<any>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -44,29 +45,64 @@ export default function AdminEbooks() {
     setUploading(false);
   }
 
-  async function addEbook(e: any) {
+  function startEdit(book: any) {
+    setEditing(book);
+    setTitle(book.title);    setDescription(book.description || "");
+    setPrice(String(book.price));
+    setCurrency(book.currency);
+    setFileUrl(book.file_url || "");
+    setCoverUrl(book.cover_url || "");
+  }
+
+  function cancelEdit() {
+    setEditing(null);
+    setTitle(""); setDescription(""); setPrice(""); setFileUrl(""); setCoverUrl("");
+  }
+
+  async function saveEbook(e: any) {
     e.preventDefault();
     setMessage("");
-    const supabase = createClient();    const { error } = await supabase.from("ebooks").insert({
+    const supabase = createClient();
+    const data = {
       title,
       description,
       price: Number(price),
       currency,
       file_url: fileUrl || null,
       cover_url: coverUrl || null,
-    });
+    };
+    let error;
+    if (editing) {
+      ({ error } = await supabase.from("ebooks").update(data).eq("id", editing.id));
+    } else {
+      ({ error } = await supabase.from("ebooks").insert(data));
+    }
     if (error) setMessage("Error: " + error.message);
     else {
-      setMessage("E-book added ✅");
-      setTitle(""); setDescription(""); setPrice(""); setFileUrl(""); setCoverUrl("");
+      setMessage(editing ? "E-book updated ✅" : "E-book added ✅");
+      cancelEdit();
       load();
     }
   }
 
+  async function deleteEbook(id: string) {
+    if (!confirm("Delete this e-book?")) return;
+    const supabase = createClient();
+    await supabase.from("ebooks").delete().eq("id", id);
+    load();
+  }
+
+  function copyLink(id: string) {
+    const url = `https://farming-tech.vercel.app/ebooks?id=${id}`;
+    navigator.clipboard.writeText(url);
+    setMessage("Link copied! ✅");
+    setTimeout(() => setMessage(""), 2000);  }
+
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">📚 Manage E-books</h1>
-      <form onSubmit={addEbook} className="glass-card p-5 rounded-2xl space-y-4 mb-8">
+      <form onSubmit={saveEbook} className="glass-card p-5 rounded-2xl space-y-4 mb-8">
+        <h2 className="font-bold">{editing ? "Edit E-book" : "Add New E-book"}</h2>
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Book title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Short description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
         <div className="grid grid-cols-2 gap-3">
@@ -88,18 +124,36 @@ export default function AdminEbooks() {
           {fileUrl && <p className="text-xs text-green-600 mt-1">PDF uploaded ✅</p>}
         </div>
         {message && <p className="text-sm text-center text-green-700">{message}</p>}
-        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={uploading}>
-          Add E-book
-        </button>
+        <div className="flex gap-2">
+          <button className="flex-1 bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={uploading}>
+            {editing ? "Update" : "Add E-book"}
+          </button>
+          {editing && (
+            <button type="button" onClick={cancelEdit} className="flex-1 bg-gray-400 text-white py-3 rounded-xl font-semibold">
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
 
       <h2 className="font-bold mb-3">Your e-books ({ebooks.length})</h2>
       <div className="space-y-3">
         {ebooks.map((b) => (
-          <div key={b.id} className="glass-card p-4 rounded-2xl">            <h3 className="font-bold">{b.title}</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              {Number(b.price).toLocaleString()} · {b.file_url ? "📄 file attached" : "⚠️ no file yet"}
-            </p>
+          <div key={b.id} className="glass-card p-4 rounded-2xl">
+            <div className="flex gap-3">
+              {b.cover_url && <img src={b.cover_url} alt={b.title} className="w-20 h-24 object-cover rounded-lg" />}
+              <div className="flex-1">
+                <h3 className="font-bold">{b.title}</h3>
+                <p className="text-xs text-gray-600 mt-1">{b.description}</p>
+                <p className="text-xs text-gray-500 mt-1">                  {Number(b.price).toLocaleString()} {b.currency} · {b.file_url ? "📄 PDF" : "⚠️ No PDF"}
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => startEdit(b)} className="text-blue-600 text-sm font-semibold">Edit</button>
+                  <button onClick={() => deleteEbook(b.id)} className="text-red-600 text-sm font-semibold">Delete</button>
+                  <button onClick={() => copyLink(b.id)} className="text-green-600 text-sm font-semibold">Copy Link</button>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
