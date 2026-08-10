@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Menu, X, Bell, Sprout, BookOpen, Stethoscope, ShoppingBag,
+  Menu, X, Bell, Search, Sprout, BookOpen, Stethoscope, ShoppingBag,
   GraduationCap, Info, Phone, Facebook, Instagram, Youtube,
   ChevronRight, Newspaper,
 } from 'lucide-react';
@@ -14,6 +14,7 @@ const MENU_SECTIONS = [
   {
     title: 'Explore',
     items: [
+      { href: '/search', label: 'Search', icon: Search },
       { href: '/communities', label: 'Tribes & Communities', icon: Sprout },
       { href: '/blog', label: 'Daily Insight Blog', icon: Newspaper },
       { href: '/scanner', label: 'AI Agri-Doctor', icon: Stethoscope },
@@ -46,8 +47,14 @@ export default function TopBar() {
               <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>
               <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
             </div>
-          </Link>
-          <div className="flex items-center gap-1">
+          </Link>          <div className="flex items-center gap-1">
+            <Link
+              href="/search"
+              aria-label="Search"
+              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
+            >
+              <Search className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+            </Link>
             <button
               aria-label="Notifications"
               className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
@@ -89,14 +96,14 @@ export default function TopBar() {
                   onClick={() => setOpen(false)}
                   aria-label="Close menu"
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-forest-100 dark:bg-forest-800"
-                >
-                  <X className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+                >                  <X className="w-5 h-5 text-forest-700 dark:text-forest-200" />
                 </button>
               </div>
 
               <div className="px-5 pb-4 space-y-6">
                 {MENU_SECTIONS.map((section) => (
-                  <div key={section.title}>                    <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-2 px-1">
+                  <div key={section.title}>
+                    <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-2 px-1">
                       {section.title}
                     </p>
                     <div className="space-y-1">
@@ -138,14 +145,14 @@ export default function TopBar() {
                       <a
                         key={i}
                         href={s.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        target="_blank"                        rel="noopener noreferrer"
                         className="w-10 h-10 rounded-full bg-forest-50 dark:bg-forest-800 flex items-center justify-center"
                       >
                         <s.icon className="w-4.5 h-4.5 text-forest-600 dark:text-forest-200" />
                       </a>
                     ))}
-                  </div>                </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </>
