@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { currencySymbol } from "@/lib/currency";
+import ListingReviews from "@/components/ListingReviews";
 
 export default async function ListingDetailPage(props: any) {
   const params = await props.params;
@@ -46,14 +47,19 @@ export default async function ListingDetailPage(props: any) {
               <div className="bg-white/60 rounded-xl p-3"><p className="text-gray-500">Location</p><p className="font-semibold">{listing.location || "—"}</p></div>
             </div>
           </div>
+
           <div className="glass-card p-5 rounded-2xl shadow-lg">
             <h2 className="font-bold mb-2">Seller</h2>
             <p className="font-semibold">{listing.profiles?.full_name || "Farmer"}</p>
             {listing.profiles?.phone && <p className="text-sm text-gray-600">📞 {listing.profiles.phone}</p>}
             {listing.profiles?.whatsapp && (
-              <a className="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded-xl font-semibold" href={`https://wa.me/${listing.profiles.whatsapp}`}>Chat on WhatsApp</a>
+              <a className="inline-block mt-3 bg-green-600 text-white px-4 py-2 rounded-xl font-semibold" href={`https://wa.me/${listing.profiles.whatsapp}`}>
+                Chat on WhatsApp
+              </a>
             )}
           </div>
+
+          <ListingReviews listingId={listing.id} />
         </>
       )}
     </div>
