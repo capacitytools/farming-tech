@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import ShareBar from "@/components/ShareBar";
 import RichTextEditor from "@/components/RichTextEditor";
+
+const DRAFT_KEY = "blog_draft_new";
 
 export default function NewBlogPage() {
   const [title, setTitle] = useState("");
@@ -23,9 +25,29 @@ export default function NewBlogPage() {
   const [publishedTitle, setPublishedTitle] = useState("");
   const router = useRouter();
 
-  function makeSlug(text: string) {
-    return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  }
+  // Load draft when page opens
+  useEffect(() => {
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setTitle(parsed.title || "");
+        setExcerpt(parsed.excerpt || "");
+        setContent(parsed.content || "");
+        setCategory(parsed.category || "");
+        setTags(parsed.tags || "");
+        setCoverImage(parsed.coverImage || "");
+        setSeoTitle(parsed.seoTitle || "");
+        setSeoDescription(parsed.seoDescription || "");
+        setMessage("📝 Draft restored from your last session.");
+      } catch (e) {}
+    }
+  }, []);
+
+  // Auto-save draft as you type
+  useEffect(() => {
+    const draft = { title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));  }, [title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription]);
 
   async function uploadImage(file: File): Promise<string> {
     const supabase = createClient();
@@ -47,7 +69,8 @@ export default function NewBlogPage() {
       setMessage("Cover image uploaded ✅");
     } catch (err: any) {
       setMessage("Upload failed: " + err.message);
-    }    setUploading(false);
+    }
+    setUploading(false);
   }
 
   async function handleSubmit(e: any) {
@@ -63,7 +86,7 @@ export default function NewBlogPage() {
       return;
     }
 
-    const slug = makeSlug(title) + "-" + Date.now().toString(36);
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString(36);
     const tagArray = tags.split(",").map((t) => t.trim()).filter(Boolean);
 
     const { error } = await supabase.from("blogs").insert({
@@ -73,8 +96,7 @@ export default function NewBlogPage() {
       excerpt,
       content,
       cover_image_url: coverImage || null,
-      category,
-      tags: tagArray,
+      category,      tags: tagArray,
       seo_title: seoTitle || null,
       seo_description: seoDescription || null,
       status,
@@ -83,20 +105,38 @@ export default function NewBlogPage() {
 
     if (error) {
       setMessage("Error: " + error.message);
-    } else if (status === "published") {
-      setPublishedUrl(`https://farming-tech.vercel.app/blog/${slug}`);
-      setPublishedTitle(title);
-      setMessage("Published! Share it now 👇");
     } else {
-      router.push("/admin/blogs");
+      // Clear the draft from browser since it's saved!
+      localStorage.removeItem(DRAFT_KEY); 
+      
+      if (status === "published") {
+        const url = `https://farmtechbusiness.com/blog/${slug}`; // Update to your domain later
+        setPublishedUrl(url);
+        setPublishedTitle(title);
+        setMessage("Published! Share it now 👇");
+      } else {
+        router.push("/admin/blogs");
+      }
     }
     setLoading(false);
   }
 
+  function clearDraft() {
+    if (confirm("Are you sure you want to wipe this draft?")) {
+      localStorage.removeItem(DRAFT_KEY);
+      window.location.reload();
+    }
+  }
+
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">✍️ Write New Blog</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Blog title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">✍️ Write New Blog</h1>
+        <button onClick={clearDraft} className="text-xs text-red-500 font-semibold">🗑️ Wipe Draft</button>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Blog title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
         <div>
           <label className="text-sm font-semibold text-gray-600">Cover image</label>
           <input type="file" accept="image/*" onChange={handleCoverUpload} className="w-full text-sm mt-1" />
@@ -105,8 +145,7 @@ export default function NewBlogPage() {
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Short excerpt / summary" rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
         <div>
           <label className="text-sm font-semibold text-gray-600 mb-2 block">Article content *</label>
-          <RichTextEditor content={content} onChange={setContent} />
-        </div>
+          <RichTextEditor content={content} onChange={setContent} />        </div>
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="">Select category *</option>
           <option value="Animal">Animal</option>
@@ -122,7 +161,7 @@ export default function NewBlogPage() {
         </select>
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Tags, separated, by, commas" value={tags} onChange={(e) => setTags(e.target.value)} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO title (what Google shows)" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
-        <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO description (shown under title on Google & share previews)" rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
+        <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO description" rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="draft">Draft (hidden)</option>
           <option value="published">Published (live now)</option>
