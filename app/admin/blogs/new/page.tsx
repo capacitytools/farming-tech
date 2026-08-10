@@ -108,18 +108,18 @@ export default function NewBlogPage() {
           <RichTextEditor content={content} onChange={setContent} />
         </div>
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" value={category} onChange={(e) => setCategory(e.target.value)}>
-  <option value="">Select category *</option>
-  <option value="Animal">Animal</option>
-  <option value="Plants">Plants</option>
-  <option value="Business">Business</option>
-  <option value="Tech">Tech</option>
-  <option value="Poultry">Poultry</option>
-  <option value="Rabbits">Rabbits</option>
-  <option value="Goats">Goats</option>
-  <option value="Pigs">Pigs</option>
-  <option value="Fish">Fish</option>
-  <option value="Crops">Crops</option>
-</select>
+          <option value="">Select category *</option>
+          <option value="Animal">Animal</option>
+          <option value="Plants">Plants</option>
+          <option value="Business">Business</option>
+          <option value="Tech">Tech</option>
+          <option value="Poultry">Poultry</option>
+          <option value="Rabbits">Rabbits</option>
+          <option value="Goats">Goats</option>
+          <option value="Pigs">Pigs</option>
+          <option value="Fish">Fish</option>
+          <option value="Crops">Crops</option>
+        </select>
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Tags, separated, by, commas" value={tags} onChange={(e) => setTags(e.target.value)} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO title (what Google shows)" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO description (shown under title on Google & share previews)" rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
