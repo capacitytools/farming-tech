@@ -4,19 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import ShareBar from "@/components/ShareBar";
-
-function formatContent(raw: string): string {
-  return raw
-    .split("\n")
-    .map((line) => {
-      const t = line.trim();
-      if (!t) return "";
-      if (t.startsWith("<img")) return t;
-      const withLinks = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-green-700 font-semibold underline">$1</a>');
-      return `<p>${withLinks}</p>`;
-    })
-    .join("");
-}
+import RichTextEditor from "@/components/RichTextEditor";
 
 export default function NewBlogPage() {
   const [title, setTitle] = useState("");
@@ -48,6 +36,7 @@ export default function NewBlogPage() {
     const { data } = supabase.storage.from("blog-images").getPublicUrl(path);
     return data.publicUrl;
   }
+
   async function handleCoverUpload(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -58,22 +47,7 @@ export default function NewBlogPage() {
       setMessage("Cover image uploaded ✅");
     } catch (err: any) {
       setMessage("Upload failed: " + err.message);
-    }
-    setUploading(false);
-  }
-
-  async function handleContentImageUpload(e: any) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(file);
-      setContent((c) => c + `\n<img src="${url}" alt="post image" />`);
-      setMessage("Image added inside article ✅");
-    } catch (err: any) {
-      setMessage("Upload failed: " + err.message);
-    }
-    setUploading(false);
+    }    setUploading(false);
   }
 
   async function handleSubmit(e: any) {
@@ -96,7 +70,8 @@ export default function NewBlogPage() {
       author_id: user.id,
       title,
       slug,
-      excerpt,      content: formatContent(content),
+      excerpt,
+      content,
       cover_image_url: coverImage || null,
       category,
       tags: tagArray,
@@ -121,19 +96,16 @@ export default function NewBlogPage() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">✍️ Write New Blog</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Blog title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
+      <form onSubmit={handleSubmit} className="space-y-4">        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Blog title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
         <div>
           <label className="text-sm font-semibold text-gray-600">Cover image</label>
           <input type="file" accept="image/*" onChange={handleCoverUpload} className="w-full text-sm mt-1" />
           {coverImage && <img src={coverImage} alt="cover preview" className="mt-2 h-32 w-full object-cover rounded-xl" />}
         </div>
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Short excerpt / summary" rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
-        <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Write your article... (Enter = new paragraph) *" required rows={10} value={content} onChange={(e) => setContent(e.target.value)} />
-        <p className="text-xs text-gray-500 -mt-2">Add links like this: [link text](https://example.com) — recommended: 2 outside links + 1 link to your own site.</p>
         <div>
-          <label className="text-sm font-semibold text-gray-600">Add image inside article</label>
-          <input type="file" accept="image/*" onChange={handleContentImageUpload} className="w-full text-sm mt-1" />
+          <label className="text-sm font-semibold text-gray-600 mb-2 block">Article content *</label>
+          <RichTextEditor content={content} onChange={setContent} />
         </div>
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Category (e.g. Poultry)" value={category} onChange={(e) => setCategory(e.target.value)} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Tags, separated, by, commas" value={tags} onChange={(e) => setTags(e.target.value)} />
@@ -145,7 +117,8 @@ export default function NewBlogPage() {
         </select>
         {uploading && <p className="text-sm text-center text-gray-500">Uploading image…</p>}
         {message && <p className="text-sm text-center text-green-700">{message}</p>}
-        {publishedUrl && <ShareBar url={publishedUrl} title={publishedTitle} />}        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={loading || uploading}>
+        {publishedUrl && <ShareBar url={publishedUrl} title={publishedTitle} />}
+        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={loading || uploading}>
           {loading ? "Saving..." : "Save Blog"}
         </button>
       </form>
