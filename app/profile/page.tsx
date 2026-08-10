@@ -104,13 +104,13 @@ export default function ProfileDashboard() {
           </div>
           <div className="grid grid-cols-4 gap-2 text-center">
             <Link href="/admin/analytics" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">📊</span><p className="text-[10px] font-semibold">Analytics</p></Link>
+            <Link href="/admin/notifications" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🔔</span><p className="text-[10px] font-semibold">Announce</p></Link>
             <Link href="/admin/blogs" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">📝</span><p className="text-[10px] font-semibold">Blogs</p></Link>
             <Link href="/admin/listings" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🐄</span><p className="text-[10px] font-semibold">Listings</p></Link>
             <Link href="/admin/ebooks" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">📚</span><p className="text-[10px] font-semibold">E-books</p></Link>
             <Link href="/admin/tribes" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🌾</span><p className="text-[10px] font-semibold">Tribes</p></Link>
             <Link href="/admin/ads" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">💰</span><p className="text-[10px] font-semibold">Ads</p></Link>
             <Link href="/admin/notes" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🗒️</span><p className="text-[10px] font-semibold">Notepad</p></Link>
-            <Link href="/admin/settings" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">⚙️</span><p className="text-[10px] font-semibold">Settings</p></Link>
           </div>
         </div>
       )}
