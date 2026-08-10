@@ -3,28 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-
-function htmlToEditor(html: string): string {
-  return (html || "")
-    .replace(/<a[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g, "[$2]($1)")
-    .replace(/<img[^>]*src="([^"]+)"[^>]*\/?>/g, '<img src="$1" />')
-    .replace(/<\/p>/g, "\n")
-    .replace(/<p>/g, "")
-    .trim();
-}
-
-function formatContent(raw: string): string {
-  return raw
-    .split("\n")
-    .map((line) => {
-      const t = line.trim();
-      if (!t) return "";
-      if (t.startsWith("<img")) return t;
-      const withLinks = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-green-700 font-semibold underline">$1</a>');
-      return `<p>${withLinks}</p>`;
-    })
-    .join("");
-}
+import RichTextEditor from "@/components/RichTextEditor";
 
 export default function EditBlogPage() {
   const [id, setId] = useState("");
@@ -47,13 +26,14 @@ export default function EditBlogPage() {
     const params = new URLSearchParams(window.location.search);
     const blogId = params.get("id") || "";
     setId(blogId);
-    (async () => {      if (blogId) {
+    (async () => {
+      if (blogId) {
         const supabase = createClient();
         const { data } = await supabase.from("blogs").select("*").eq("id", blogId).single();
         if (data) {
           setTitle(data.title || "");
           setExcerpt(data.excerpt || "");
-          setContent(htmlToEditor(data.content || ""));
+          setContent(data.content || "");
           setCategory(data.category || "");
           setTags((data.tags || []).join(", "));
           setCoverImage(data.cover_image_url || "");
@@ -67,8 +47,7 @@ export default function EditBlogPage() {
   }, []);
 
   async function uploadImage(file: File): Promise<string> {
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "jpg";
+    const supabase = createClient();    const ext = file.name.split(".").pop() || "jpg";
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file, { cacheControl: "3600", upsert: false });
     if (error) throw new Error(error.message);
@@ -96,11 +75,12 @@ export default function EditBlogPage() {
     setMessage("");
     const supabase = createClient();
     const tagArray = tags.split(",").map((t) => t.trim()).filter(Boolean);
-    const { error } = await supabase      .from("blogs")
+    const { error } = await supabase
+      .from("blogs")
       .update({
         title,
         excerpt,
-        content: formatContent(content),
+        content,
         cover_image_url: coverImage || null,
         category,
         tags: tagArray,
@@ -116,8 +96,7 @@ export default function EditBlogPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this blog post permanently?")) return;
-    const supabase = createClient();
+    if (!confirm("Delete this blog post permanently?")) return;    const supabase = createClient();
     await supabase.from("blogs").delete().eq("id", id);
     router.push("/admin/blogs");
   }
@@ -135,8 +114,10 @@ export default function EditBlogPage() {
           {coverImage && <img src={coverImage} alt="cover" className="mt-2 h-32 w-full object-cover rounded-xl" />}
         </div>
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Excerpt" rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
-        <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Article content *" required rows={10} value={content} onChange={(e) => setContent(e.target.value)} />
-        <p className="text-xs text-gray-500 -mt-2">Links: [link text](https://example.com)</p>
+        <div>
+          <label className="text-sm font-semibold text-gray-600 mb-2 block">Article content *</label>
+          <RichTextEditor content={content} onChange={setContent} />
+        </div>
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Tags, separated, by, commas" value={tags} onChange={(e) => setTags(e.target.value)} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO title" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
@@ -145,7 +126,8 @@ export default function EditBlogPage() {
           <option value="draft">Draft (hidden)</option>
           <option value="published">Published (live)</option>
         </select>
-        {message && <p className="text-sm text-center text-red-600">{message}</p>}        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={loading || uploading}>
+        {message && <p className="text-sm text-center text-red-600">{message}</p>}
+        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={loading || uploading}>
           {loading ? "Saving..." : "Save Changes"}
         </button>
         <button type="button" onClick={handleDelete} className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold">
