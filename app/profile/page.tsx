@@ -1,52 +1,149 @@
-import { createClient } from "@/lib/supabase/server";
+"use client";
 
-export default async function ProfilePage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+
+export default function ProfileDashboard() {
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [listings, setListings] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [scans, setScans] = useState<any[]>([]);
+  const [myTribes, setMyTribes] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const router = useRouter();
+
+  async function load() {
+    const supabase = createClient();
+    const { data: { user: u } } = await supabase.auth.getUser();
+    setUser(u);
+    if (u) {
+      const { data: p } = await supabase.from("profiles").select("*").eq("id", u.id).single();
+      setProfile(p);
+      const { data: l } = await supabase.from("livestock_listings").select("*").eq("seller_id", u.id).order("created_at", { ascending: false });
+      setListings(l || []);
+      const { data: pur } = await supabase.from("ebook_purchases").select("*, ebooks(title, cover_url, file_url)").eq("user_id", u.id).eq("status", "paid");
+      setPurchases(pur || []);
+      const { data: s } = await supabase.from("ai_scans").select("*").eq("user_id", u.id).order("created_at", { ascending: false }).limit(6);
+      setScans(s || []);
+      const { data: t } = await supabase.from("tribe_members").select("*, tribes(name, icon, image_url, slug)").eq("user_id", u.id);
+      setMyTribes(t || []);
+    }
+    setLoaded(true);
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function changeAvatar(e: any) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `avatar-${user.id}-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (!error) {
+      const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
+      load();    }
+  }
+
+  async function logout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+  }
+
+  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
 
   if (!user) {
     return (
       <div className="p-8 text-center">
-        <h2 className="text-xl font-bold mb-2">You are not logged in</h2>
-        <p className="text-gray-500 mb-6">Log in to view your profile, sell livestock and join tribes.</p>
-        <a href="/login" className="inline-block bg-green-600 text-white px-6 py-3 rounded-xl font-semibold">
-          Log in / Sign up
-        </a>
+        <div className="text-6xl mb-4">👤</div>
+        <h1 className="text-2xl font-bold mb-2">Your Dashboard</h1>
+        <p className="text-gray-500 mb-6">Log in to see your listings, purchases, scans and tribes.</p>
+        <a href="/login" className="inline-block bg-green-600 text-white px-6 py-3 rounded-xl font-semibold">Log in / Sign up</a>
       </div>
     );
   }
 
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  const statusColor: any = { active: "bg-green-100 text-green-700", pending: "bg-yellow-100 text-yellow-700", rejected: "bg-red-100 text-red-700", sold: "bg-gray-200 text-gray-700" };
 
   return (
-    <div className="p-4 pb-24 max-w-xl mx-auto">
-      <div className="glass-card p-6 rounded-2xl text-center">
-        <div className="w-24 h-24 mx-auto rounded-full bg-green-100 flex items-center justify-center text-3xl font-bold text-green-700 mb-4">
-          {profile?.full_name?.[0] || user.email?.[0].toUpperCase()}
+    <div className="p-4 pb-24 max-w-2xl mx-auto">
+      <div className="glass-card p-5 rounded-2xl flex items-center gap-4 mb-6">
+        <label className="relative cursor-pointer">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-green-200 flex items-center justify-center text-2xl font-bold text-green-800">
+              {(profile?.full_name || user.email)?.[0]?.toUpperCase()}
+            </div>
+          )}
+          <span className="absolute bottom-0 right-0 bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">📷</span>
+          <input type="file" accept="image/*" onChange={changeAvatar} className="hidden" />
+        </label>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">{profile?.full_name || "Farmer"}</h1>
+          <p className="text-xs text-gray-500">{user.email}</p>
+          <span className="inline-block mt-1 text-[10px] font-bold uppercase bg-forest-100 text-forest-700 px-2 py-0.5 rounded-full">{profile?.role || "member"}</span>
         </div>
-        <h1 className="text-2xl font-bold">{profile?.full_name || "Farmer"}</h1>
-        <p className="text-gray-500 mb-4">{user.email}</p>
-
-        <div className="grid grid-cols-2 gap-4 text-left mt-6 border-t pt-4">
-          <div><p className="text-xs text-gray-500">Role</p><p className="font-semibold capitalize">{profile?.role || "farmer"}</p></div>
-          <div><p className="text-xs text-gray-500">Location</p><p className="font-semibold">{profile?.location || "Not set"}</p></div>
-          <div><p className="text-xs text-gray-500">Phone</p><p className="font-semibold">{profile?.phone || "Not set"}</p></div>
-          <div><p className="text-xs text-gray-500">Status</p><p className="font-semibold text-green-600">{profile?.is_approved ? "Approved ✅" : "Pending..."}</p></div>
-        </div>
-
-        <p className="text-sm text-gray-600 mt-6">{profile?.bio || "No bio added yet."}</p>
-
-        {profile?.role === "admin" && (
-          <div className="mt-6 space-y-3">
-            <a href="/admin" className="block w-full bg-forest-600 text-white py-3 rounded-xl font-semibold">
-              🛠️ Open Admin Dashboard
-            </a>
-            <a href="/admin/blogs/new" className="block w-full bg-green-600 text-white py-3 rounded-xl font-semibold">
-              ✍️ Write New Blog
-            </a>
-          </div>
-        )}
+        <button onClick={logout} className="text-red-600 text-sm font-semibold">Logout</button>
       </div>
-    </div>
-  );
+
+      <div className="grid grid-cols-4 gap-2 mb-6 text-center">
+        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{listings.length}</p><p className="text-[10px] text-gray-500">Listings</p></div>
+        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{purchases.length}</p><p className="text-[10px] text-gray-500">E-books</p></div>
+        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{scans.length}</p><p className="text-[10px] text-gray-500">Scans</p></div>        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{myTribes.length}</p><p className="text-[10px] text-gray-500">Tribes</p></div>
+      </div>
+
+      <h2 className="font-bold mb-3">🐄 My Listings</h2>
+      <div className="space-y-2 mb-6">
+        {listings.length ? listings.map((l) => (
+          <div key={l.id} className="glass-card p-3 rounded-xl flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-sm">{l.title}</p>
+              <p className="text-xs text-gray-500">₦{Number(l.price).toLocaleString()} · Qty {l.quantity}</p>
+            </div>
+            <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase ${statusColor[l.status]}`}>{l.status}</span>
+          </div>
+        )) : <p className="text-sm text-gray-500">No listings yet. <a href="/market/new" className="text-green-600 font-semibold">Sell now</a></p>}
+      </div>
+
+      <h2 className="font-bold mb-3">📚 My E-books</h2>
+      <div className="space-y-2 mb-6">
+        {purchases.length ? purchases.map((p) => (
+          <div key={p.id} className="glass-card p-3 rounded-xl flex items-center gap-3">
+            {p.ebooks?.cover_url && <img src={p.ebooks.cover_url} alt="" className="w-10 h-12 object-cover rounded" />}
+            <p className="flex-1 font-semibold text-sm">{p.ebooks?.title}</p>
+            <a href={p.ebooks?.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-green-600 text-sm font-semibold">⬇️</a>
+          </div>
+        )) : <p className="text-sm text-gray-500">No e-books yet. <a href="/ebooks" className="text-green-600 font-semibold">Browse store</a></p>}
+      </div>
+
+      <h2 className="font-bold mb-3">🩺 My AI Scans</h2>
+      <div className="space-y-2 mb-6">
+        {scans.length ? scans.map((s) => (
+          <div key={s.id} className="glass-card p-3 rounded-xl flex items-center gap-3">
+            {s.image_url && <img src={s.image_url} alt="" className="w-12 h-12 object-cover rounded-lg" />}
+            <div>
+              <p className="font-semibold text-sm">{s.diagnosis}</p>
+              <p className="text-xs text-gray-500">{new Date(s.created_at).toLocaleDateString()} · {s.severity}</p>
+            </div>
+          </div>
+        )) : <p className="text-sm text-gray-500">No scans yet. <a href="/scanner" className="text-green-600 font-semibold">Scan now</a></p>}
+      </div>
+
+      <h2 className="font-bold mb-3">🌾 My Tribes</h2>
+      <div className="space-y-2">
+        {myTribes.length ? myTribes.map((t) => (
+          <a key={t.id} href={`/communities/${t.tribes?.slug}`} className="glass-card p-3 rounded-xl flex items-center gap-3">
+            {t.tribes?.image_url ? <img src={t.tribes.image_url} alt="" className="w-10 h-10 object-cover rounded-lg" /> : <span className="text-2xl">{t.tribes?.icon}</span>}
+            <p className="font-semibold text-sm">{t.tribes?.name}</p>
+          </a>
+        )) : <p className="text-sm text-gray-500">Not in any tribe yet. <a href="/communities" className="text-green-600 font-semibold">Join one</a></p>}
+      </div>
+    </div>  );
 }
