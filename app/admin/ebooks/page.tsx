@@ -24,23 +24,30 @@ export default function AdminEbooks() {
     load();
   }, []);
 
-  async function uploadCover(e: any) {
+  async function uploadFile(e: any, type: "pdf" | "cover") {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setMessage("");
     const supabase = createClient();
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `ebook-cover-${Date.now()}.${ext}`;
+    const ext = file.name.split(".").pop() || (type === "pdf" ? "pdf" : "jpg");
+    const path = `${type === "pdf" ? "ebook-pdf" : "ebook-cover"}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file);
-    if (!error) setCoverUrl(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
+    if (!error) {
+      const url = supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl;
+      if (type === "pdf") setFileUrl(url);
+      else setCoverUrl(url);
+      setMessage(`${type === "pdf" ? "PDF" : "Cover"} uploaded ✅`);
+    } else {
+      setMessage("Upload failed: " + error.message);
+    }
     setUploading(false);
   }
 
   async function addEbook(e: any) {
     e.preventDefault();
     setMessage("");
-    const supabase = createClient();
-    const { error } = await supabase.from("ebooks").insert({
+    const supabase = createClient();    const { error } = await supabase.from("ebooks").insert({
       title,
       description,
       price: Number(price),
@@ -72,10 +79,14 @@ export default function AdminEbooks() {
         </div>
         <div>
           <label className="text-sm font-semibold text-gray-600">Cover image</label>
-          <input type="file" accept="image/*" onChange={uploadCover} className="w-full text-sm mt-1" />
+          <input type="file" accept="image/*" onChange={(e) => uploadFile(e, "cover")} className="w-full text-sm mt-1" />
           {coverUrl && <img src={coverUrl} alt="cover" className="mt-2 h-24 w-full object-cover rounded-xl" />}
         </div>
-        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="PDF file URL (upload in Supabase Storage, copy public URL)" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} />
+        <div>
+          <label className="text-sm font-semibold text-gray-600">PDF file</label>
+          <input type="file" accept=".pdf" onChange={(e) => uploadFile(e, "pdf")} className="w-full text-sm mt-1" />
+          {fileUrl && <p className="text-xs text-green-600 mt-1">PDF uploaded ✅</p>}
+        </div>
         {message && <p className="text-sm text-center text-green-700">{message}</p>}
         <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={uploading}>
           Add E-book
@@ -85,8 +96,7 @@ export default function AdminEbooks() {
       <h2 className="font-bold mb-3">Your e-books ({ebooks.length})</h2>
       <div className="space-y-3">
         {ebooks.map((b) => (
-          <div key={b.id} className="glass-card p-4 rounded-2xl">
-            <h3 className="font-bold">{b.title}</h3>
+          <div key={b.id} className="glass-card p-4 rounded-2xl">            <h3 className="font-bold">{b.title}</h3>
             <p className="text-xs text-gray-500 mt-1">
               {Number(b.price).toLocaleString()} · {b.file_url ? "📄 file attached" : "⚠️ no file yet"}
             </p>
