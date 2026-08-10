@@ -1,64 +1,38 @@
-import Link from 'next/link';
-import Image from 'next/image';
-import { createClient } from '@/lib/supabase/server';
-import { formatRelativeTime } from '@/lib/utils';
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
-export const revalidate = 300;
-
-export const metadata = {
-  title: 'Daily Insight — Farming Tips & News',
-  description: 'Daily articles on poultry, goats, fish, rabbits, pigs, crops and AI farming tools for African farmers.',
-};
-
-export default async function BlogListPage() {
+export default async function BlogPage() {
   const supabase = createClient();
   const { data: posts } = await supabase
-    .from('blogs')
-    .select('slug, title, excerpt, cover_image_url, category, published_at')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(50);
+    .from("blogs")
+    .select("*")
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
 
   return (
-    <div className="px-4 pt-4">
-      <h1 className="app-heading mb-1">Daily Insight</h1>
-      <p className="text-sm text-forest-400 mb-5">
-        Fresh farming tips, disease alerts, and business ideas — every day.
-      </p>
-
-      {!posts?.length ? (
-        <div className="glass-card p-8 text-center">
-          <p className="text-forest-500 font-semibold">No posts published yet. Check back soon!</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <Link key={post.slug} href={`/blog/${post.slug}`} className="glass-card flex gap-3 p-3">
-              <div className="relative w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0">
-                <Image
-                  src={post.cover_image_url || '/images/placeholder-blog.jpg'}
-                  alt={post.title}
-                  fill
-                  className="object-cover"
-                />
+    <div className="p-4 pb-24 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">📰 Daily Insights</h1>
+      <div className="space-y-4">
+        {(posts || []).map((post) => (
+          <Link key={post.id} href={`/blog/${post.slug}`} className="glass-card p-4 rounded-2xl flex gap-4 active:scale-[0.98] transition-transform">
+            {post.cover_image_url ? (
+              <img src={post.cover_image_url} alt={post.title} className="w-24 h-24 object-cover rounded-xl flex-shrink-0" />
+            ) : (
+              <div className="w-24 h-24 bg-forest-100 rounded-xl flex items-center justify-center text-3xl flex-shrink-0">📰</div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-green-600 font-bold mb-1">{post.category}</p>
+              <h2 className="font-bold text-lg leading-tight mb-2 line-clamp-2">{post.title}</h2>
+              <p className="text-xs text-gray-500 line-clamp-2 mb-2">{post.excerpt}</p>
+              <div className="flex items-center gap-3 text-[10px] text-gray-400 font-semibold">
+                <span>📅 {new Date(post.published_at || post.created_at).toLocaleDateString()}</span>
+                <span>👁️ {post.views_count || 0} views</span>
               </div>
-              <div className="flex-1 min-w-0 py-1">
-                {post.category && (
-                  <span className="text-[10px] font-bold text-forest-600 uppercase tracking-wide">
-                    {post.category}
-                  </span>
-                )}
-                <p className="font-bold text-forest-900 dark:text-white leading-snug line-clamp-2 mt-0.5">
-                  {post.title}
-                </p>
-                <p className="text-xs text-forest-400 mt-1">
-                  {formatRelativeTime(post.published_at)}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+            </div>
+          </Link>
+        ))}
+        {(!posts || posts.length === 0) && <p className="text-center text-gray-500 py-10">No articles published yet.</p>}
+      </div>
     </div>
   );
 }
