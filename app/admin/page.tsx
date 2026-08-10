@@ -8,11 +8,7 @@ export default async function AdminDashboard() {
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
   if (profile?.role !== "admin") {
     return (
@@ -26,14 +22,15 @@ export default async function AdminDashboard() {
   const { data: blogs } = await supabase.from("blogs").select("id").limit(10);
   const { data: listings } = await supabase.from("livestock_listings").select("id").eq("status", "pending").limit(10);
   const { data: notes } = await supabase.from("admin_notes").select("id").limit(10);
-  const { data: settings } = await supabase.from("admin_settings").select("*").eq("id", 1).single();
+  const { data: tribes } = await supabase.from("tribes").select("id").limit(20);
+  const { data: ebooks } = await supabase.from("ebooks").select("id").limit(10);
 
   return (
     <div className="p-4 pb-24 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
       <p className="text-gray-600 mb-6">Welcome back, Site Admin 👋</p>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-4">
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📝</div>
           <h3 className="font-bold">Blog Posts</h3>
@@ -54,26 +51,22 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Adsterra Ads</h3>
           <p className="text-sm text-gray-600">Manage ad scripts</p>
         </Link>
+        <Link href="/admin/ebooks" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">📚</div>
+          <h3 className="font-bold">E-books</h3>
+          <p className="text-sm text-gray-600">{ebooks?.length || 0} books for sale</p>
+        </Link>
+        <Link href="/admin/tribes" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">🌾</div>
+          <h3 className="font-bold">Tribes</h3>
+          <p className="text-sm text-gray-600">{tribes?.length || 0} communities</p>
+        </Link>
         <Link href="/admin/settings" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">⚙️</div>
           <h3 className="font-bold">Site Settings</h3>
           <p className="text-sm text-gray-600">Announcements and more</p>
         </Link>
       </div>
-
-      {settings?.site_announcement && (
-        <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-6">
-          <p className="font-semibold text-amber-900">📢 Current Announcement:</p>
-          <p className="text-sm text-amber-800 mt-1">{settings.site_announcement}</p>
-        </div>
-      )}
-
-      {settings?.maintenance_mode && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-xl">
-          <p className="font-semibold text-red-900">🚧 Maintenance Mode is ON</p>
-          <p className="text-sm text-red-800 mt-1">The site is currently in maintenance mode.</p>
-        </div>
-      )}
     </div>
   );
 }
