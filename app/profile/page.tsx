@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function ProfileDashboard() {
   const [user, setUser] = useState<any>(null);
@@ -46,8 +47,8 @@ export default function ProfileDashboard() {
     const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
     if (!error) {
       const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
-      await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);
-      load();    }
+      await supabase.from("profiles").update({ avatar_url: url }).eq("id", user.id);      load();
+    }
   }
 
   async function logout() {
@@ -69,6 +70,7 @@ export default function ProfileDashboard() {
     );
   }
 
+  const isAdmin = profile?.role === "admin";
   const statusColor: any = { active: "bg-green-100 text-green-700", pending: "bg-yellow-100 text-yellow-700", rejected: "bg-red-100 text-red-700", sold: "bg-gray-200 text-gray-700" };
 
   return (
@@ -88,15 +90,36 @@ export default function ProfileDashboard() {
         <div className="flex-1">
           <h1 className="text-xl font-bold">{profile?.full_name || "Farmer"}</h1>
           <p className="text-xs text-gray-500">{user.email}</p>
-          <span className="inline-block mt-1 text-[10px] font-bold uppercase bg-forest-100 text-forest-700 px-2 py-0.5 rounded-full">{profile?.role || "member"}</span>
+          <span className={`inline-block mt-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${isAdmin ? "bg-purple-100 text-purple-700" : "bg-forest-100 text-forest-700"}`}>
+            {profile?.role || "member"}
+          </span>
         </div>
         <button onClick={logout} className="text-red-600 text-sm font-semibold">Logout</button>
       </div>
+      {isAdmin && (
+        <div className="glass-card p-5 rounded-2xl mb-6 border-2 border-purple-300">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-purple-700">🛠️ Admin Workspace</h2>
+            <Link href="/admin" className="text-sm font-semibold text-purple-700">Open full dashboard →</Link>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <Link href="/admin/blogs" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">📝</span><p className="text-[10px] font-semibold">Blogs</p></Link>
+            <Link href="/admin/listings" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🐄</span><p className="text-[10px] font-semibold">Listings</p></Link>
+            <Link href="/admin/ebooks" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">📚</span><p className="text-[10px] font-semibold">E-books</p></Link>
+            <Link href="/admin/tribes" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🌾</span><p className="text-[10px] font-semibold">Tribes</p></Link>
+            <Link href="/admin/ads" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">💰</span><p className="text-[10px] font-semibold">Ads</p></Link>
+            <Link href="/admin/notes" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🗒️</span><p className="text-[10px] font-semibold">Notepad</p></Link>
+            <Link href="/admin/settings" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">⚙️</span><p className="text-[10px] font-semibold">Settings</p></Link>
+            <Link href="/search" className="bg-white/70 p-2 rounded-xl"><span className="text-xl">🔍</span><p className="text-[10px] font-semibold">Search</p></Link>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-4 gap-2 mb-6 text-center">
         <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{listings.length}</p><p className="text-[10px] text-gray-500">Listings</p></div>
         <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{purchases.length}</p><p className="text-[10px] text-gray-500">E-books</p></div>
-        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{scans.length}</p><p className="text-[10px] text-gray-500">Scans</p></div>        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{myTribes.length}</p><p className="text-[10px] text-gray-500">Tribes</p></div>
+        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{scans.length}</p><p className="text-[10px] text-gray-500">Scans</p></div>
+        <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{myTribes.length}</p><p className="text-[10px] text-gray-500">Tribes</p></div>
       </div>
 
       <h2 className="font-bold mb-3">🐄 My Listings</h2>
@@ -122,7 +145,6 @@ export default function ProfileDashboard() {
           </div>
         )) : <p className="text-sm text-gray-500">No e-books yet. <a href="/ebooks" className="text-green-600 font-semibold">Browse store</a></p>}
       </div>
-
       <h2 className="font-bold mb-3">🩺 My AI Scans</h2>
       <div className="space-y-2 mb-6">
         {scans.length ? scans.map((s) => (
@@ -145,5 +167,6 @@ export default function ProfileDashboard() {
           </a>
         )) : <p className="text-sm text-gray-500">Not in any tribe yet. <a href="/communities" className="text-green-600 font-semibold">Join one</a></p>}
       </div>
-    </div>  );
+    </div>
+  );
 }
