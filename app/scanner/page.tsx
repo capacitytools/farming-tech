@@ -26,12 +26,20 @@ export default function ScannerPage() {
     loadScans();
   }, []);
 
-  function onFile(e: any) {
+  async function onFile(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
+    try {
+      const imageCompression = (await import("browser-image-compression")).default;
+      const compressed = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1280, useWebWorker: true });
+      const reader = new FileReader();
+      reader.onload = () => setImage(reader.result as string);
+      reader.readAsDataURL(compressed);
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => setImage(reader.result as string);
+      reader.readAsDataURL(file);
+    }
     e.target.value = "";
   }
 
@@ -39,15 +47,15 @@ export default function ScannerPage() {
     if (!image) {
       setError("Please take or upload a photo first.");
       return;
-    }
-    setBusy(true);
+    }    setBusy(true);
     setError("");
     setResult("");
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
 
-      let imageUrl = "";      try {
+      let imageUrl = "";
+      try {
         const blob = await (await fetch(image)).blob();
         const path = `scan-${Date.now()}.jpg`;
         const { error: upErr } = await supabase.storage.from("scan-images").upload(path, blob, { contentType: "image/jpeg" });
@@ -89,14 +97,14 @@ export default function ScannerPage() {
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">🩺 AI Agri-Doctor</h1>
       <p className="text-gray-600 text-sm mb-6">Snap a photo of a sick plant or animal → get an instant AI diagnosis + treatment plan.</p>
-
       <div className="glass-card p-5 rounded-2xl shadow-lg">
         {image && <img src={image} alt="scan preview" className="w-full h-64 object-cover rounded-xl mb-4" />}
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <label className="bg-forest-700 text-white text-center py-3 rounded-xl font-semibold cursor-pointer">
             📷 Take Photo
-            <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />          </label>
+            <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
+          </label>
           <label className="bg-forest-100 text-forest-800 text-center py-3 rounded-xl font-semibold cursor-pointer">
             🖼️ Upload Image
             <input type="file" accept="image/*" onChange={onFile} className="hidden" />
@@ -111,7 +119,7 @@ export default function ScannerPage() {
         </select>
 
         <button onClick={diagnose} disabled={busy} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50">
-          {busy ? " Analyzing..." : "Diagnose Now"}
+          {busy ? "Analyzing..." : "Diagnose Now"}
         </button>
 
         {error && <p className="text-red-600 text-sm mt-4 text-center">{error}</p>}
@@ -137,8 +145,7 @@ export default function ScannerPage() {
               </div>
             </div>
           ))
-        ) : (
-          <p className="text-sm text-gray-500 text-center">No scans yet — log in and diagnose your first photo!</p>
+        ) : (          <p className="text-sm text-gray-500 text-center">No scans yet — log in and diagnose your first photo!</p>
         )}
       </div>
     </div>
