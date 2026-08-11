@@ -11,7 +11,8 @@ export default function AdminWallet() {
 
   async function load() {
     const supabase = createClient();
-    const { data } = await supabase.rpc("admin_wallet_view");
+    const { data, error } = await supabase.rpc("admin_wallet_view");
+    if (error) setMsg("Load error: " + error.message);
     setRows(data || []);
     const { data: p } = await supabase.from("payout_requests").select("*, profiles(full_name)").eq("status", "pending").order("created_at", { ascending: false });
     setPayouts(p || []);
@@ -24,7 +25,7 @@ export default function AdminWallet() {
     const supabase = createClient();
     const until = new Date();
     until.setMonth(until.getMonth() + 1);
-    await supabase.from("profiles").update({ verified: v, verified_until: v ? until.toISOString() : null }).eq("id", id);
+    await supabase.from("profiles").update({ verified: v, verified_until: v ? until.toISOString() : null, verification_requested: v ? false : true }).eq("id", id);
     load();
   }
 
@@ -46,8 +47,8 @@ export default function AdminWallet() {
 
   async function resolvePayout(id: string, approve: boolean, userId: string, amount: number) {
     const supabase = createClient();
-    if (approve) {
-      await supabase.from("payout_requests").update({ status: "paid" }).eq("id", id);    } else {
+    if (approve) {      await supabase.from("payout_requests").update({ status: "paid" }).eq("id", id);
+    } else {
       await supabase.from("payout_requests").update({ status: "rejected" }).eq("id", id);
       const { data: u } = await supabase.from("profiles").select("wallet_balance").eq("id", userId).single();
       await supabase.from("profiles").update({ wallet_balance: Number(u?.wallet_balance || 0) + amount }).eq("id", userId);
@@ -58,6 +59,7 @@ export default function AdminWallet() {
   const total = Number(pool) || 0;
   const earners = rows.filter((r) => r.monetized && r.verified && r.points > 0);
   const totalPts = earners.reduce((a, r) => a + Number(r.points), 0);
+  const pendingUsers = rows.filter((r) => r.verification_requested && !r.verified);
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
@@ -94,15 +96,34 @@ export default function AdminWallet() {
               <button onClick={() => resolvePayout(p.id, false, p.user_id, Number(p.amount))} className="flex-1 bg-red-500 text-white py-2 rounded-xl text-xs font-bold">Reject & Refund</button>
             </div>
           </div>
-        ))}
-        {payouts.length === 0 && <p className="text-sm text-gray-500">No pending payouts.</p>}
+        ))}        {payouts.length === 0 && <p className="text-sm text-gray-500">No pending payouts.</p>}
       </div>
-      <h2 className="font-bold mb-3">👥 Verify & Manage Members</h2>
+
+      {pendingUsers.length > 0 && (
+        <>
+          <h2 className="font-bold mb-3 text-amber-700">📲 Pending Verification ({pendingUsers.length})</h2>
+          <div className="space-y-2 mb-8">
+            {pendingUsers.map((r) => (
+              <div key={r.id} className="glass-card p-3 rounded-2xl flex items-center gap-3 border-2 border-amber-300">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">📲 {r.full_name || "Farmer"}</p>
+                  <p className="text-[10px] text-gray-500">{r.points} pts — check their WhatsApp receipt & bank transfer</p>
+                </div>
+                <button onClick={() => setVerified(r.id, true)} className="text-xs font-bold px-3 py-2 rounded-full bg-sky-600 text-white">✅ Verify</button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <h2 className="font-bold mb-3">👥 Verify & Manage Members ({rows.length})</h2>
       <div className="space-y-2">
         {rows.map((r) => (
           <div key={r.id} className="glass-card p-3 rounded-2xl flex items-center gap-3">
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate">{r.full_name || "Farmer"} {r.verified && "✅"} {r.monetized && "💵"}</p>
+              <p className="font-semibold text-sm truncate">
+                {r.full_name || "Farmer"} {r.verified && "✅"} {r.monetized && "💵"} {r.verification_requested && !r.verified && "📲"}
+              </p>
               <p className="text-[10px] text-gray-500">{r.points} pts · wallet ₦{Number(r.wallet_balance).toLocaleString()}</p>
             </div>
             <button onClick={() => setVerified(r.id, !r.verified)} className={`text-xs font-bold px-3 py-2 rounded-full ${r.verified ? "bg-gray-200 text-gray-700" : "bg-sky-600 text-white"}`}>
@@ -110,6 +131,7 @@ export default function AdminWallet() {
             </button>
           </div>
         ))}
+        {rows.length === 0 && <p className="text-sm text-gray-500">No members loaded — make sure you ran the SQL above.</p>}
       </div>
     </div>
   );
