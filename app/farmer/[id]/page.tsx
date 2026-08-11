@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { currencySymbol } from "@/lib/currency";
+import ProfileShare from "@/components/ProfileShare";
 
 const RANK_ICONS: any = {
   "Beginner Star": "⭐",
@@ -16,7 +17,7 @@ export default async function FarmerPage(props: any) {
 
   const { data: farmer } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, location, role, created_at, whatsapp, verified")
+    .select("id, full_name, avatar_url, location, role, created_at, whatsapp, verified, referral_code")
     .eq("id", params.id)
     .single();
 
@@ -46,8 +47,8 @@ export default async function FarmerPage(props: any) {
         {farmer.avatar_url ? (
           <img src={farmer.avatar_url} alt={farmer.full_name} className="w-20 h-20 rounded-full object-cover mx-auto mb-3" />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-green-200 flex items-center justify-center text-3xl font-bold text-green-800 mx-auto mb-3">
-            {(farmer.full_name || "?")[0]}          </div>
+          <div className="w-20 h-20 rounded-full bg-green-200 flex items-center justify-center text-3xl font-bold text-green-800 mx-auto mb-3">            {(farmer.full_name || "?")[0]}
+          </div>
         )}
         <h1 className="text-xl font-bold">
           {farmer.full_name || "Farmer"} {farmer.verified && <span className="text-sky-500">✅</span>}
@@ -69,6 +70,8 @@ export default async function FarmerPage(props: any) {
             <a href={`https://wa.me/${farmer.whatsapp}`} className="flex-1 bg-green-600 text-white py-2 rounded-xl text-sm font-bold">WhatsApp</a>
           )}
         </div>
+        <ProfileShare id={farmer.id} code={farmer.referral_code || ""} name={farmer.full_name || "this farmer"} />
+        <p className="text-[9px] text-gray-400 mt-2">Share this profile — anyone who joins through it becomes your referral (+25 pts)! 🎁</p>
       </div>
 
       <h2 className="font-bold mb-3">🐄 Active Listings</h2>
@@ -93,10 +96,10 @@ export default async function FarmerPage(props: any) {
           <div key={r.id} className="glass-card p-3 rounded-2xl">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">{r.profiles?.full_name || "Buyer"}</p>
-              <span className="text-xs text-amber-500">{"⭐".repeat(Number(r.rating))}</span>
-            </div>
+              <span className="text-xs text-amber-500">{"⭐".repeat(Number(r.rating))}</span>            </div>
             {r.comment && <p className="text-xs text-gray-700 mt-1">{r.comment}</p>}
-            <p className="text-[10px] text-gray-400 mt-1">on {r.listings?.title}</p>          </div>
+            <p className="text-[10px] text-gray-400 mt-1">on {r.listings?.title}</p>
+          </div>
         ))}
         {(!reviews || reviews.length === 0) && <p className="text-sm text-gray-500">No reviews yet.</p>}
       </div>
