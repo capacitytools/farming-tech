@@ -31,6 +31,7 @@ function parseReport(text: string) {
 }
 
 export default function ScannerPage() {
+  const [user, setUser] = useState<any>(null);
   const [image, setImage] = useState("");
   const [subject, setSubject] = useState("");
   const [note, setNote] = useState("");
@@ -41,12 +42,13 @@ export default function ScannerPage() {
 
   async function loadScans() {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from("ai_scans").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6);
+    const { data: { user: u } } = await supabase.auth.getUser();
+    setUser(u);
+    if (u) {
+      const { data } = await supabase.from("ai_scans").select("*").eq("user_id", u.id).order("created_at", { ascending: false }).limit(6);
       setScans(data || []);
-    }
-  }
+    }  }
+
   useEffect(() => {
     loadScans();
   }, []);
@@ -78,7 +80,8 @@ export default function ScannerPage() {
     setResult("");
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user: u } } = await supabase.auth.getUser();
+      setUser(u);
 
       let imageUrl = "";
       try {
@@ -93,18 +96,18 @@ export default function ScannerPage() {
 
       const res = await fetch("/api/ai/diagnose", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: { base64, mime }, subject, note }),
+        headers: { "Content-Type": "application/json" },        body: JSON.stringify({ image: { base64, mime }, subject, note }),
       });
       const json = await res.json();
+
       if (!res.ok || !json.ok) {
         setError("AI error: " + (json.error || "diagnosis failed"));
       } else {
         setResult(json.result);
-        if (user) {
+        if (u) {
           const sevMatch = (json.result || "").match(/SEVERITY:\s*([A-Za-z]+)/i);
           await supabase.from("ai_scans").insert({
-            user_id: user.id,
+            user_id: u.id,
             image_url: imageUrl,
             diagnosis: json.result,
             severity: sevMatch ? sevMatch[1] : "Medium",
@@ -142,10 +145,10 @@ export default function ScannerPage() {
         </div>
 
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mb-3" value={subject} onChange={(e) => setSubject(e.target.value)}>
-          <option value="">What type of farm subject? (optional)</option>
-          {SUBJECTS.map((s) => (
+          <option value="">What type of farm subject? (optional)</option>          {SUBJECTS.map((s) => (
             <option key={s} value={s}>{s}</option>
-          ))}        </select>
+          ))}
+        </select>
 
         <textarea
           className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mb-4"
@@ -165,6 +168,15 @@ export default function ScannerPage() {
       {result && (
         <div className="mt-4 space-y-3">
           <h3 className="font-bold text-green-800 text-lg">🩺 Doctor's Report</h3>
+
+          {!user && (
+            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl text-center">
+              <p className="font-bold mb-1">🎉 Found this useful?</p>
+              <p className="text-xs text-purple-100 mb-3">Create a FREE account to save your scans, earn +10 points per scan & unlock badges!</p>
+              <a href="/login" className="inline-block bg-white text-purple-700 px-5 py-2 rounded-xl font-bold text-sm">🌱 Create Free Account</a>
+            </div>
+          )}
+
           {sections.length > 0 ? (
             sections.map((s: any) => {
               const st = STYLE[s.key] || { label: s.key, cls: "border-gray-300 bg-white", head: "text-gray-700" };
@@ -182,8 +194,7 @@ export default function ScannerPage() {
                       {bullets.map((b: string, i: number) => (
                         <li key={i} className="text-sm text-gray-800 flex gap-2">
                           <span className={`font-bold ${st.head}`}>•</span>
-                          <span>{b.replace(/^[-•]\s*/, "").replace(/^\d+\.\s*/, "")}</span>
-                        </li>
+                          <span>{b.replace(/^[-•]\s*/, "").replace(/^\d+\.\s*/, "")}</span>                        </li>
                       ))}
                     </ul>
                   )}
@@ -194,7 +205,8 @@ export default function ScannerPage() {
             <div className="rounded-xl border-l-4 border-green-500 bg-green-50 p-4">
               <p className="text-sm text-gray-800 whitespace-pre-line">{result}</p>
             </div>
-          )}        </div>
+          )}
+        </div>
       )}
 
       <div className="mt-6">
@@ -215,7 +227,7 @@ export default function ScannerPage() {
             </div>
           ))
         ) : (
-          <p className="text-sm text-gray-500 text-center">No scans yet — log in and diagnose your first photo!</p>
+          <p className="text-sm text-gray-500 text-center">{user ? "No scans yet — diagnose your first photo!" : "Log in to save your scan history."}</p>
         )}
       </div>
     </div>
