@@ -9,6 +9,12 @@ export default async function BlogPage() {
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
+  const { data: comments } = await supabase.from("blog_comments").select("blog_id");
+  const countMap: any = {};
+  (comments || []).forEach((c: any) => {
+    countMap[c.blog_id] = (countMap[c.blog_id] || 0) + 1;
+  });
+
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">📰 Daily Insights</h1>
@@ -26,7 +32,8 @@ export default async function BlogPage() {
               <p className="text-xs text-gray-500 line-clamp-2 mb-2">{post.excerpt}</p>
               <div className="flex items-center gap-3 text-[10px] text-gray-400 font-semibold">
                 <span>📅 {new Date(post.published_at || post.created_at).toLocaleDateString()}</span>
-                <span>👁️ {post.views_count || 0} views</span>
+                <span>👁️ {post.views_count || 0}</span>
+                <span>💬 {countMap[post.id] || 0}</span>
               </div>
             </div>
           </Link>
