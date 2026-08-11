@@ -1,43 +1,39 @@
-import type { Metadata, Viewport } from "next";
-import type { ReactNode } from "react";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import AdsterraInjector from "@/components/AdsterraInjector";
 import TopBar from "@/components/layout/TopBar";
 import BottomNav from "@/components/layout/BottomNav";
-import Footer from "@/components/layout/Footer";
-import AdsterraInjector from "@/components/AdsterraInjector";
-import InstallPrompt from "@/components/InstallPrompt";
+import OneSignalInit from "@/components/OneSignalInit";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: {
-    default: "Farming Tech & Business",
-    template: "%s | Farming Tech & Business",
-  },
-  description:
-    "AI Agri-Doctor, livestock marketplace, farming communities, daily farming insights and expert directory for African farmers.",
+  title: "Farming Tech & Business",
+  description: "AI Agri-Doctor · Market · Tribes · E-books",
   manifest: "/manifest.json",
+  themeColor: "#166534",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Farming Tech & Business",
+    title: "Farming Tech",
   },
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#15803d",
-};
-
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
+      <body className={inter.className + " bg-forest-50 text-forest-900"}>
         <AdsterraInjector />
-        <TopBar />
-        <main>{children}</main>
-        <Footer />
-        <BottomNav />
-        <InstallPrompt />
+        <OneSignalInit />
+        <div className="mx-auto max-w-md min-h-screen">
+          <TopBar />
+          <main className="pt-2">{children}</main>
+          <BottomNav />
+        </div>
       </body>
     </html>
   );
