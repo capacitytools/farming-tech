@@ -35,17 +35,18 @@ export default function RichTextEditor({ content, onChange }: { content: string;
   }, [content, editor]);
 
   if (!editor) return null;
+  const ed = editor;
 
   async function addImage(e: any) {
     const file = e.target.files?.[0];
-    if (!file || !editor) return;
+    if (!file) return;
     const supabase = createClient();
     const ext = file.name.split(".").pop() || "jpg";
     const path = `blog-img-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file);
     if (!error) {
       const url = supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl;
-      editor.chain().focus().setImage({ src: url }).run();
+      ed.chain().focus().setImage({ src: url }).run();
     }
     e.target.value = "";
   }
@@ -53,7 +54,7 @@ export default function RichTextEditor({ content, onChange }: { content: string;
   function addLink() {
     const url = prompt("Paste the link URL (https://...)");
     if (!url) return;
-    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+    ed.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   }
 
   const btn = "px-2 py-1 rounded-lg text-xs font-bold bg-white/80 border border-gray-200 active:bg-green-100";
@@ -61,27 +62,27 @@ export default function RichTextEditor({ content, onChange }: { content: string;
   return (
     <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
       <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-gray-50">
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleItalic().run()}><i>I</i></button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleBlockquote().run()}>❝</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().setTextAlign("left").run()}>⬅</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().setTextAlign("center").run()}>↔</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleBold().run()}><b>B</b></button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleItalic().run()}><i>I</i></button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleUnderline().run()}><u>U</u></button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleStrike().run()}><s>S</s></button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleBulletList().run()}>• List</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleOrderedList().run()}>1. List</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().toggleBlockquote().run()}>❝</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().setTextAlign("left").run()}>⬅</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().setTextAlign("center").run()}>↔</button>
         <button type="button" className={btn} onClick={addLink}>🔗 Link</button>
         <label className={btn + " cursor-pointer"}>🖼️ Img<input type="file" accept="image/*" onChange={addImage} className="hidden" /></label>
         {COLORS.map((c) => (
-          <button key={c} type="button" style={{ backgroundColor: c }} className="w-6 h-6 rounded-full border border-white shadow" onClick={() => editor.chain().focus().setColor(c).run()} />
+          <button key={c} type="button" style={{ backgroundColor: c }} className="w-6 h-6 rounded-full border border-white shadow" onClick={() => ed.chain().focus().setColor(c).run()} />
         ))}
-        <button type="button" className={btn} onClick={() => editor.chain().focus().unsetColor().run()}>🎨</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().undo().run()}>↩</button>
-        <button type="button" className={btn} onClick={() => editor.chain().focus().redo().run()}>↪</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().unsetColor().run()}>🎨</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().undo().run()}>↩</button>
+        <button type="button" className={btn} onClick={() => ed.chain().focus().redo().run()}>↪</button>
       </div>
-      <EditorContent editor={editor} className="prose prose-sm max-w-none p-3 min-h-[250px]" />
+      <EditorContent editor={ed} className="prose prose-sm max-w-none p-3 min-h-[250px]" />
     </div>
   );
 }
