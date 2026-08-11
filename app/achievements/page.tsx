@@ -18,7 +18,7 @@ export default function AchievementsPage() {
           const { count } = await supabase.from(table).select("*", { count: "exact", head: true }).eq(col, val);
           return count || 0;
         };
-        const [posts, likesGiven, commentsGiven, listings, sold, scans, reviews, tribes, blogs, prof, pts] = await Promise.all([
+        const [posts, likesGiven, commentsGiven, listings, sold, scans, reviews, tribes, blogs, purchases, prof, pts] = await Promise.all([
           count("feed_posts", "author_id", u.id),
           count("feed_likes", "user_id", u.id),
           count("feed_comments", "user_id", u.id),
@@ -28,6 +28,7 @@ export default function AchievementsPage() {
           count("listing_reviews", "user_id", u.id),
           count("tribe_members", "user_id", u.id),
           count("blogs", "author_id", u.id),
+          supabase.from("ebook_purchases").select("*", { count: "exact", head: true }).eq("user_id", u.id).eq("status", "paid").then((r) => r.count || 0),
           supabase.from("profiles").select("verified, referral_code").eq("id", u.id).single(),
           supabase.rpc("user_points", { uid: u.id }),
         ]);
@@ -46,8 +47,8 @@ export default function AchievementsPage() {
           referrals = count || 0;
         }
         setS({
-          posts, likesGiven, commentsGiven, listings, sold, scans, reviews, tribes, blogs,
-          verified: prof.data?.verified, points: pts.data || 0, likesRecv, viewsTotal, referrals,        });
+          posts, likesGiven, commentsGiven, listings, sold, scans, reviews, tribes, blogs, purchases,          verified: prof.data?.verified, points: pts.data || 0, likesRecv, viewsTotal, referrals,
+        });
       }
       setLoaded(true);
     })();
@@ -75,7 +76,7 @@ export default function AchievementsPage() {
     { icon: "🌾", name: "Tribesman", desc: "Joined a tribe", earned: s.tribes >= 1 },
     { icon: "🐄", name: "Seller", desc: "Created a listing", earned: s.listings >= 1 },
     { icon: "💰", name: "Dealmaker", desc: "Marked an item SOLD", earned: s.sold >= 1 },
-    { icon: "📚", name: "Scholar", desc: "Bought an e-book", earned: s.reviews >= 0 && false },
+    { icon: "📚", name: "Scholar", desc: "Bought an e-book", earned: s.purchases >= 1 },
     { icon: "🩺", name: "Doctor Visitor", desc: "Used the AI Agri-Doctor", earned: s.scans >= 1 },
     { icon: "✍️", name: "Writer", desc: "Published a blog", earned: s.blogs >= 1 },
     { icon: "🎁", name: "Recruiter", desc: "Invited a friend", earned: s.referrals >= 1 },
@@ -95,8 +96,8 @@ export default function AchievementsPage() {
       </p>
       <div className="grid grid-cols-3 gap-3">
         {BADGES.map((b) => (
-          <div key={b.name} className={`glass-card p-3 rounded-2xl text-center ${b.earned ? "border-2 border-amber-300" : "opacity-40 grayscale"}`}>
-            <p className="text-3xl mb-1">{b.icon}</p>            <p className="font-bold text-xs">{b.name}</p>
+          <div key={b.name} className={`glass-card p-3 rounded-2xl text-center ${b.earned ? "border-2 border-amber-300" : "opacity-40 grayscale"}`}>            <p className="text-3xl mb-1">{b.icon}</p>
+            <p className="font-bold text-xs">{b.name}</p>
             <p className="text-[9px] text-gray-500 mt-1">{b.desc}</p>
           </div>
         ))}
