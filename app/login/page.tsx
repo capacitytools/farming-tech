@@ -1,92 +1,102 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [isSignup, setIsSignup] = useState(false);
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");
+  const [location, setLocation] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   const router = useRouter();
 
-  async function handleSubmit(e: any) {
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref) localStorage.setItem("refCode", ref);
+  }, []);
+
+  async function submit(e: any) {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
+    setBusy(true);
+    setMsg("");
     const supabase = createClient();
-    if (isSignup) {
-      const { error } = await supabase.auth.signUp({
+
+    if (mode === "login") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setMsg(error.message);
+      else router.push("/");
+    } else {
+      const ref = localStorage.getItem("refCode") || new URLSearchParams(window.location.search).get("ref");
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: { data: { full_name: fullName } },
       });
-      if (error) setMessage(error.message);
-      else {
-        setMessage("Account created! You are logged in.");
-        router.push("/profile");
+      if (error) {
+        setMsg(error.message);
+      } else {
+        const uid = data.user?.id;
+        if (uid) {
+          const code = "FT" + uid.replace(/-/g, "").slice(0, 6).toUpperCase();
+          const { data: existing } = await supabase.from("profiles").select("referral_code").eq("id", uid).single();
+          await supabase.from("profiles").upsert(
+            {
+              id: uid,              full_name: fullName,
+              phone: phone || null,
+              whatsapp: whatsapp || null,
+              location: location || null,
+              referral_code: existing?.referral_code || code,
+              referred_by: ref || null,
+            },
+            { onConflict: "id" }
+          );
+        }
+        localStorage.removeItem("refCode");
+        setMsg("Account created! Now log in. 🎉");
+        setMode("login");
       }
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setMessage(error.message);
-      else router.push("/profile");
     }
-    setLoading(false);
+    setBusy(false);
   }
+
+  const input = "w-full p-3 rounded-xl border border-gray-200 bg-white/70";
 
   return (
     <div className="p-4 pb-24 max-w-md mx-auto">
-      <div className="glass-card p-6 rounded-2xl shadow-lg mt-6">
-        <h1 className="text-2xl font-bold text-center mb-6">
-          {isSignup ? "Create your account" : "Welcome back"}
-        </h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {isSignup && (
-            <input
-              className="w-full p-3 rounded-xl border border-gray-200 bg-white/70"
-              placeholder="Full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          )}
-          <input
-            className="w-full p-3 rounded-xl border border-gray-200 bg-white/70"
-            placeholder="Email address"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            className="w-full p-3 rounded-xl border border-gray-200 bg-white/70"
-            placeholder="Password"
-            type="password"
-            required
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {message && <p className="text-sm text-red-600 text-center">{message}</p>}
-          <button
-            className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50"
-            disabled={loading}
-          >
-            {loading ? "Please wait..." : isSignup ? "Sign up" : "Log in"}
-          </button>
-        </form>
-        <button
-          className="w-full mt-4 text-sm text-green-700 font-semibold"
-          onClick={() => {
-            setIsSignup(!isSignup);
-            setMessage("");
-          }}
-        >
-          {isSignup ? "Already have an account? Log in" : "New here? Create an account"}
-        </button>
+      <div className="text-center mb-6 mt-4">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-forest-600 flex items-center justify-center text-3xl mb-3">🌾</div>
+        <h1 className="text-2xl font-extrabold">Farming Tech & Business</h1>
+        <p className="text-sm text-gray-500">Farm smarter. Sell faster. Grow together.</p>
       </div>
+
+      <div className="glass-card p-5 rounded-2xl">
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <button onClick={() => setMode("login")} className={`py-2 rounded-xl font-bold text-sm ${mode === "login" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}>Log In</button>
+          <button onClick={() => setMode("signup")} className={`py-2 rounded-xl font-bold text-sm ${mode === "signup" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}>Sign Up</button>
+        </div>
+
+        <form onSubmit={submit} className="space-y-3">
+          {mode === "signup" && (
+            <>
+              <input className={input} placeholder="Full name *" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <input className={input} placeholder="Phone (e.g. 0803...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <input className={input} placeholder="WhatsApp number (with country code)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+              <input className={input} placeholder="Location (town, state)" value={location} onChange={(e) => setLocation(e.target.value)} />
+            </>
+          )}
+          <input className={input} type="email" placeholder="Email *" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className={input} type="password" placeholder="Password *" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          {msg && <p className="text-sm text-center text-green-700">{msg}</p>}
+          <button className="w-full bg-green-600 text-white py-3 rounded-xl font-bold disabled:opacity-50" disabled={busy}>
+            {busy ? "Please wait..." : mode === "login" ? "🔓 Log In" : "🌱 Create My Account"}
+          </button>
+        </form>      </div>
     </div>
   );
 }
