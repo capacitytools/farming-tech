@@ -3,196 +3,144 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-function fileToBase64(file: File, maxSize = 1024): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        const ctx = canvas.getContext("2d")!;
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.8));
-      };
-      img.onerror = reject;
-      img.src = reader.result as string;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-const severityStyle: any = {
-  low: "bg-green-100 text-green-800",
-  moderate: "bg-yellow-100 text-yellow-800",
-  high: "bg-orange-100 text-orange-800",
-  critical: "bg-red-100 text-red-800",
-};
+const SUBJECTS = ["Crop / Plant", "Poultry", "Goats", "Cattle", "Pigs", "Rabbits", "Fish", "Other"];
 
 export default function ScannerPage() {
-  const [preview, setPreview] = useState("");
-  const [tribe, setTribe] = useState("");
-  const [otherSubject, setOtherSubject] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [image, setImage] = useState("");
+  const [subject, setSubject] = useState("");
+  const [result, setResult] = useState("");
   const [error, setError] = useState("");
-  const [result, setResult] = useState<any>(null);
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [scans, setScans] = useState<any[]>([]);
+
+  async function loadScans() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from("ai_scans").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(6);
+      setScans(data || []);
+    }
+  }
 
   useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      setLoggedIn(!!user);
-      if (user) {        const { data } = await supabase.from("ai_scans").select("*").order("created_at", { ascending: false }).limit(5);
-        setHistory(data || []);
-      }
-    })();
+    loadScans();
   }, []);
 
-  async function onFile(e: any) {
+  function onFile(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError("");
-    setResult(null);
-    const b64 = await fileToBase64(file);
-    setPreview(b64);
+    const reader = new FileReader();
+    reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = "";
   }
 
   async function diagnose() {
-    if (!preview) {
-      setError("Take or choose a photo first.");
+    if (!image) {
+      setError("Please take or upload a photo first.");
       return;
     }
-    let subject = tribe;
-    if (tribe === "Other") {
-      if (!otherSubject.trim()) {
-        setError("Please type the name of the animal or plant.");
-        return;
-      }
-      subject = otherSubject.trim();
-    }
-    setLoading(true);
+    setBusy(true);
     setError("");
+    setResult("");
     try {
-      const res = await fetch("/api/scan", {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      let imageUrl = "";      try {
+        const blob = await (await fetch(image)).blob();
+        const path = `scan-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage.from("scan-images").upload(path, blob, { contentType: "image/jpeg" });
+        if (!upErr) imageUrl = supabase.storage.from("scan-images").getPublicUrl(path).data.publicUrl;
+      } catch {}
+
+      const base64 = image.split(",")[1];
+      const mime = image.split(";")[0].split(":")[1];
+
+      const res = await fetch("/api/ai/diagnose", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: preview, tribe: subject }),
+        body: JSON.stringify({ image: { base64, mime }, subject }),
       });
-      const data = await res.json();
-      if (!res.ok) setError(data?.error || "Scan failed. Try again.");
-      else setResult(data);
-    } catch {
-      setError("Network error. Try again.");
+      const json = await res.json();
+
+      if (!res.ok || !json.ok) {
+        setError("AI error: " + (json.error || "diagnosis failed"));
+      } else {
+        setResult(json.result);
+        if (user) {
+          const sevMatch = (json.result || "").match(/SEVERITY:\s*([A-Za-z]+)/i);
+          await supabase.from("ai_scans").insert({
+            user_id: user.id,
+            image_url: imageUrl,
+            diagnosis: json.result,
+            severity: sevMatch ? sevMatch[1] : "Medium",
+          });
+          loadScans();
+        }
+      }
+    } catch (e: any) {
+      setError("AI error: " + (e?.message || "network problem"));
     }
-    setLoading(false);
+    setBusy(false);
   }
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">🩺 AI Agri-Doctor</h1>
-      <p className="text-gray-600 text-sm mb-6">Snap or upload a photo of a sick plant or animal and get an instant AI diagnosis + treatment plan.</p>
-      <div className="glass-card p-5 rounded-2xl shadow-lg mb-6">
-        {preview ? (
-          <img src={preview} alt="scan preview" className="w-full h-56 object-cover rounded-xl mb-3" />
-        ) : (
-          <div className="h-32 rounded-xl bg-forest-50 dark:bg-forest-800 flex flex-col items-center justify-center text-forest-600 dark:text-forest-200 mb-3">
-            <span className="text-4xl mb-2">📷</span>
-            <span className="font-semibold text-sm">Add a photo to start</span>
-          </div>
-        )}
+      <p className="text-gray-600 text-sm mb-6">Snap a photo of a sick plant or animal → get an instant AI diagnosis + treatment plan.</p>
 
-        <div className="grid grid-cols-2 gap-3">
-          <label className="cursor-pointer bg-forest-600 text-white py-3 rounded-xl font-semibold text-center text-sm">
+      <div className="glass-card p-5 rounded-2xl shadow-lg">
+        {image && <img src={image} alt="scan preview" className="w-full h-64 object-cover rounded-xl mb-4" />}
+
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <label className="bg-forest-700 text-white text-center py-3 rounded-xl font-semibold cursor-pointer">
             📷 Take Photo
-            <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
-          </label>
-          <label className="cursor-pointer bg-forest-100 dark:bg-forest-800 text-forest-800 dark:text-forest-100 py-3 rounded-xl font-semibold text-center text-sm">
+            <input type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />          </label>
+          <label className="bg-forest-100 text-forest-800 text-center py-3 rounded-xl font-semibold cursor-pointer">
             🖼️ Upload Image
             <input type="file" accept="image/*" onChange={onFile} className="hidden" />
           </label>
         </div>
 
-        <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mt-4" value={tribe} onChange={(e) => setTribe(e.target.value)}>
+        <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mb-4" value={subject} onChange={(e) => setSubject(e.target.value)}>
           <option value="">What type of farm subject? (optional)</option>
-          <option value="Poultry">Poultry</option>
-          <option value="Rabbits">Rabbits</option>
-          <option value="Goats">Goats</option>
-          <option value="Pigs">Pigs</option>
-          <option value="Fish">Fish</option>
-          <option value="Dogs">Dogs</option>
-          <option value="Crops">Crops / Plants</option>
-          <option value="Other">Other (type the name)</option>
+          {SUBJECTS.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
         </select>
 
-        {tribe === "Other" && (
-          <input
-            className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mt-3"
-            placeholder="Type the animal or plant name, e.g. Turkey, Cassava, Snail *"
-            value={otherSubject}
-            onChange={(e) => setOtherSubject(e.target.value)}
-          />
-        )}
-
-        <button onClick={diagnose} disabled={loading} className="w-full mt-4 bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50">
-          {loading ? "🔬 Analyzing..." : "Diagnose Now"}
+        <button onClick={diagnose} disabled={busy} className="w-full bg-green-600 text-white py-4 rounded-xl font-bold text-lg disabled:opacity-50">
+          {busy ? " Analyzing..." : "Diagnose Now"}
         </button>
 
-        {error && <p className="text-sm text-red-600 text-center mt-3">{error}</p>}
-        {!loggedIn && <p className="text-xs text-gray-500 text-center mt-3">💡 Log in to save your scan history.</p>}
+        {error && <p className="text-red-600 text-sm mt-4 text-center">{error}</p>}
+
+        {result && (
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+            <h3 className="font-bold text-green-800 mb-2">🩺 Doctor's Report</h3>
+            <p className="text-sm text-gray-800 whitespace-pre-line">{result}</p>
+          </div>
+        )}
       </div>
-      {result && (
-        <div className="glass-card p-5 rounded-2xl shadow-lg mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-lg">🧾 Health Report</h2>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${severityStyle[result.severity] || "bg-gray-100 text-gray-700"}`}>
-              {result.severity}
-            </span>
-          </div>
-          <p className="font-semibold text-gray-800 mb-1">{result.diagnosis}</p>
-          <p className="text-xs text-gray-500 mb-4">Confidence: {result.confidence}%</p>
 
-          {result.symptoms?.length > 0 && (
-            <div className="mb-4">
-              <p className="font-bold text-sm mb-1">⚠️ Symptoms spotted</p>
-              <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
-                {result.symptoms.map((s: string, i: number) => <li key={i}>{s}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {result.treatment_plan?.length > 0 && (
-            <div className="mb-4">
-              <p className="font-bold text-sm mb-1">💊 Treatment plan</p>
-              <ol className="list-decimal pl-5 text-sm text-gray-700 space-y-1">
-                {result.treatment_plan.map((t: string, i: number) => <li key={i}>{t}</li>)}
-              </ol>
-            </div>
-          )}
-
-          {result.advice && <p className="text-sm text-forest-700 dark:text-forest-200 bg-forest-50 dark:bg-forest-800 p-3 rounded-xl">🌱 {result.advice}</p>}
-        </div>
-      )}
-
-      {history.length > 0 && (
-        <div>
-          <h2 className="font-bold mb-3">🕘 Recent scans</h2>
-          <div className="space-y-3">
-            {history.map((h: any) => (
-              <div key={h.id} className="glass-card p-4 rounded-2xl flex items-center gap-3">
-                {h.image_url && <img src={h.image_url} alt="scan" className="w-14 h-14 rounded-xl object-cover" />}
-                <div>
-                  <p className="font-semibold text-sm">{h.diagnosis}</p>
-                  <p className="text-xs text-gray-500">{new Date(h.created_at).toLocaleDateString()} · {h.severity}</p>
-                </div>
+      <h2 className="text-xl font-bold mt-8 mb-4">🕐 Recent scans</h2>
+      <div className="space-y-3">
+        {scans.length ? (
+          scans.map((s) => (
+            <div key={s.id} className="glass-card p-3 rounded-2xl flex gap-3">
+              {s.image_url && <img src={s.image_url} alt="scan" className="w-16 h-16 object-cover rounded-xl" />}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-amber-600">Severity: {s.severity}</p>
+                <p className="text-xs text-gray-700 line-clamp-3 whitespace-pre-line">{s.diagnosis}</p>
+                <p className="text-[10px] text-gray-400 mt-1">{new Date(s.created_at).toLocaleDateString()}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>  );
+            </div>
+          ))
+        ) : (
+          <p className="text-sm text-gray-500 text-center">No scans yet — log in and diagnose your first photo!</p>
+        )}
+      </div>
+    </div>
+  );
 }
