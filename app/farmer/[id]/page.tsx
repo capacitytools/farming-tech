@@ -16,7 +16,7 @@ export default async function FarmerPage(props: any) {
 
   const { data: farmer } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url, location, role, created_at, whatsapp")
+    .select("id, full_name, avatar_url, location, role, created_at, whatsapp, verified")
     .eq("id", params.id)
     .single();
 
@@ -49,8 +49,11 @@ export default async function FarmerPage(props: any) {
           <div className="w-20 h-20 rounded-full bg-green-200 flex items-center justify-center text-3xl font-bold text-green-800 mx-auto mb-3">
             {(farmer.full_name || "?")[0]}          </div>
         )}
-        <h1 className="text-xl font-bold">{farmer.full_name || "Farmer"}</h1>
+        <h1 className="text-xl font-bold">
+          {farmer.full_name || "Farmer"} {farmer.verified && <span className="text-sky-500">✅</span>}
+        </h1>
         <p className="text-xs text-gray-500 mt-1">{farmer.location || "Nigeria"} · joined {new Date(farmer.created_at).toLocaleDateString("en-NG", { month: "short", year: "numeric" })}</p>
+        {farmer.verified && <p className="text-[10px] font-bold text-sky-600 mt-1">✅ VERIFIED MEMBER — trusted by Farming Tech & Business</p>}
         <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
           <span className="text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1 rounded-full">{RANK_ICONS[rank || "Beginner Star"]} {rank} · {pts || 0} pts</span>
           {farmer.role === "admin" && <span className="text-xs font-bold bg-purple-100 text-purple-700 px-3 py-1 rounded-full">ADMIN</span>}
@@ -93,10 +96,10 @@ export default async function FarmerPage(props: any) {
               <span className="text-xs text-amber-500">{"⭐".repeat(Number(r.rating))}</span>
             </div>
             {r.comment && <p className="text-xs text-gray-700 mt-1">{r.comment}</p>}
-            <p className="text-[10px] text-gray-400 mt-1">on {r.listings?.title}</p>
-          </div>
+            <p className="text-[10px] text-gray-400 mt-1">on {r.listings?.title}</p>          </div>
         ))}
-        {(!reviews || reviews.length === 0) && <p className="text-sm text-gray-500">No reviews yet.</p>}      </div>
+        {(!reviews || reviews.length === 0) && <p className="text-sm text-gray-500">No reviews yet.</p>}
+      </div>
     </div>
   );
 }
