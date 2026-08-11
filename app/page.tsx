@@ -53,8 +53,13 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* QUICK ACTIONS */}
+      {/* AI AGRI-DOCTOR — FIRST THING USERS SEE */}
       <div className="p-4 -mt-4">
+        <QuickScanWidget />
+      </div>
+
+      {/* QUICK ACTIONS */}
+      <div className="px-4 mt-4">
         <div className="glass-card p-4 rounded-2xl shadow-lg grid grid-cols-4 gap-2 text-center">
           <Link href="/scanner" className="bg-green-50 p-2 rounded-xl"><span className="text-2xl">🩺</span><p className="text-[10px] font-bold text-green-800">AI Doctor</p></Link>
           <Link href="/market" className="bg-amber-50 p-2 rounded-xl"><span className="text-2xl">🐄</span><p className="text-[10px] font-bold text-amber-800">Market</p></Link>
@@ -91,17 +96,12 @@ export default async function HomePage() {
         <Link href="/feed" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform">
           <div className="flex items-center gap-3">
             <span className="text-3xl">📣</span>
-            <div className="flex-1">
-              <p className="font-bold">Farmer Timeline</p>
+            <div className="flex-1">              <p className="font-bold">Farmer Timeline</p>
               <p className="text-xs text-amber-100">Post photos, get likes & comments — every action earns points!</p>
             </div>
             <span className="text-xl">→</span>
-          </div>        </Link>
-      </div>
-
-      {/* QUICK SCAN */}
-      <div className="px-4 mt-4">
-        <QuickScanWidget />
+          </div>
+        </Link>
       </div>
 
       {/* LATEST INSIGHTS */}
