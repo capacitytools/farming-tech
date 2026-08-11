@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import RichTextEditor from "@/components/RichTextEditor";
+import DocxImporter from "@/components/DocxImporter";
 
 export default function EditBlogPage() {
   const [id, setId] = useState("");
@@ -31,23 +32,53 @@ export default function EditBlogPage() {
         const supabase = createClient();
         const { data } = await supabase.from("blogs").select("*").eq("id", blogId).single();
         if (data) {
-          setTitle(data.title || "");
-          setExcerpt(data.excerpt || "");
-          setContent(data.content || "");
-          setCategory(data.category || "");
-          setTags((data.tags || []).join(", "));
-          setCoverImage(data.cover_image_url || "");
-          setSeoTitle(data.seo_title || "");
-          setSeoDescription(data.seo_description || "");
-          setStatus(data.status || "draft");
+          const savedDraft = localStorage.getItem(`blog_draft_edit_${blogId}`);
+          if (savedDraft) {
+            try {
+              const parsed = JSON.parse(savedDraft);
+              setTitle(parsed.title || data.title || "");
+              setExcerpt(parsed.excerpt || data.excerpt || "");
+              setContent(parsed.content || data.content || "");
+              setCategory(parsed.category || data.category || "");
+              setTags(parsed.tags || (data.tags || []).join(", "));
+              setCoverImage(parsed.coverImage || data.cover_image_url || "");
+              setSeoTitle(parsed.seoTitle || data.seo_title || "");
+              setSeoDescription(parsed.seoDescription || data.seo_description || "");
+              setStatus(parsed.status || data.status || "draft");
+              setMessage("📝 Unsaved draft restored.");
+            } catch (e) {
+              loadFromDB(data);            }
+          } else {
+            loadFromDB(data);
+          }
         }
       }
       setLoaded(true);
     })();
   }, []);
 
+  function loadFromDB(data: any) {
+    setTitle(data.title || "");
+    setExcerpt(data.excerpt || "");
+    setContent(data.content || "");
+    setCategory(data.category || "");
+    setTags((data.tags || []).join(", "));
+    setCoverImage(data.cover_image_url || "");
+    setSeoTitle(data.seo_title || "");
+    setSeoDescription(data.seo_description || "");
+    setStatus(data.status || "draft");
+  }
+
+  useEffect(() => {
+    if (id) {
+      const draft = { title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription, status };
+      localStorage.setItem(`blog_draft_edit_${id}`, JSON.stringify(draft));
+    }
+  }, [id, title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription, status]);
+
   async function uploadImage(file: File): Promise<string> {
-    const supabase = createClient();    const ext = file.name.split(".").pop() || "jpg";
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
     const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file, { cacheControl: "3600", upsert: false });
     if (error) throw new Error(error.message);
@@ -65,8 +96,7 @@ export default function EditBlogPage() {
       setMessage("Cover updated ✅");
     } catch (err: any) {
       setMessage("Upload failed: " + err.message);
-    }
-    setUploading(false);
+    }    setUploading(false);
   }
 
   async function handleSave(e: any) {
@@ -78,26 +108,26 @@ export default function EditBlogPage() {
     const { error } = await supabase
       .from("blogs")
       .update({
-        title,
-        excerpt,
-        content,
-        cover_image_url: coverImage || null,
-        category,
-        tags: tagArray,
-        seo_title: seoTitle || null,
-        seo_description: seoDescription || null,
-        status,
-        published_at: status === "published" ? new Date().toISOString() : null,
+        title, excerpt, content, cover_image_url: coverImage || null, category,
+        tags: tagArray, seo_title: seoTitle || null, seo_description: seoDescription || null,
+        status, published_at: status === "published" ? new Date().toISOString() : null,
       })
       .eq("id", id);
-    if (error) setMessage("Error: " + error.message);
-    else router.push("/admin/blogs");
+
+    if (error) {
+      setMessage("Error: " + error.message);
+    } else {
+      localStorage.removeItem(`blog_draft_edit_${id}`);
+      router.push("/admin/blogs");
+    }
     setLoading(false);
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this blog post permanently?")) return;    const supabase = createClient();
+    if (!confirm("Delete this blog post permanently?")) return;
+    const supabase = createClient();
     await supabase.from("blogs").delete().eq("id", id);
+    localStorage.removeItem(`blog_draft_edit_${id}`);
     router.push("/admin/blogs");
   }
 
@@ -109,30 +139,43 @@ export default function EditBlogPage() {
       <form onSubmit={handleSave} className="space-y-4">
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Blog title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
         <div>
-          <label className="text-sm font-semibold text-gray-600">Cover image</label>
+          <label className="text-sm font-semibold text-gray-600">Cover / preview image</label>
           <input type="file" accept="image/*" onChange={handleCoverUpload} className="w-full text-sm mt-1" />
           {coverImage && <img src={coverImage} alt="cover" className="mt-2 h-32 w-full object-cover rounded-xl" />}
         </div>
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Excerpt" rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
+
+        <DocxImporter onImport={setContent} />
         <div>
           <label className="text-sm font-semibold text-gray-600 mb-2 block">Article content *</label>
           <RichTextEditor content={content} onChange={setContent} />
         </div>
-        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} />
-        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Tags, separated, by, commas" value={tags} onChange={(e) => setTags(e.target.value)} />
+
+        <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" value={category} onChange={(e) => setCategory(e.target.value)}>
+          <option value="">Select category *</option>
+          <option value="Animal">Animal</option>
+          <option value="Plants">Plants</option>
+          <option value="Business">Business</option>
+          <option value="Tech">Tech</option>
+          <option value="Poultry">Poultry</option>
+          <option value="Rabbits">Rabbits</option>
+          <option value="Goats">Goats</option>
+          <option value="Pigs">Pigs</option>
+          <option value="Fish">Fish</option>
+          <option value="Crops">Crops</option>
+        </select>
+        <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Tags" value={tags} onChange={(e) => setTags(e.target.value)} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO title" value={seoTitle} onChange={(e) => setSeoTitle(e.target.value)} />
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="SEO description" rows={2} value={seoDescription} onChange={(e) => setSeoDescription(e.target.value)} />
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="draft">Draft (hidden)</option>
           <option value="published">Published (live)</option>
         </select>
-        {message && <p className="text-sm text-center text-red-600">{message}</p>}
+        {message && <p className="text-sm text-center text-green-700">{message}</p>}
         <button className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50" disabled={loading || uploading}>
           {loading ? "Saving..." : "Save Changes"}
         </button>
-        <button type="button" onClick={handleDelete} className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold">
-          🗑️ Delete Post
-        </button>
+        <button type="button" onClick={handleDelete} className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold">🗑️ Delete Post</button>
       </form>
     </div>
   );
