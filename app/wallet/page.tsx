@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const ADMIN_WHATSAPP = "2348031234567"; // ⚠️ REPLACE with your WhatsApp number (country code, no +)
+const ADMIN_WHATSAPP = "2349159884244"; // Your WhatsApp number (country code, no +)
 
 export default function WalletPage() {
   const [user, setUser] = useState<any>(null);
