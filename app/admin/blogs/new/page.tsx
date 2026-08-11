@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import ShareBar from "@/components/ShareBar";
 import RichTextEditor from "@/components/RichTextEditor";
+import DocxImporter from "@/components/DocxImporter";
 
 const DRAFT_KEY = "blog_draft_new";
 
@@ -25,7 +26,6 @@ export default function NewBlogPage() {
   const [publishedTitle, setPublishedTitle] = useState("");
   const router = useRouter();
 
-  // Load draft when page opens
   useEffect(() => {
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
@@ -44,11 +44,10 @@ export default function NewBlogPage() {
     }
   }, []);
 
-  // Auto-save draft as you type
   useEffect(() => {
     const draft = { title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));  }, [title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription]);
-
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [title, excerpt, content, category, tags, coverImage, seoTitle, seoDescription]);
   async function uploadImage(file: File): Promise<string> {
     const supabase = createClient();
     const ext = file.name.split(".").pop() || "jpg";
@@ -96,8 +95,8 @@ export default function NewBlogPage() {
       excerpt,
       content,
       cover_image_url: coverImage || null,
-      category,      tags: tagArray,
-      seo_title: seoTitle || null,
+      category,
+      tags: tagArray,      seo_title: seoTitle || null,
       seo_description: seoDescription || null,
       status,
       published_at: status === "published" ? new Date().toISOString() : null,
@@ -106,11 +105,9 @@ export default function NewBlogPage() {
     if (error) {
       setMessage("Error: " + error.message);
     } else {
-      // Clear the draft from browser since it's saved!
-      localStorage.removeItem(DRAFT_KEY); 
-      
+      localStorage.removeItem(DRAFT_KEY);
       if (status === "published") {
-        const url = `https://farmtechbusiness.com/blog/${slug}`; // Update to your domain later
+        const url = `https://farming-tech.vercel.app/blog/${slug}`;
         setPublishedUrl(url);
         setPublishedTitle(title);
         setMessage("Published! Share it now 👇");
@@ -134,18 +131,22 @@ export default function NewBlogPage() {
         <h1 className="text-2xl font-bold">✍️ Write New Blog</h1>
         <button onClick={clearDraft} className="text-xs text-red-500 font-semibold">🗑️ Wipe Draft</button>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Blog title *" required value={title} onChange={(e) => setTitle(e.target.value)} />
         <div>
-          <label className="text-sm font-semibold text-gray-600">Cover image</label>
+          <label className="text-sm font-semibold text-gray-600">Cover / preview image</label>
           <input type="file" accept="image/*" onChange={handleCoverUpload} className="w-full text-sm mt-1" />
           {coverImage && <img src={coverImage} alt="cover preview" className="mt-2 h-32 w-full object-cover rounded-xl" />}
         </div>
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Short excerpt / summary" rows={2} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
+
+        <DocxImporter onImport={setContent} />
+
         <div>
           <label className="text-sm font-semibold text-gray-600 mb-2 block">Article content *</label>
           <RichTextEditor content={content} onChange={setContent} />        </div>
+
         <select className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" value={category} onChange={(e) => setCategory(e.target.value)}>
           <option value="">Select category *</option>
           <option value="Animal">Animal</option>
