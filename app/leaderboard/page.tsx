@@ -25,12 +25,12 @@ export default function LeaderboardPage() {
     })();
   }, []);
 
-  const medals = ["🥇", "🥈", ""];
+  const medals = ["🥇", "🥈", "🥉"];
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">🏆 Top Farmers Leaderboard</h1>
-      <p className="text-gray-600 text-sm mb-6">Tap any farmer to see their profile, listings & reviews.</p>
+      <p className="text-gray-600 text-sm mb-6">Tap any farmer to see their profile, listings & reviews. ✅ = verified</p>
 
       {!loaded ? (
         <p className="text-center text-gray-500 py-10">Loading…</p>
@@ -47,7 +47,9 @@ export default function LeaderboardPage() {
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
+                <p className="font-semibold text-sm truncate">
+                  {u.full_name || "Farmer"} {u.verified && <span className="text-sky-500">✅</span>}
+                </p>
                 <p className="text-[10px] text-gray-500">{RANK_ICONS[u.rank]} {u.rank}</p>
               </div>
               <span className="font-bold text-amber-600 text-sm">{u.points} pts</span>
@@ -61,6 +63,7 @@ export default function LeaderboardPage() {
         <p className="font-bold text-gray-800 text-sm mb-1">How to earn points:</p>
         <p>➕ Join a tribe = 10 pts · 📣 Post = 15 pts · 💬 Reply = 5 pts</p>
         <p>🐄 Create listing = 20 pts · 📚 Buy e-book = 30 pts · 🩺 AI scan = 10 pts · ⭐ Review = 5 pts · 🎁 Referral = 25 pts</p>
+        <p>📣 Timeline: post = 10 · like = 1 · comment = 3 · views & received likes/comments = bonus!</p>
       </div>
     </div>
   );
