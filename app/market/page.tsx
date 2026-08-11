@@ -12,7 +12,7 @@ export default async function MarketPage(props: any) {
 
   let query = supabase
     .from("livestock_listings")
-    .select("*, tribes(name, icon), profiles(full_name)")
+    .select("*, tribes(name, icon), profiles(full_name, verified)")
     .eq("status", "active");
   if (q) query = query.ilike("title", `%${q}%`);
   if (cat) query = query.or(`tribes.name.eq.${cat},custom_category.eq.${cat}`);
@@ -22,6 +22,11 @@ export default async function MarketPage(props: any) {
 
   const { data: listings } = await query;
   const { data: tribes } = await supabase.from("tribes").select("name, icon").order("name");
+
+  let sorted = listings || [];
+  if (sort === "new") {
+    sorted = [...sorted].sort((a: any, b: any) => (b.profiles?.verified ? 1 : 0) - (a.profiles?.verified ? 1 : 0));
+  }
 
   function href(over: any) {
     const p = new URLSearchParams();
@@ -67,10 +72,10 @@ export default async function MarketPage(props: any) {
         <Link href={href({ sort: "high" })} className={chip(sort === "high")}>💰 Price: High → Low</Link>
       </div>
 
-      <p className="text-xs text-gray-500 mb-3">{(listings || []).length} result{(listings || []).length === 1 ? "" : "s"}</p>
+      <p className="text-xs text-gray-500 mb-3">{sorted.length} results · ✅ = verified seller (shown first)</p>
 
       <div className="grid grid-cols-2 gap-3">
-        {(listings || []).map((l: any) => (
+        {sorted.map((l: any) => (
           <Link key={l.id} href={`/market/${l.id}`} className="glass-card p-3 rounded-2xl active:scale-[0.98] transition-transform">
             {l.images?.[0] ? (
               <img src={l.images[0]} alt={l.title} className="w-full h-28 object-cover rounded-xl mb-2" />
@@ -78,13 +83,15 @@ export default async function MarketPage(props: any) {
               <div className="w-full h-28 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">🐄</div>
             )}
             <p className="font-semibold text-xs line-clamp-1">{l.title}</p>
-            <p className="text-[10px] text-gray-500 line-clamp-1">{l.tribes ? `${l.tribes.icon} ${l.tribes.name}` : `🧺 ${l.custom_category}`} · {l.profiles?.full_name}</p>
+            <p className="text-[10px] text-gray-500 line-clamp-1">
+              {l.tribes ? `${l.tribes.icon} ${l.tribes.name}` : `🧺 ${l.custom_category}`} · {l.profiles?.full_name} {l.profiles?.verified && "✅"}
+            </p>
             <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(l.currency)}{Number(l.price).toLocaleString()}</p>
           </Link>
         ))}
       </div>
 
-      {(!listings || listings.length === 0) && (
+      {sorted.length === 0 && (
         <p className="text-center text-gray-500 py-10">No listings match your search.<br />Try another keyword or category.</p>
       )}
     </div>
