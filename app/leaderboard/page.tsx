@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 const RANK_ICONS: any = {
   "Beginner Star": "⭐",
@@ -24,19 +25,19 @@ export default function LeaderboardPage() {
     })();
   }, []);
 
-  const medals = ["🥇", "", ""];
+  const medals = ["🥇", "🥈", ""];
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">🏆 Top Farmers Leaderboard</h1>
-      <p className="text-gray-600 text-sm mb-6">Earn points by posting, selling, scanning, buying & reviewing. Climb the stars! ⭐→👑</p>
+      <p className="text-gray-600 text-sm mb-6">Tap any farmer to see their profile, listings & reviews.</p>
 
       {!loaded ? (
         <p className="text-center text-gray-500 py-10">Loading…</p>
       ) : (
         <div className="space-y-2">
           {rows.map((u, i) => (
-            <div key={i} className={`glass-card p-3 rounded-2xl flex items-center gap-3 ${i < 3 ? "border-2 border-amber-300" : ""}`}>
+            <Link key={u.id} href={`/farmer/${u.id}`} className={`glass-card p-3 rounded-2xl flex items-center gap-3 ${i < 3 ? "border-2 border-amber-300" : ""}`}>
               <span className="w-8 text-center font-bold text-gray-500">{i < 3 ? medals[i] : `#${i + 1}`}</span>
               {u.avatar_url ? (
                 <img src={u.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
@@ -50,7 +51,7 @@ export default function LeaderboardPage() {
                 <p className="text-[10px] text-gray-500">{RANK_ICONS[u.rank]} {u.rank}</p>
               </div>
               <span className="font-bold text-amber-600 text-sm">{u.points} pts</span>
-            </div>
+            </Link>
           ))}
           {rows.length === 0 && <p className="text-center text-gray-500 py-10">No farmers yet — be the first!</p>}
         </div>
@@ -59,7 +60,7 @@ export default function LeaderboardPage() {
       <div className="glass-card p-4 rounded-2xl mt-6 text-xs text-gray-600 space-y-1">
         <p className="font-bold text-gray-800 text-sm mb-1">How to earn points:</p>
         <p>➕ Join a tribe = 10 pts · 📣 Post = 15 pts · 💬 Reply = 5 pts</p>
-        <p>🐄 Create listing = 20 pts · 📚 Buy e-book = 30 pts · 🩺 AI scan = 10 pts · ⭐ Review = 5 pts</p>
+        <p>🐄 Create listing = 20 pts · 📚 Buy e-book = 30 pts · 🩺 AI scan = 10 pts · ⭐ Review = 5 pts · 🎁 Referral = 25 pts</p>
       </div>
     </div>
   );
