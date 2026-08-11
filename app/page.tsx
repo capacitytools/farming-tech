@@ -6,7 +6,7 @@ import { currencySymbol } from "@/lib/currency";
 export default async function HomePage() {
   const supabase = createClient();
 
-  const [blogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount] = await Promise.all([
+  const [blogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount, authUser] = await Promise.all([
     supabase.from("blogs").select("title, slug, cover_image_url, category, views_count").eq("status", "published").order("published_at", { ascending: false }).limit(4),
     supabase.from("tribes").select("name, slug, icon, image_url, member_count").order("member_count", { ascending: false }).limit(6),
     supabase.from("livestock_listings").select("id, title, price, currency, images").eq("status", "active").order("created_at", { ascending: false }).limit(4),
@@ -15,7 +15,27 @@ export default async function HomePage() {
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("tribes").select("*", { count: "exact", head: true }),
     supabase.from("livestock_listings").select("*", { count: "exact", head: true }).eq("status", "active"),
+    supabase.auth.getUser(),
   ]);
+
+  let onboarding: any = null;
+  const user = authUser.data?.user;
+  if (user) {
+    const [tm, fp, sc, eb] = await Promise.all([
+      supabase.from("tribe_members").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("feed_posts").select("id", { count: "exact", head: true }).eq("author_id", user.id),
+      supabase.from("ai_scans").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("ebook_purchases").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]);
+    const steps = [
+      { label: "🌾 Join a tribe", done: (tm.count || 0) > 0, href: "/communities" },
+      { label: "📣 Post on the Timeline", done: (fp.count || 0) > 0, href: "/feed" },
+      { label: "🩺 Scan with AI Doctor", done: (sc.count || 0) > 0, href: "/scanner" },
+      { label: "📚 Get an e-book", done: (eb.count || 0) > 0, href: "/ebooks" },
+    ];
+    const doneCount = steps.filter((s: any) => s.done).length;
+    if (doneCount < steps.length) onboarding = { steps, doneCount };
+  }
 
   return (
     <div className="pb-24">
@@ -27,8 +47,7 @@ export default async function HomePage() {
         <p className="text-sm text-forest-100 mb-5">
           AI crop & animal doctor · farmer communities · livestock market · e-book library — all in one app.
         </p>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{profileCount.count || 0}</p><p className="text-[10px] text-forest-100">Farmers</p></div>
+        <div className="grid grid-cols-3 gap-2 text-center">          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{profileCount.count || 0}</p><p className="text-[10px] text-forest-100">Farmers</p></div>
           <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{tribeCount.count || 0}</p><p className="text-[10px] text-forest-100">Tribes</p></div>
           <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{listingCount.count || 0}</p><p className="text-[10px] text-forest-100">Live Listings</p></div>
         </div>
@@ -44,17 +63,40 @@ export default async function HomePage() {
         </div>
       </div>
 
+      {/* ONBOARDING CHECKLIST */}
+      {onboarding && (
+        <div className="px-4 mt-4">
+          <div className="glass-card p-4 rounded-2xl border-2 border-green-300">
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-sm">🚀 Get Started</p>
+              <span className="text-xs font-bold text-green-700">{onboarding.doneCount}/{onboarding.steps.length} done</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+              <div className="bg-green-600 h-2 rounded-full" style={{ width: `${(onboarding.doneCount / onboarding.steps.length) * 100}%` }} />
+            </div>
+            <div className="space-y-1">
+              {onboarding.steps.map((st: any) => (
+                <Link key={st.label} href={st.href} className={`flex items-center gap-2 p-2 rounded-xl text-sm font-semibold ${st.done ? "text-gray-400 line-through" : "bg-green-50 text-green-800"}`}>
+                  <span>{st.done ? "✅" : "⬜"}</span> {st.label}
+                </Link>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-500 mt-2">Finish all 4 to earn your first badges & climb the leaderboard! 🏅</p>
+          </div>
+        </div>
+      )}
+
       {/* TIMELINE BANNER */}
       <div className="px-4 mt-4">
         <Link href="/feed" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform">
-          <div className="flex items-center gap-3">            <span className="text-3xl">📣</span>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">📣</span>
             <div className="flex-1">
               <p className="font-bold">Farmer Timeline</p>
               <p className="text-xs text-amber-100">Post photos, get likes & comments — every action earns points!</p>
             </div>
             <span className="text-xl">→</span>
-          </div>
-        </Link>
+          </div>        </Link>
       </div>
 
       {/* QUICK SCAN */}
@@ -96,14 +138,14 @@ export default async function HomePage() {
             <Link key={t.slug} href={`/communities/${t.slug}`} className="glass-card p-3 rounded-2xl w-36 flex-shrink-0 text-center">
               {t.image_url ? (
                 <img src={t.image_url} alt={t.name} className="w-full h-20 object-cover rounded-xl mb-2" />
-              ) : (                <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
+              ) : (
+                <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
               )}
               <p className="font-bold text-xs line-clamp-1">{t.name}</p>
               <p className="text-[10px] text-gray-500">👥 {t.member_count || 0}</p>
             </Link>
           ))}
-        </div>
-      </div>
+        </div>      </div>
 
       {/* FRESH FROM MARKET */}
       <div className="px-4 mt-8">
@@ -135,7 +177,7 @@ export default async function HomePage() {
         <div className="glass-card p-4 rounded-2xl space-y-2">
           {(leaders.data || []).slice(0, 3).map((u: any, i: number) => (
             <div key={i} className="flex items-center gap-3">
-              <span className="text-lg">{["🥇", "🥈", "🥉"][i]}</span>
+              <span className="text-lg">{["🥇", "", ""][i]}</span>
               <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">
                 {(u.full_name || "?")[0]}
               </div>
@@ -145,14 +187,14 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
+
       {/* EBOOK TEASER */}
       {(ebooks.data || []).length > 0 && (
         <div className="px-4 mt-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold">📚 Learn from E-books</h2>
             <Link href="/ebooks" className="text-xs font-semibold text-green-700">Store →</Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          </div>          <div className="flex gap-3 overflow-x-auto pb-2">
             {(ebooks.data || []).map((b: any) => (
               <Link key={b.id} href="/ebooks" className="glass-card p-3 rounded-2xl w-32 flex-shrink-0">
                 {b.cover_url ? (
