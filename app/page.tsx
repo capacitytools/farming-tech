@@ -44,10 +44,24 @@ export default async function HomePage() {
         </div>
       </div>
 
+      {/* TIMELINE BANNER */}
+      <div className="px-4 mt-4">
+        <Link href="/feed" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform">
+          <div className="flex items-center gap-3">            <span className="text-3xl">📣</span>
+            <div className="flex-1">
+              <p className="font-bold">Farmer Timeline</p>
+              <p className="text-xs text-amber-100">Post photos, get likes & comments — every action earns points!</p>
+            </div>
+            <span className="text-xl">→</span>
+          </div>
+        </Link>
+      </div>
+
       {/* QUICK SCAN */}
-      <div className="px-4 mt-2">
+      <div className="px-4 mt-4">
         <QuickScanWidget />
       </div>
+
       {/* LATEST INSIGHTS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
@@ -82,8 +96,7 @@ export default async function HomePage() {
             <Link key={t.slug} href={`/communities/${t.slug}`} className="glass-card p-3 rounded-2xl w-36 flex-shrink-0 text-center">
               {t.image_url ? (
                 <img src={t.image_url} alt={t.name} className="w-full h-20 object-cover rounded-xl mb-2" />
-              ) : (
-                <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
+              ) : (                <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
               )}
               <p className="font-bold text-xs line-clamp-1">{t.name}</p>
               <p className="text-[10px] text-gray-500">👥 {t.member_count || 0}</p>
@@ -96,7 +109,8 @@ export default async function HomePage() {
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🐄 Fresh from Market</h2>
-          <Link href="/market" className="text-xs font-semibold text-green-700">View all →</Link>        </div>
+          <Link href="/market" className="text-xs font-semibold text-green-700">View all →</Link>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           {(listings.data || []).map((l: any) => (
             <Link key={l.id} href={`/market/${l.id}`} className="glass-card p-3 rounded-2xl">
@@ -121,7 +135,7 @@ export default async function HomePage() {
         <div className="glass-card p-4 rounded-2xl space-y-2">
           {(leaders.data || []).slice(0, 3).map((u: any, i: number) => (
             <div key={i} className="flex items-center gap-3">
-              <span className="text-lg">{["🥇", "🥈", ""][i]}</span>
+              <span className="text-lg">{["🥇", "🥈", "🥉"][i]}</span>
               <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">
                 {(u.full_name || "?")[0]}
               </div>
@@ -131,7 +145,6 @@ export default async function HomePage() {
           ))}
         </div>
       </div>
-
       {/* EBOOK TEASER */}
       {(ebooks.data || []).length > 0 && (
         <div className="px-4 mt-8">
@@ -145,7 +158,8 @@ export default async function HomePage() {
                 {b.cover_url ? (
                   <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
                 ) : (
-                  <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>                )}
+                  <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
+                )}
                 <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
                 <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number(b.price).toLocaleString()}</p>
               </Link>
