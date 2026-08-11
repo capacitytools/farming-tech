@@ -50,7 +50,7 @@ export default function AdminWallet() {
       await supabase.from("payout_requests").update({ status: "paid" }).eq("id", id);    } else {
       await supabase.from("payout_requests").update({ status: "rejected" }).eq("id", id);
       const { data: u } = await supabase.from("profiles").select("wallet_balance").eq("id", userId).single();
-      await supabase.from("profiles").update({ wallet_balance: Number(u.wallet_balance) + amount }).eq("id", userId);
+      await supabase.from("profiles").update({ wallet_balance: Number(u?.wallet_balance || 0) + amount }).eq("id", userId);
     }
     load();
   }
