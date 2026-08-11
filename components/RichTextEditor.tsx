@@ -4,115 +4,84 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
-import Color from "@tiptap/extension-color";
-import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
+import TextStyle from "@tiptap/extension-text-style";
+import { Color } from "@tiptap/extension-color";
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+
+const COLORS = ["#000000", "#166534", "#1d4ed8", "#dc2626", "#d97706", "#7c3aed"];
 
 export default function RichTextEditor({ content, onChange }: { content: string; onChange: (html: string) => void }) {
   const editor = useEditor({
     extensions: [
       StarterKit,
       Image,
-      Link.configure({ openOnClick: false }),
-      Color,
-      TextStyle,
       Underline,
+      Link.configure({ openOnClick: false }),
       TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextStyle,
+      Color,
     ],
     content,
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
-    },
+    onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
   useEffect(() => {
-    if (editor && content !== editor.getHTML()) {
+    if (editor && content && content !== editor.getHTML()) {
       editor.commands.setContent(content);
     }
   }, [content, editor]);
 
-  async function addImage() {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = async (e: any) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const supabase = createClient();
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("blog-images").upload(path, file);
-      if (!error) {
-        const url = supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl;
-        editor?.chain().focus().setImage({ src: url }).run();      }
-    };
-    input.click();
-  }
-
-  function setLink() {
-    const url = window.prompt("Enter URL:");
-    if (url) editor?.chain().focus().setLink({ href: url }).run();
-  }
-
   if (!editor) return null;
 
+  async function addImage(e: any) {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `blog-img-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("blog-images").upload(path, file);
+    if (!error) {
+      const url = supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl;
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+    e.target.value = "";
+  }
+
+  function addLink() {
+    const url = prompt("Paste the link URL (https://...)");
+    if (!url) return;
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  }
+
+  const btn = "px-2 py-1 rounded-lg text-xs font-bold bg-white/80 border border-gray-200 active:bg-green-100";
+
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white/70">
-      <div className="border-b border-gray-200 p-2 flex flex-wrap gap-1 bg-gray-50">
-        <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("bold") ? "bg-green-600 text-white" : "bg-white"}`}>
-          <b>B</b>
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("italic") ? "bg-green-600 text-white" : "bg-white"}`}>
-          <i>I</i>
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleUnderline().run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("underline") ? "bg-green-600 text-white" : "bg-white"}`}>
-          <u>U</u>
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("strike") ? "bg-green-600 text-white" : "bg-white"}`}>
-          <s>S</s>
-        </button>
-        <select onChange={(e) => editor.chain().focus().setColor(e.target.value).run()} className="px-2 py-1 rounded text-sm bg-white border border-gray-300">
-          <option value="">Color</option>
-          <option value="#000000">Black</option>
-          <option value="#dc2626">Red</option>
-          <option value="#16a34a">Green</option>
-          <option value="#2563eb">Blue</option>
-          <option value="#d97706">Orange</option>
-        </select>
-        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("heading", { level: 1 }) ? "bg-green-600 text-white" : "bg-white"}`}>
-          H1
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("heading", { level: 2 }) ? "bg-green-600 text-white" : "bg-white"}`}>
-          H2
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("heading", { level: 3 }) ? "bg-green-600 text-white" : "bg-white"}`}>
-          H3
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("bulletList") ? "bg-green-600 text-white" : "bg-white"}`}>
-          • List
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`px-2 py-1 rounded text-sm ${editor.isActive("orderedList") ? "bg-green-600 text-white" : "bg-white"}`}>
-          1. List
-        </button>        <button type="button" onClick={addImage} className="px-2 py-1 rounded text-sm bg-white border border-gray-300">
-          📷 Image
-        </button>
-        <button type="button" onClick={setLink} className={`px-2 py-1 rounded text-sm ${editor.isActive("link") ? "bg-green-600 text-white" : "bg-white border border-gray-300"}`}>
-          🔗 Link
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().setTextAlign("left").run()} className={`px-2 py-1 rounded text-sm ${editor.isActive({ textAlign: "left" }) ? "bg-green-600 text-white" : "bg-white"}`}>
-          ⬅️
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().setTextAlign("center").run()} className={`px-2 py-1 rounded text-sm ${editor.isActive({ textAlign: "center" }) ? "bg-green-600 text-white" : "bg-white"}`}>
-          ↔️
-        </button>
-        <button type="button" onClick={() => editor.chain().focus().setTextAlign("right").run()} className={`px-2 py-1 rounded text-sm ${editor.isActive({ textAlign: "right" }) ? "bg-green-600 text-white" : "bg-white"}`}>
-          ➡️
-        </button>
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <div className="flex flex-wrap gap-1 p-2 border-b border-gray-200 bg-gray-50">
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleItalic().run()}><i>I</i></button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleStrike().run()}><s>S</s></button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>H2</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>H3</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleBulletList().run()}>• List</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleOrderedList().run()}>1. List</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().toggleBlockquote().run()}>❝</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().setTextAlign("left").run()}>⬅</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().setTextAlign("center").run()}>↔</button>
+        <button type="button" className={btn} onClick={addLink}>🔗 Link</button>
+        <label className={btn + " cursor-pointer"}>🖼️ Img<input type="file" accept="image/*" onChange={addImage} className="hidden" /></label>
+        {COLORS.map((c) => (
+          <button key={c} type="button" style={{ backgroundColor: c }} className="w-6 h-6 rounded-full border border-white shadow" onClick={() => editor.chain().focus().setColor(c).run()} />
+        ))}
+        <button type="button" className={btn} onClick={() => editor.chain().focus().unsetColor().run()}>🎨</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().undo().run()}>↩</button>
+        <button type="button" className={btn} onClick={() => editor.chain().focus().redo().run()}>↪</button>
       </div>
-      <EditorContent editor={editor} className="p-4 min-h-[300px] prose prose-sm max-w-none" />
+      <EditorContent editor={editor} className="prose prose-sm max-w-none p-3 min-h-[250px]" />
     </div>
   );
 }
