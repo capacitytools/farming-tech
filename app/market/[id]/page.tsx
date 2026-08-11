@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { currencySymbol } from "@/lib/currency";
 import ListingReviews from "@/components/ListingReviews";
+import SoldButton from "@/components/SoldButton";
 
 export default async function ListingDetailPage(props: any) {
   const params = await props.params;
@@ -12,6 +13,7 @@ export default async function ListingDetailPage(props: any) {
     .single();
 
   const { data: { user } } = await supabase.auth.getUser();
+  const isSeller = user && listing && user.id === listing.seller_id;
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
@@ -38,6 +40,9 @@ export default async function ListingDetailPage(props: any) {
               {listing.is_featured && <span className="ml-auto text-amber-500">⭐ Featured</span>}
             </div>
             <h1 className="text-2xl font-bold mb-2">{listing.title}</h1>
+            {listing.status === "sold" && (
+              <p className="inline-block bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full mb-2">SOLD ✅</p>
+            )}
             <p className="text-gray-700 mb-4">{listing.description}</p>
             <div className="text-3xl font-bold text-green-700 mb-4">
               {currencySymbol(listing.currency)}{Number(listing.price).toLocaleString()}
@@ -60,12 +65,13 @@ export default async function ListingDetailPage(props: any) {
                   Chat on WhatsApp
                 </a>
               )}
-              {user && user.id !== listing.seller_id && (
+              {user && !isSeller && (
                 <a className="inline-block mt-3 bg-forest-600 text-white px-4 py-2 rounded-xl font-semibold" href={`/inbox?user=${listing.seller_id}`}>
                   💬 Message Seller
                 </a>
               )}
             </div>
+            {isSeller && <SoldButton id={listing.id} status={listing.status} />}
           </div>
 
           <ListingReviews listingId={listing.id} />
