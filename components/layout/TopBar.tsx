@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Menu, X, Bell, Search, Sprout, BookOpen, Stethoscope, ShoppingBag,
+  Menu, X, Bell, Search, Mail, Trophy, Sprout, BookOpen, Stethoscope, ShoppingBag,
   GraduationCap, Info, Phone, Facebook, Instagram, Youtube,
-  ChevronRight, Newspaper,
+  ChevronRight, Newspaper, User,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
@@ -15,12 +15,20 @@ const MENU_SECTIONS = [
     title: 'Explore',
     items: [
       { href: '/search', label: 'Search', icon: Search },
+      { href: '/leaderboard', label: 'Top Farmers', icon: Trophy },
       { href: '/communities', label: 'Tribes & Communities', icon: Sprout },
       { href: '/blog', label: 'Daily Insight Blog', icon: Newspaper },
       { href: '/scanner', label: 'AI Agri-Doctor', icon: Stethoscope },
       { href: '/market', label: 'Marketplace', icon: ShoppingBag },
       { href: '/experts', label: 'Expert Directory', icon: GraduationCap },
       { href: '/ebooks', label: 'E-book Store', icon: BookOpen },
+    ],
+  },
+  {
+    title: 'You',
+    items: [
+      { href: '/inbox', label: 'Inbox / Messages', icon: Mail },
+      { href: '/profile', label: 'My Dashboard', icon: User },
     ],
   },
   {
@@ -35,19 +43,30 @@ const MENU_SECTIONS = [
 export default function TopBar() {
   const [open, setOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
+  const [msgCount, setMsgCount] = useState(0);
 
   useEffect(() => {
     (async () => {
-      try {
+      try {        const supabase = createClient();
         const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';
-        const supabase = createClient();
         const { count } = await supabase
           .from('notifications')
           .select('*', { count: 'exact', head: true })
           .gt('created_at', seen);
         setNotifCount(count || 0);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { count: mc } = await supabase
+            .from('direct_messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('receiver_id', user.id)
+            .eq('read', false);
+          setMsgCount(mc || 0);
+        }
       } catch {}
-    })();  }, []);
+    })();
+  }, []);
 
   return (
     <>
@@ -76,6 +95,17 @@ export default function TopBar() {
               )}
             </Link>
             <Link
+              href="/inbox"
+              aria-label="Inbox"              className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
+            >
+              <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+              {msgCount > 0 && (
+                <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
+                  {msgCount}
+                </span>
+              )}
+            </Link>
+            <Link
               href="/search"
               aria-label="Search"
               className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
@@ -96,7 +126,8 @@ export default function TopBar() {
       <AnimatePresence>
         {open && (
           <>
-            <motion.div              initial={{ opacity: 0 }}
+            <motion.div
+              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
@@ -114,8 +145,7 @@ export default function TopBar() {
                 <button
                   onClick={() => setOpen(false)}
                   aria-label="Close menu"
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-forest-100 dark:bg-forest-800"
-                >
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-forest-100 dark:bg-forest-800"                >
                   <X className="w-5 h-5 text-forest-700 dark:text-forest-200" />
                 </button>
               </div>
@@ -145,7 +175,8 @@ export default function TopBar() {
                               </span>
                             </span>
                             <ChevronRight className="w-4 h-4 text-forest-300" />
-                          </Link>                        );
+                          </Link>
+                        );
                       })}
                     </div>
                   </div>
@@ -163,8 +194,7 @@ export default function TopBar() {
                     ].map((s, i) => (
                       <a
                         key={i}
-                        href={s.href}
-                        target="_blank"
+                        href={s.href}                        target="_blank"
                         rel="noopener noreferrer"
                         className="w-10 h-10 rounded-full bg-forest-50 dark:bg-forest-800 flex items-center justify-center"
                       >
