@@ -24,42 +24,48 @@ export default async function AdminDashboard() {
   const { data: notes } = await supabase.from("admin_notes").select("id").limit(10);
   const { data: tribes } = await supabase.from("tribes").select("id").limit(20);
   const { data: ebooks } = await supabase.from("ebooks").select("id").limit(10);
+  const { data: comments } = await supabase.from("blog_comments").select("id").limit(10);
+  const { data: payouts } = await supabase.from("payout_requests").select("id").eq("status", "pending").limit(10);
 
   return (
     <div className="p-4 pb-24 max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
-      <p className="text-gray-600 mb-6">Welcome back, Site Admin 👋</p>
+      <p className="text-gray-600 mb-6">Welcome back, Site Admin 👋 Everything is one tap away.</p>
 
       <div className="grid grid-cols-2 gap-4">
+        <Link href="/admin/wallet" className="glass-card p-4 rounded-2xl border-2 border-green-300">
+          <div className="text-3xl mb-2">💵</div>
+          <h3 className="font-bold">Wallet Control</h3>
+          <p className="text-sm text-gray-600">{payouts?.length || 0} payout requests</p>
+        </Link>
         <Link href="/admin/analytics" className="glass-card p-4 rounded-2xl border-2 border-purple-200">
           <div className="text-3xl mb-2">📊</div>
           <h3 className="font-bold">Analytics</h3>
-          <p className="text-sm text-gray-600">Views, sales & growth</p>
+          <p className="text-sm text-gray-600">Views, sales & ranks</p>
         </Link>
-        <Link href="/admin/notifications" className="glass-card p-4 rounded-2xl border-2 border-red-200">
-          <div className="text-3xl mb-2">🔔</div>
-          <h3 className="font-bold">Announcements</h3>
-          <p className="text-sm text-gray-600">Broadcast to all users</p>
-        </Link>
-        <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
+        <Link href="/admin/blogs/ai-writer" className="glass-card p-4 rounded-2xl border-2 border-purple-200">
+          <div className="text-3xl mb-2">🤖</div>
+          <h3 className="font-bold">AI Writer</h3>
+          <p className="text-sm text-gray-600">Veteran blog writer</p>
+        </Link>        <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📝</div>
           <h3 className="font-bold">Blog Posts</h3>
           <p className="text-sm text-gray-600">{blogs?.length || 0} recent</p>
+        </Link>
+        <Link href="/admin/comments" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">💬</div>
+          <h3 className="font-bold">Comments</h3>
+          <p className="text-sm text-gray-600">{comments?.length || 0} to moderate</p>
         </Link>
         <Link href="/admin/listings" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">🐄</div>
           <h3 className="font-bold">Pending Listings</h3>
           <p className="text-sm text-gray-600">{listings?.length || 0} awaiting approval</p>
         </Link>
-        <Link href="/admin/notes" className="glass-card p-4 rounded-2xl">
-          <div className="text-3xl mb-2">🗒️</div>
-          <h3 className="font-bold">Notepad</h3>
-          <p className="text-sm text-gray-600">{notes?.length || 0} private documents</p>
-        </Link>
-        <Link href="/admin/ads" className="glass-card p-4 rounded-2xl">
-          <div className="text-3xl mb-2">💰</div>
-          <h3 className="font-bold">Adsterra Ads</h3>
-          <p className="text-sm text-gray-600">Manage ad scripts</p>
+        <Link href="/admin/notifications" className="glass-card p-4 rounded-2xl border-2 border-red-200">
+          <div className="text-3xl mb-2">🔔</div>
+          <h3 className="font-bold">Announcements</h3>
+          <p className="text-sm text-gray-600">Broadcast + push</p>
         </Link>
         <Link href="/admin/ebooks" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📚</div>
@@ -71,12 +77,26 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Tribes</h3>
           <p className="text-sm text-gray-600">{tribes?.length || 0} communities</p>
         </Link>
+        <Link href="/admin/ads" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">💰</div>
+          <h3 className="font-bold">Adsterra Ads</h3>
+          <p className="text-sm text-gray-600">Manage ad scripts</p>
+        </Link>
+        <Link href="/admin/notes" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">🗒️</div>
+          <h3 className="font-bold">Notepad</h3>
+          <p className="text-sm text-gray-600">{notes?.length || 0} private documents</p>
+        </Link>
         <Link href="/admin/settings" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">⚙️</div>
           <h3 className="font-bold">Site Settings</h3>
           <p className="text-sm text-gray-600">Announcements and more</p>
         </Link>
-      </div>
+        <Link href="/leaderboard" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">🏆</div>
+          <h3 className="font-bold">Leaderboard</h3>
+          <p className="text-sm text-gray-600">Public top farmers</p>
+        </Link>      </div>
     </div>
   );
 }
