@@ -13,7 +13,11 @@ async function callGemini(key: string, model: string, prompt: string, useTools: 
   });
   const raw = await res.text();
   let json: any = null;
-  try { json = JSON.parse(raw); } catch { return { error: raw.slice(0, 100) }; }
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { error: raw.slice(0, 100) };
+  }
   const text = (json?.candidates?.[0]?.content?.parts || []).map((p: any) => p.text || "").join("");
   if (text) return { text };
   return { error: json?.error?.message || "no text" };
@@ -27,8 +31,15 @@ export async function POST(req: Request) {
     if (!topic?.trim()) return NextResponse.json({ error: "Give me a topic first" }, { status: 400 });
 
     const supabase = createClient();
-    const { data: posts } = await supabase.from("blogs").select("title, slug").eq("status", "published").order("views_count", { ascending: false }).limit(6);
-    const internal = (posts || []).map((p: any) => `"${p.title}" → https://farmtechbusiness.com/blog/${p.slug}`).join("\n");
+    const { data: posts } = await supabase
+      .from("blogs")
+      .select("title, slug")
+      .eq("status", "published")
+      .order("views_count", { ascending: false })
+      .limit(6);
+    const internal = (posts || [])
+      .map((p: any) => `"${p.title}" → https://farmtechbusiness.com/blog/${p.slug}`)
+      .join("\n");
 
     const prompt = `You are a professional agricultural writer and consultant with 15 years of hands-on field experience in Nigeria and Africa. You write world-class, SEO-optimized blog articles.
 
@@ -56,7 +67,10 @@ TAGS: 6 comma-separated SEO tags`;
     for (const useTools of [true, false]) {
       for (const model of MODELS) {
         const r = await callGemini(key, model, prompt, useTools);
-        if (r.text) { text = r.text; break; }
+        if (r.text) {
+          text = r.text;
+          break;
+        }
         lastError = r.error || "failed";
       }
       if (text) break;
@@ -68,7 +82,7 @@ TAGS: 6 comma-separated SEO tags`;
     const seoTitle = text.match(/SEOTITLE:\s*(.+)/i)?.[1]?.trim() || topic;
     const seoDescription = text.match(/SEODESC:\s*(.+)/i)?.[1]?.trim() || "";
     const tags = text.match(/TAGS:\s*(.+)/i)?.[1]?.trim() || "";
-    const title = html.match(/<h1[^>]*>(.*?)<\/h1>/is)?.[1]?.replace(/<[^>]+>/g, "").trim() || seoTitle;
+    const title = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]+>/g, "").trim() || seoTitle;
 
     return NextResponse.json({ ok: true, html, title, seoTitle, seoDescription, tags });
   } catch (e: any) {
