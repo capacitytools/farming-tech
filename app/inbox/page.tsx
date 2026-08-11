@@ -15,6 +15,7 @@ export default function InboxPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setChatWith(params.get("user") || "");
+    setText(params.get("text") || "");
     (async () => {
       const supabase = createClient();
       const { data: { user: u } } = await supabase.auth.getUser();
@@ -84,19 +85,22 @@ export default function InboxPage() {
       <div className="p-4 pb-24 max-w-2xl mx-auto flex flex-col" style={{ minHeight: "80vh" }}>
         <div className="flex items-center gap-3 mb-4">
           <a href="/inbox" className="text-2xl">←</a>
-          <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">
+          <a href={`/farmer/${chatWith}`} className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">
             {otherProfile?.full_name?.[0] || "?"}
+          </a>
+          <div>
+            <a href={`/farmer/${chatWith}`} className="font-bold">{otherProfile?.full_name || "Farmer"}</a>
+            <p className="text-[10px] text-gray-400">tap name to view profile</p>
           </div>
-          <p className="font-bold">{otherProfile?.full_name || "Farmer"}</p>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto">
           {thread.map((m) => (
             <div key={m.id} className={`flex ${m.sender_id === user.id ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] p-3 rounded-2xl text-sm ${m.sender_id === user.id ? "bg-green-600 text-white rounded-br-sm" : "bg-white text-gray-800 rounded-bl-sm shadow"}`}>
-                {m.content}
+              <div className={`max-w-[75%] p-3 rounded-2xl text-sm ${m.sender_id === user.id ? "bg-green-600 text-white rounded-br-sm" : "bg-white text-gray-800 rounded-bl-sm shadow"}`}>                {m.content}
               </div>
             </div>
-          ))}          {thread.length === 0 && <p className="text-center text-gray-500 text-sm py-6">Say hello 👋 Start the conversation!</p>}
+          ))}
+          {thread.length === 0 && <p className="text-center text-gray-500 text-sm py-6">Say hello 👋 Start the conversation!</p>}
           <div ref={bottomRef} />
         </div>
         <form onSubmit={send} className="flex gap-2 mt-4">
@@ -125,7 +129,7 @@ export default function InboxPage() {
             </a>
           ))
         ) : (
-          <p className="text-gray-500 text-center py-10">No conversations yet.<br />Start one from any listing with 💬 Message Seller!</p>
+          <p className="text-gray-500 text-center py-10">No conversations yet.<br />Start one from any listing with 💬 Message!</p>
         )}
       </div>
     </div>
