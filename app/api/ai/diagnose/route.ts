@@ -14,16 +14,24 @@ export async function POST(req: Request) {
     if (!key) return NextResponse.json({ error: "Gemini API key missing in Vercel" }, { status: 500 });
     if (!image?.base64) return NextResponse.json({ error: "No image sent" }, { status: 400 });
 
-    const prompt = `You are an expert agricultural doctor for a Nigerian farming platform.
-The farmer uploaded a photo. Subject type: ${subject || "unknown"}.
-Analyze the photo carefully and reply in this EXACT format:
+    const prompt = `You are a professional agricultural doctor AI for a Nigerian farming platform.
+Analyze the photo carefully. Subject type: ${subject || "unknown"}.
 
-DIAGNOSIS: (what the problem is, in simple language)
-SEVERITY: (Low, Medium, or High)
-TREATMENT: (step-by-step treatment with locally available products/dosages)
-PREVENTION: (how to stop it coming back)
+Reply with PLAIN TEXT ONLY. Do NOT use asterisks, hashtags, bold markers or any markdown characters. Use this exact structure:
 
-Be practical, use Nigerian farm context, keep it under 300 words.`;
+DIAGNOSIS: direct, specific name of the disease or problem
+CONFIDENCE: your confidence level as a percentage (e.g. 88%)
+SEVERITY: Low, Medium or High
+CAUSE: one short sentence explaining why it happened
+TREATMENT:
+- step with exact product name and dosage available in Nigeria
+- step
+- step
+PREVENTION:
+- step
+- step
+
+Be concise, direct, specific and professional. Under 250 words.`;
 
     let lastError = "";
     for (const model of MODELS) {
@@ -45,7 +53,14 @@ Be practical, use Nigerian farm context, keep it under 300 words.`;
             }),
           }
         );
-        const json = await res.json();
+        const raw = await res.text();
+        let json: any = null;
+        try {
+          json = JSON.parse(raw);
+        } catch {
+          lastError = raw.slice(0, 100) || `HTTP ${res.status}`;
+          continue;
+        }
         const text = json?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) return NextResponse.json({ ok: true, result: text, model });
         lastError = json?.error?.message || "No text returned";
