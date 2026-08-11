@@ -42,3 +42,11 @@ body {
     @apply text-2xl font-extrabold tracking-tight text-forest-900 dark:text-white;
   }
 }
+
+/* Move OneSignal bell above the bottom navigation */
+.onesignal-bell-container,
+#onesignal-bell-container {
+  bottom: 95px !important;
+  right: 12px !important;
+  z-index: 30 !important;
+}
