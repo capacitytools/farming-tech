@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const ADMIN_WHATSAPP = "2349159884244"; // Your WhatsApp number (country code, no +)
+const ADMIN_WHATSAPP = "2349159884244";
 
 export default function WalletPage() {
   const [user, setUser] = useState<any>(null);
@@ -31,6 +31,13 @@ export default function WalletPage() {
     load();
   }, []);
 
+  async function markPending() {
+    const supabase = createClient();
+    await supabase.from("profiles").update({ verification_requested: true }).eq("id", user.id);
+    setMsg("📲 Marked as pending — admin will confirm your verification shortly!");
+    load();
+  }
+
   async function activateMonetization() {
     const supabase = createClient();
     await supabase.from("profiles").update({ monetized: true }).eq("id", user.id);
@@ -40,14 +47,14 @@ export default function WalletPage() {
 
   async function requestPayout(e: any) {
     e.preventDefault();
-    setMsg("");
-    const amt = Number(amount);
+    setMsg("");    const amt = Number(amount);
     if (!amt || amt < 1000) return setMsg("Minimum payout is ₦1,000.");
     if (amt > Number(profile.wallet_balance || 0)) return setMsg("Amount is more than your balance.");
     if (!bank.trim()) return setMsg("Enter your bank details.");
     const supabase = createClient();
     await supabase.from("profiles").update({ wallet_balance: Number(profile.wallet_balance) - amt }).eq("id", user.id);
-    await supabase.from("payout_requests").insert({ user_id: user.id, amount: amt, bank_info: bank.trim() });    setMsg("✅ Payout requested! You'll be paid within 48 hours.");
+    await supabase.from("payout_requests").insert({ user_id: user.id, amount: amt, bank_info: bank.trim() });
+    setMsg("✅ Payout requested! You'll be paid within 48 hours.");
     setAmount("");
     load();
   }
@@ -65,16 +72,18 @@ export default function WalletPage() {
 
   const verified = profile?.verified;
   const monetized = profile?.monetized;
+  const pending = profile?.verification_requested;
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">💵 Wallet & Verification</h1>
 
-      {/* VERIFICATION */}
       <div className={`glass-card p-5 rounded-2xl mb-4 border-2 ${verified ? "border-sky-400" : "border-gray-200"}`}>
         <h2 className="font-bold mb-2">{verified ? "✅ Verified Member" : "🎫 Get Verified — ₦1,000/month"}</h2>
         {verified ? (
           <p className="text-sm text-gray-600">You're verified until {profile.verified_until ? new Date(profile.verified_until).toLocaleDateString() : "—"} ✅</p>
+        ) : pending ? (
+          <p className="text-sm text-amber-700 font-semibold">⏳ Payment pending confirmation — admin will verify you shortly!</p>
         ) : (
           <>
             <ul className="text-sm text-gray-700 space-y-1 mb-3">
@@ -83,20 +92,22 @@ export default function WalletPage() {
               <li>🤝 More trust = more sales on your listings</li>
               <li>🎓 Access to Verified Farmers tribe</li>
             </ul>
-            <p className="text-xs text-gray-500 mb-3">How: transfer ₦1,000 to the platform account, then tap below to send your receipt on WhatsApp. Admin confirms within minutes.</p>
+            <p className="text-xs text-gray-500 mb-3">How: transfer ₦1,000 to the platform account, send your receipt on WhatsApp, then mark yourself as pending.</p>
             <a
               href={`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent("Hello! I just paid ₦1,000 for VERIFIED membership. My account email is: " + user.email)}`}
-              className="block text-center bg-sky-600 text-white py-3 rounded-xl font-bold"
-            >
-              📲 I Paid — Send Receipt on WhatsApp
+              className="block text-center bg-sky-600 text-white py-3 rounded-xl font-bold mb-2"
+            >              📲 Send Receipt on WhatsApp
             </a>
+            <button onClick={markPending} className="w-full bg-amber-500 text-white py-3 rounded-xl font-bold">
+              ✅ I Have Paid — Mark Me as Pending
+            </button>
           </>
         )}
       </div>
 
-      {/* MONETIZATION */}
       <div className={`glass-card p-5 rounded-2xl mb-4 border-2 ${monetized ? "border-green-400" : "border-gray-200"}`}>
-        <h2 className="font-bold mb-2">💵 Creator Monetization</h2>        {monetized ? (
+        <h2 className="font-bold mb-2">💵 Creator Monetization</h2>
+        {monetized ? (
           <p className="text-sm text-green-700 font-semibold">Active ✅ — your monthly share of ad revenue lands in your wallet.</p>
         ) : verified ? (
           <>
@@ -113,7 +124,6 @@ export default function WalletPage() {
         )}
       </div>
 
-      {/* WALLET */}
       <div className="glass-card p-5 rounded-2xl mb-4">
         <h2 className="font-bold mb-1">👛 My Wallet</h2>
         <p className="text-4xl font-extrabold text-green-700 mb-4">₦{Number(profile?.wallet_balance || 0).toLocaleString()}</p>
