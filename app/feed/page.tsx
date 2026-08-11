@@ -17,7 +17,7 @@ export default function FeedPage() {
 
   async function load() {
     const supabase = createClient();
-    const { data: p } = await supabase.from("feed_posts").select("*, profiles(full_name, avatar_url, referral_code, role)").order("created_at", { ascending: false }).limit(30);
+    const { data: p } = await supabase.from("feed_posts").select("*, profiles(full_name, avatar_url, referral_code, role, verified)").order("created_at", { ascending: false }).limit(30);
     const { data: l } = await supabase.from("feed_likes").select("post_id, user_id");
     const { data: c } = await supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true });
     setPosts(p || []);
@@ -101,7 +101,7 @@ export default function FeedPage() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">📣 Farmer Timeline</h1>
-      <p className="text-gray-600 text-xs mb-4">Share updates · like & comment · every action earns points! Sharing brings you referrals 🎁</p>
+      <p className="text-gray-600 text-xs mb-4">Share updates · like & comment · every action earns points! ✅ = verified member</p>
 
       {user ? (
         <form onSubmit={publish} className="glass-card p-4 rounded-2xl mb-5">
@@ -130,10 +130,14 @@ export default function FeedPage() {
                   <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{post.profiles?.full_name?.[0] || "?"}</div>
                 )}
                 <div className="flex-1">
-                  <p className="font-bold text-sm">{post.profiles?.full_name || "Farmer"} {post.profiles?.role === "admin" && <span className="text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold">ADMIN</span>}</p>
+                  <p className="font-bold text-sm">
+                    {post.profiles?.full_name || "Farmer"}
+                    {post.profiles?.verified && <span className="ml-1 text-sky-500" title="Verified member">✅</span>}
+                    {post.profiles?.role === "admin" && <span className="ml-1 text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold">ADMIN</span>}
+                  </p>
                   <p className="text-[10px] text-gray-400">{new Date(post.created_at).toLocaleDateString()} · 👁️ {post.views_count || 0}</p>
                 </div>
-                {(user?.id === post.author_id || user?.role === "admin") && (
+                {user?.id === post.author_id && (
                   <button onClick={() => deletePost(post.id)} className="text-red-500 text-xs font-semibold">Delete</button>
                 )}
               </div>
@@ -141,11 +145,11 @@ export default function FeedPage() {
               <p className="text-sm text-gray-800 whitespace-pre-line">{post.content}</p>
               {post.image_url && <img src={post.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
 
-              <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
-                <button onClick={() => toggleLike(post.id)} className={myLike ? "text-red-600" : ""}>❤️ {postLikes.length}</button>
+              <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">                <button onClick={() => toggleLike(post.id)} className={myLike ? "text-red-600" : ""}>❤️ {postLikes.length}</button>
                 <button onClick={() => setOpenC(openC === post.id ? "" : post.id)} className="text-green-700">💬 {postComments.length}</button>
                 <button onClick={() => share(post, "wa")} className="ml-auto">📤</button>
-                <button onClick={() => share(post, "fb")}>f</button>                <button onClick={() => share(post, "x")}>𝕏</button>
+                <button onClick={() => share(post, "fb")}>f</button>
+                <button onClick={() => share(post, "x")}>𝕏</button>
                 <button onClick={() => share(post, "copy")}>🔗</button>
               </div>
 
