@@ -9,13 +9,14 @@ const MODELS = [
 
 export async function POST(req: Request) {
   try {
-    const { image, subject } = await req.json();
+    const { image, subject, note } = await req.json();
     const key = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!key) return NextResponse.json({ error: "Gemini API key missing in Vercel" }, { status: 500 });
     if (!image?.base64) return NextResponse.json({ error: "No image sent" }, { status: 400 });
 
     const prompt = `You are a professional agricultural doctor AI for a Nigerian farming platform.
 Analyze the photo carefully. Subject type: ${subject || "unknown"}.
+${note ? `The farmer's own description of the problem: "${note}". Take it into account in your analysis.` : ""}
 
 Reply with PLAIN TEXT ONLY. Do NOT use asterisks, hashtags, bold markers or any markdown characters. Use this exact structure:
 
