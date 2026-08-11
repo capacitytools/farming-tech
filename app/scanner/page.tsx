@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import AdBanner from "@/components/AdBanner";
 
 const SUBJECTS = ["Crop / Plant", "Poultry", "Goats", "Cattle", "Pigs", "Rabbits", "Fish", "Other"];
 
@@ -46,8 +47,8 @@ export default function ScannerPage() {
       setScans(data || []);
     }
   }
-
-  useEffect(() => {    loadScans();
+  useEffect(() => {
+    loadScans();
   }, []);
 
   async function onFile(e: any) {
@@ -121,7 +122,9 @@ export default function ScannerPage() {
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-2">🩺 AI Agri-Doctor</h1>
+      <AdBanner type="native" />
+
+      <h1 className="text-2xl font-bold mb-2 mt-4">🩺 AI Agri-Doctor</h1>
       <p className="text-gray-600 text-sm mb-6">Snap a photo of a sick plant or animal → get an instant AI diagnosis + treatment plan.</p>
 
       <div className="glass-card p-5 rounded-2xl shadow-lg">
@@ -142,10 +145,10 @@ export default function ScannerPage() {
           <option value="">What type of farm subject? (optional)</option>
           {SUBJECTS.map((s) => (
             <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+          ))}        </select>
 
-        <textarea          className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mb-4"
+        <textarea
+          className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 mb-4"
           rows={2}
           placeholder="Describe what you see (optional) e.g. 'She stopped eating 2 days after kindling and her ears feel hot...'"
           value={note}
@@ -191,9 +194,13 @@ export default function ScannerPage() {
             <div className="rounded-xl border-l-4 border-green-500 bg-green-50 p-4">
               <p className="text-sm text-gray-800 whitespace-pre-line">{result}</p>
             </div>
-          )}
-        </div>
+          )}        </div>
       )}
+
+      <div className="mt-6">
+        <AdBanner type="banner-300" />
+      </div>
+
       <h2 className="text-xl font-bold mt-8 mb-4">🕐 Recent scans</h2>
       <div className="space-y-3">
         {scans.length ? (
