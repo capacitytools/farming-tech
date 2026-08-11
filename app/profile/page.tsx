@@ -23,6 +23,8 @@ export default function ProfileDashboard() {
   const [points, setPoints] = useState(0);
   const [rank, setRank] = useState("Beginner Star");
   const [unread, setUnread] = useState(0);
+  const [inviteCode, setInviteCode] = useState("");
+  const [refCount, setRefCount] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const router = useRouter();
 
@@ -33,10 +35,19 @@ export default function ProfileDashboard() {
     if (u) {
       const { data: p } = await supabase.from("profiles").select("*").eq("id", u.id).single();
       setProfile(p);
+
+      let code = p?.referral_code;
+      if (!code) {
+        code = "FT" + u.id.replace(/-/g, "").slice(0, 6).toUpperCase();
+        await supabase.from("profiles").update({ referral_code: code }).eq("id", u.id);
+      }
+      setInviteCode(code);
+      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq("referred_by", code);
+      setRefCount(count || 0);
+
       const { data: l } = await supabase.from("livestock_listings").select("*").eq("seller_id", u.id).order("created_at", { ascending: false });
       setListings(l || []);
-      const { data: pur } = await supabase.from("ebook_purchases").select("*, ebooks(title, cover_url, file_url)").eq("user_id", u.id).eq("status", "paid");
-      setPurchases(pur || []);
+      const { data: pur } = await supabase.from("ebook_purchases").select("*, ebooks(title, cover_url, file_url)").eq("user_id", u.id).eq("status", "paid");      setPurchases(pur || []);
       const { data: s } = await supabase.from("ai_scans").select("*").eq("user_id", u.id).order("created_at", { ascending: false }).limit(6);
       setScans(s || []);
       const { data: t } = await supabase.from("tribe_members").select("*, tribes(name, icon, image_url, slug)").eq("user_id", u.id);
@@ -45,9 +56,10 @@ export default function ProfileDashboard() {
       setPoints(pts || 0);
       const { data: rk } = await supabase.rpc("user_rank", { uid: u.id });
       setRank(rk || "Beginner Star");
-      const { count } = await supabase.from("direct_messages").select("*", { count: "exact", head: true }).eq("receiver_id", u.id).eq("read", false);
-      setUnread(count || 0);
-    }    setLoaded(true);
+      const { count: uc } = await supabase.from("direct_messages").select("*", { count: "exact", head: true }).eq("receiver_id", u.id).eq("read", false);
+      setUnread(uc || 0);
+    }
+    setLoaded(true);
   }
 
   useEffect(() => {
@@ -68,6 +80,12 @@ export default function ProfileDashboard() {
     }
   }
 
+  function copyInvite() {
+    const link = `${window.location.origin}/login?ref=${inviteCode}`;
+    navigator.clipboard.writeText(`Join me on Farming Tech & Business 🌾 ${link}`);
+    alert("Invite link copied! Share it on WhatsApp & Facebook 🎉");
+  }
+
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -78,8 +96,7 @@ export default function ProfileDashboard() {
 
   if (!user) {
     return (
-      <div className="p-8 text-center">
-        <div className="text-6xl mb-4">👤</div>
+      <div className="p-8 text-center">        <div className="text-6xl mb-4">👤</div>
         <h1 className="text-2xl font-bold mb-2">Your Dashboard</h1>
         <p className="text-gray-500 mb-6">Log in to see your listings, purchases, scans and tribes.</p>
         <a href="/login" className="inline-block bg-green-600 text-white px-6 py-3 rounded-xl font-semibold">Log in / Sign up</a>
@@ -96,7 +113,8 @@ export default function ProfileDashboard() {
       <div className="glass-card p-5 rounded-2xl flex items-center gap-4 mb-4">
         <label className="relative cursor-pointer">
           {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="avatar" className="w-16 h-16 rounded-full object-cover" />          ) : (
+            <img src={profile.avatar_url} alt="avatar" className="w-16 h-16 rounded-full object-cover" />
+          ) : (
             <div className="w-16 h-16 rounded-full bg-green-200 flex items-center justify-center text-2xl font-bold text-green-800">
               {(profile?.full_name || user.email)?.[0]?.toUpperCase()}
             </div>
@@ -113,13 +131,21 @@ export default function ProfileDashboard() {
               {profile?.role || "member"}
             </span>
           </div>
-          {rankInfo.next && <p className="text-[10px] text-gray-400 mt-1">{rankInfo.next - points} pts to next rank — post, sell & scan to grow! 🚀</p>}
+          {rankInfo.next && <p className="text-[10px] text-gray-400 mt-1">{rankInfo.next - points} pts to next rank — post, sell, scan & invite to grow! 🚀</p>}
         </div>
         <button onClick={logout} className="text-red-600 text-sm font-semibold">Logout</button>
       </div>
 
-      <Link href="/inbox" className="glass-card p-4 rounded-2xl mb-4 flex items-center justify-between">
-        <span className="font-bold">💬 Inbox</span>
+      <div className="glass-card p-4 rounded-2xl mb-4 border-2 border-amber-300">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-amber-700">🎁 Invite & Earn</h2>
+          <span className="text-xs font-bold text-amber-700">{refCount} joined · +{refCount * 25} pts</span>
+        </div>
+        <p className="text-xs text-gray-500 mt-1 mb-3">Share your link — when a friend signs up with it, you BOTH get 25 bonus points instantly.</p>
+        <button onClick={copyInvite} className="w-full bg-amber-500 text-white py-2 rounded-xl text-sm font-bold">📋 Copy My Invite Link</button>
+      </div>
+
+      <Link href="/inbox" className="glass-card p-4 rounded-2xl mb-4 flex items-center justify-between">        <span className="font-bold">💬 Inbox</span>
         {unread > 0 ? (
           <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-1">{unread} new message{unread > 1 ? "s" : ""}</span>
         ) : (
@@ -145,6 +171,7 @@ export default function ProfileDashboard() {
           </div>
         </div>
       )}
+
       <div className="grid grid-cols-4 gap-2 mb-6 text-center">
         <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{listings.length}</p><p className="text-[10px] text-gray-500">Listings</p></div>
         <div className="glass-card p-3 rounded-xl"><p className="text-lg font-bold">{purchases.length}</p><p className="text-[10px] text-gray-500">E-books</p></div>
@@ -167,8 +194,7 @@ export default function ProfileDashboard() {
 
       <h2 className="font-bold mb-3">📚 My E-books</h2>
       <div className="space-y-2 mb-6">
-        {purchases.length ? purchases.map((p) => (
-          <div key={p.id} className="glass-card p-3 rounded-xl flex items-center gap-3">
+        {purchases.length ? purchases.map((p) => (          <div key={p.id} className="glass-card p-3 rounded-xl flex items-center gap-3">
             {p.ebooks?.cover_url && <img src={p.ebooks.cover_url} alt="" className="w-10 h-12 object-cover rounded" />}
             <p className="flex-1 font-semibold text-sm">{p.ebooks?.title}</p>
             <a href={p.ebooks?.file_url || "#"} target="_blank" rel="noopener noreferrer" className="text-green-600 text-sm font-semibold">⬇️</a>
@@ -194,7 +220,8 @@ export default function ProfileDashboard() {
         {myTribes.length ? myTribes.map((t) => (
           <a key={t.id} href={`/communities/${t.tribes?.slug}`} className="glass-card p-3 rounded-xl flex items-center gap-3">
             {t.tribes?.image_url ? <img src={t.tribes.image_url} alt="" className="w-10 h-10 object-cover rounded-lg" /> : <span className="text-2xl">{t.tribes?.icon}</span>}
-            <p className="font-semibold text-sm">{t.tribes?.name}</p>          </a>
+            <p className="font-semibold text-sm">{t.tribes?.name}</p>
+          </a>
         )) : <p className="text-sm text-gray-500">Not in any tribe yet. <a href="/communities" className="text-green-600 font-semibold">Join one</a></p>}
       </div>
     </div>
