@@ -30,7 +30,7 @@ export default async function HomePage() {
     supabase.from("tribes").select("*", { count: "exact", head: true }),
     supabase.from("livestock_listings").select("*", { count: "exact", head: true }).eq("status", "active"),
     supabase.auth.getUser(),
-    supabase.rpc("hot_posts"),
+    supabase.rpc("ranked_feed"),
   ]);
 
   let onboarding: any = null;
@@ -119,11 +119,11 @@ export default async function HomePage() {
         </Link>
       </div>
 
-      {/* 🔥 FOR YOU — smart-ranked top 10 posts */}
+      {/* 🔥 FOR YOU — Twitter-style ranked top posts */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
-          <span className="text-[10px] text-gray-500 font-semibold">🤖 re-ranked every 10 min</span>
+          <span className="text-[10px] text-gray-500 font-semibold">🤖 smart-ranked · refreshes often</span>
         </div>
         <div className="space-y-3">
           {(hot.data || []).map((p: any, i: number) => (
