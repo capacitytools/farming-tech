@@ -11,6 +11,7 @@ export default function AdminExperts() {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [bio, setBio] = useState("");
+  const [fee, setFee] = useState("");
   const [image, setImage] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -37,17 +38,16 @@ export default function AdminExperts() {
     e.preventDefault();
     setMsg("");
     const supabase = createClient();
-    const { error } = await supabase.from("experts").insert({ name, specialty, location, phone, whatsapp, bio, image_url: image || null });
+    const { error } = await supabase.from("experts").insert({ name, specialty, location, phone, whatsapp, bio, consultation_fee: Number(fee) || 0, image_url: image || null });
     if (error) setMsg("Error: " + error.message);
     else {
       setMsg("Expert added ✅");
-      setName(""); setSpecialty(""); setLocation(""); setPhone(""); setWhatsapp(""); setBio(""); setImage("");
+      setName(""); setSpecialty(""); setLocation(""); setPhone(""); setWhatsapp(""); setBio(""); setFee(""); setImage("");
       load();
     }
   }
 
-  async function remove(id: string) {
-    if (!confirm("Remove this expert?")) return;
+  async function remove(id: string) {    if (!confirm("Remove this expert?")) return;
     const supabase = createClient();
     await supabase.from("experts").delete().eq("id", id);
     load();
@@ -65,8 +65,9 @@ export default function AdminExperts() {
         <input className={input} placeholder="Location" value={location} onChange={(e) => setLocation(e.target.value)} />
         <div className="grid grid-cols-2 gap-3">
           <input className={input} placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <input className={input} placeholder="WhatsApp (with country code)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
+          <input className={input} placeholder="WhatsApp (country code)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
         </div>
+        <input className={input} type="number" placeholder="Consultation fee ₦ (0 = free)" value={fee} onChange={(e) => setFee(e.target.value)} />
         <textarea className={input} rows={2} placeholder="Short bio (experience, achievements)" value={bio} onChange={(e) => setBio(e.target.value)} />
         <div>
           <label className="text-sm font-semibold text-gray-600">Photo</label>
@@ -88,12 +89,11 @@ export default function AdminExperts() {
             )}
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm truncate">{x.name}</p>
-              <p className="text-xs text-gray-500 truncate">{x.specialty}</p>
+              <p className="text-xs text-gray-500 truncate">{x.specialty} · fee ₦{Number(x.consultation_fee || 0).toLocaleString()}</p>
             </div>
             <button onClick={() => remove(x.id)} className="text-red-600 text-sm font-semibold">Delete</button>
           </div>
         ))}
       </div>
     </div>
-  );
-}
+  );}
