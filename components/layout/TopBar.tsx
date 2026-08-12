@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu, X, Bell, Search, Mail, Trophy, Megaphone, Sprout, BookOpen, Stethoscope, ShoppingBag,
   GraduationCap, Info, Phone, Facebook, Instagram, Youtube,
-  ChevronRight, Newspaper, User, Wallet, Award, Moon, Sun,
+  ChevronRight, Newspaper, User, Wallet, Award, Moon, Sun, Film,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import TimeTracker from '@/components/TimeTracker';
@@ -16,6 +16,7 @@ const MENU_SECTIONS = [
     title: 'Explore',
     items: [
       { href: '/feed', label: 'Farmer Timeline', icon: Megaphone },
+      { href: '/reels', label: 'Reels (9:16)', icon: Film },
       { href: '/search', label: 'Search', icon: Search },
       { href: '/leaderboard', label: 'Top Farmers', icon: Trophy },
       { href: '/communities', label: 'Tribes & Communities', icon: Sprout },
@@ -46,8 +47,8 @@ const MENU_SECTIONS = [
 
 export default function TopBar() {
   const [open, setOpen] = useState(false);
-  const [notifCount, setNotifCount] = useState(0);
-  const [msgCount, setMsgCount] = useState(0);  const [dark, setDark] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);  const [msgCount, setMsgCount] = useState(0);
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     const t = localStorage.getItem('theme') === 'dark';
@@ -95,8 +96,8 @@ export default function TopBar() {
             <div className="w-9 h-9 rounded-xl bg-forest-600 flex items-center justify-center">
               <Sprout className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
-            <div className="leading-tight">
-              <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>              <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
+            <div className="leading-tight">              <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>
+              <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
             </div>
           </Link>
           <div className="flex items-center gap-1">
@@ -144,8 +145,8 @@ export default function TopBar() {
             </button>
             <button
               aria-label="Open menu"
-              onClick={() => setOpen(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"            >
+              onClick={() => setOpen(true)}              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
+            >
               <Menu className="w-6 h-6 text-forest-700 dark:text-forest-200" />
             </button>
           </div>
@@ -193,8 +194,8 @@ export default function TopBar() {
                           <Link
                             key={item.href}
                             href={item.href}
-                            onClick={() => setOpen(false)}
-                            className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"                          >
+                            onClick={() => setOpen(false)}                            className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"
+                          >
                             <span className="flex items-center gap-3">
                               <span className="w-9 h-9 rounded-xl bg-forest-50 dark:forest-800 flex items-center justify-center">
                                 <Icon className="w-4.5 h-4.5 text-forest-600 dark:text-gold-400" />
