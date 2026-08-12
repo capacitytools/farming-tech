@@ -3,8 +3,22 @@ import { createClient } from "@/lib/supabase/server";
 import QuickScanWidget from "@/components/home/QuickScanWidget";
 import { currencySymbol } from "@/lib/currency";
 
+const TIPS = [
+  "Give rabbits fresh water daily — a doe with kits drinks 2x more.",
+  "Plant marigold around your vegetable garden to repel pests naturally.",
+  "Deworm goats every 3 months to keep them gaining weight.",
+  "Store grains with dried neem leaves to keep weevils away.",
+  "Vaccinate chickens against Newcastle disease every 3 months.",
+  "Turn kitchen waste into liquid fertilizer: soak 7 days, dilute 1:10.",
+  "Check rabbit ears weekly for crusty scabs — early mite detection saves lives.",
+  "Interplant maize with beans: beans fix nitrogen, maize gives support.",
+  "Sell goats in November–December for 20–30% higher prices.",
+  "Palm kernel oil in rabbit ears suffocates mites — a proven local remedy.",
+];
+
 export default async function HomePage() {
   const supabase = createClient();
+  const TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
 
   const [blogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount, authUser] = await Promise.all([
     supabase.from("blogs").select("title, slug, cover_image_url, category, views_count").eq("status", "published").order("published_at", { ascending: false }).limit(4),
@@ -33,8 +47,7 @@ export default async function HomePage() {
       { label: "🩺 Scan with AI Doctor", done: (sc.count || 0) > 0, href: "/scanner" },
       { label: "📚 Get an e-book", done: (eb.count || 0) > 0, href: "/ebooks" },
     ];
-    const doneCount = steps.filter((s: any) => s.done).length;
-    if (doneCount < steps.length) onboarding = { steps, doneCount };
+    const doneCount = steps.filter((s: any) => s.done).length;    if (doneCount < steps.length) onboarding = { steps, doneCount };
   }
 
   return (
@@ -47,7 +60,8 @@ export default async function HomePage() {
         <p className="text-sm text-forest-100 mb-5">
           AI crop & animal doctor · farmer communities · livestock market · e-book library — all in one app.
         </p>
-        <div className="grid grid-cols-3 gap-2 text-center">          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{profileCount.count || 0}</p><p className="text-[10px] text-forest-100">Farmers</p></div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{profileCount.count || 0}</p><p className="text-[10px] text-forest-100">Farmers</p></div>
           <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{tribeCount.count || 0}</p><p className="text-[10px] text-forest-100">Tribes</p></div>
           <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{listingCount.count || 0}</p><p className="text-[10px] text-forest-100">Live Listings</p></div>
         </div>
@@ -82,8 +96,7 @@ export default async function HomePage() {
             <div className="space-y-1">
               {onboarding.steps.map((st: any) => (
                 <Link key={st.label} href={st.href} className={`flex items-center gap-2 p-2 rounded-xl text-sm font-semibold ${st.done ? "text-gray-400 line-through" : "bg-green-50 text-green-800"}`}>
-                  <span>{st.done ? "✅" : "⬜"}</span> {st.label}
-                </Link>
+                  <span>{st.done ? "✅" : "⬜"}</span> {st.label}                </Link>
               ))}
             </div>
             <p className="text-[10px] text-gray-500 mt-2">Finish all 4 to earn your first badges & climb the leaderboard! 🏅</p>
@@ -96,12 +109,21 @@ export default async function HomePage() {
         <Link href="/feed" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform">
           <div className="flex items-center gap-3">
             <span className="text-3xl">📣</span>
-            <div className="flex-1">              <p className="font-bold">Farmer Timeline</p>
+            <div className="flex-1">
+              <p className="font-bold">Farmer Timeline</p>
               <p className="text-xs text-amber-100">Post photos, get likes & comments — every action earns points!</p>
             </div>
             <span className="text-xl">→</span>
           </div>
         </Link>
+      </div>
+
+      {/* TIP OF THE DAY */}
+      <div className="px-4 mt-4">
+        <div className="glass-card p-4 rounded-2xl border-l-4 border-amber-400">
+          <p className="text-xs font-bold text-amber-600 mb-1">💡 TIP OF THE DAY</p>
+          <p className="text-sm text-gray-800">{TIP}</p>
+        </div>
       </div>
 
       {/* LATEST INSIGHTS */}
@@ -123,8 +145,7 @@ export default async function HomePage() {
                 <p className="text-[10px] text-gray-500 mt-1">{b.category} · 👁️ {b.views_count || 0}</p>
               </div>
             </Link>
-          ))}
-        </div>
+          ))}        </div>
       </div>
 
       {/* TRENDING TRIBES */}
@@ -145,7 +166,8 @@ export default async function HomePage() {
               <p className="text-[10px] text-gray-500">👥 {t.member_count || 0}</p>
             </Link>
           ))}
-        </div>      </div>
+        </div>
+      </div>
 
       {/* FRESH FROM MARKET */}
       <div className="px-4 mt-8">
@@ -172,8 +194,7 @@ export default async function HomePage() {
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🏆 Top Farmers</h2>
-          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
-        </div>
+          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>        </div>
         <div className="glass-card p-4 rounded-2xl space-y-2">
           {(leaders.data || []).slice(0, 3).map((u: any, i: number) => (
             <div key={i} className="flex items-center gap-3">
@@ -194,7 +215,8 @@ export default async function HomePage() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold">📚 Learn from E-books</h2>
             <Link href="/ebooks" className="text-xs font-semibold text-green-700">Store →</Link>
-          </div>          <div className="flex gap-3 overflow-x-auto pb-2">
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
             {(ebooks.data || []).map((b: any) => (
               <Link key={b.id} href="/ebooks" className="glass-card p-3 rounded-2xl w-32 flex-shrink-0">
                 {b.cover_url ? (
