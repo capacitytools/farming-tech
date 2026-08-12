@@ -357,9 +357,14 @@ export default function HomeExperience({ d }: { d: any }) {
           </div>
         </div>
       )}
-
-      {/* INSTALL CTA */}
+       {/* INSTALL CTA */}
       <div className="p-4 mt-8">
         <div className="bg-gradient-to-r from-green-600 to-forest-700 text-white p-5 rounded-2xl text-center">
           <p className="text-lg font-bold mb-1">📲 Take us everywhere</p>
-          <p className="text-xs text-green-100 mb-
+          <p className="text-xs text-green-100 mb-3">Install Farming Tech & Business on your phone — works like a real app, even offline.</p>
+          <p className="text-[10px] text-green-200">Menu (⋮) → "Add to Home screen" / "Install app"</p>
+        </div>
+      </div>
+    </div>
+  );
+}
