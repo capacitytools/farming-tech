@@ -4,6 +4,7 @@ import ShareBar from "@/components/ShareBar";
 import AdBanner from "@/components/AdBanner";
 import RelatedPosts from "@/components/RelatedPosts";
 import BlogComments from "@/components/BlogComments";
+import ReadingProgress from "@/components/ReadingProgress";
 
 export async function generateMetadata(props: any): Promise<Metadata> {
   const params = await props.params;
@@ -60,6 +61,7 @@ export default async function BlogPostPage(props: any) {
 
   return (
     <article className="p-4 pb-24 max-w-2xl mx-auto">
+      <ReadingProgress />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <AdBanner type="native" />
@@ -94,9 +96,9 @@ export default async function BlogPostPage(props: any) {
 
       <div className="glass-card p-4 rounded-2xl mt-8 flex items-center gap-3">
         {post.profiles?.avatar_url ? (
-          <img src={post.profiles.avatar_url} alt={author} className="w-12 h-12 rounded-full object-cover" />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-forest-200 flex items-center justify-center text-lg font-bold text-forest-800">            {author[0]?.toUpperCase()}
+          <img src={post.profiles.avatar_url} alt={author} className="w-12 h-12 rounded-full object-cover" />        ) : (
+          <div className="w-12 h-12 rounded-full bg-forest-200 flex items-center justify-center text-lg font-bold text-forest-800">
+            {author[0]?.toUpperCase()}
           </div>
         )}
         <div>
