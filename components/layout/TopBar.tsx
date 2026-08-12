@@ -16,7 +16,7 @@ const MENU_SECTIONS = [
     title: 'Explore',
     items: [
       { href: '/feed', label: 'Farmer Timeline', icon: Megaphone },
-      { href: '/reels', label: 'Reels (9:16)', icon: Film },
+      { href: '/reels', label: 'Reels / Videos', icon: Film },
       { href: '/search', label: 'Search', icon: Search },
       { href: '/leaderboard', label: 'Top Farmers', icon: Trophy },
       { href: '/communities', label: 'Tribes & Communities', icon: Sprout },
