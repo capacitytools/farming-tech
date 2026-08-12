@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import VideoCard from "@/components/VideoCard";
 import VideoComposer from "@/components/VideoComposer";
+import AdBar from "@/components/AdBar";
 
 export default function FeedPage() {
   const [user, setUser] = useState<any>(null);
@@ -22,7 +23,7 @@ export default function FeedPage() {
   async function load() {
     const supabase = createClient();
     const [p, l, c, v] = await Promise.all([
-      supabase.from("feed_posts").select("*, profiles(full_name, avatar_url, referral_code, role, verified)").order("created_at", { ascending: false }).limit(30),
+      supabase.from("feed_posts").select("*, profiles(full_name, avatar_url, referral_code, role, verified), ad:ad_campaigns(*)").order("created_at", { ascending: false }).limit(30),
       supabase.from("feed_likes").select("post_id, user_id"),
       supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true }),
       supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role)").eq("context", "feed").order("created_at", { ascending: false }).limit(10),
@@ -46,8 +47,8 @@ export default function FeedPage() {
 
   async function uploadImage(e: any) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const supabase = createClient();    const ext = file.name.split(".").pop() || "jpg";
+    if (!file) return;    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
     const path = `feed-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file);
     if (!error) setImage(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
@@ -95,12 +96,12 @@ export default function FeedPage() {
     if (!confirm("Delete this video?")) return;
     const supabase = createClient();
     await supabase.from("videos").delete().eq("id", id);
-    load();
-  }
-  function share(post: any, network: string) {
-    const ref = post.profiles?.referral_code || "";
+    load();  }
+
+  function share(item: any, network: string) {
+    const ref = item.profiles?.referral_code || "";
     const url = `${window.location.origin}/feed?ref=${ref}`;
-    const text = `"${(post.content || post.title || "").slice(0, 100)}" — join me on Farming Tech & Business 🌾`;
+    const text = `"${(item.content || item.title || "").slice(0, 100)}" — join me on Farming Tech & Business 🌾`;
     const e = encodeURIComponent;
     const links: any = {
       wa: `https://wa.me/?text=${e(text + " " + url)}`,
@@ -144,8 +145,8 @@ export default function FeedPage() {
             <div key={item.id}>
               <VideoCard video={item} />
               {(user?.id === item.author_id || user?.role === "admin") && (
-                <button onClick={() => deleteVideo(item.id)} className="text-red-500 text-xs font-semibold mt-1">Delete video</button>
-              )}            </div>
+                <button onClick={() => deleteVideo(item.id)} className="text-red-500 text-xs font-semibold mt-1">Delete video</button>              )}
+            </div>
           ) : (
             <div key={item.id} className="glass-card p-4 rounded-2xl">
               <div className="flex items-center gap-2 mb-2">
@@ -170,6 +171,12 @@ export default function FeedPage() {
               <p className="text-sm text-gray-800 whitespace-pre-line">{item.content}</p>
               {item.image_url && <img src={item.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
 
+              {item.ad && (
+                <div className="mt-3 rounded-xl overflow-hidden border border-amber-300">
+                  <AdBar ad={item.ad} />
+                </div>
+              )}
+
               {(() => {
                 const postLikes = likes.filter((l) => l.post_id === item.id);
                 const myLike = user && postLikes.find((l) => l.user_id === user.id);
@@ -187,14 +194,14 @@ export default function FeedPage() {
                     {openC === item.id && (
                       <div className="mt-3 space-y-2">
                         {postComments.map((c) => (
-                          <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
-                            <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {c.content}
+                          <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">                            <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {c.content}
                           </div>
                         ))}
                         {user && (
                           <div className="flex gap-2">
                             <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Write a comment (+3 pts)..." value={cText} onChange={(e) => setCText(e.target.value)} />
-                            <button onClick={() => addComment(item.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>                          </div>
+                            <button onClick={() => addComment(item.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
+                          </div>
                         )}
                       </div>
                     )}
