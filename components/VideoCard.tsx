@@ -26,16 +26,42 @@ export default function VideoCard({ video }: { video: any }) {
 
   return (
     <div className="rounded-2xl overflow-hidden border-2 border-forest-600 shadow-lg bg-white">
+      {/* BRAND HEADER */}
       <div className="bg-forest-700 text-white px-3 py-2 flex items-center gap-2">
         <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-sm">🌾</span>
         <p className="text-xs font-extrabold tracking-wide">FARMING TECH & BUSINESS</p>
         <span className="ml-auto text-[9px] bg-amber-400 text-forest-900 px-2 py-0.5 rounded-full font-bold uppercase">{video.category || "Video"}</span>
       </div>
 
-      <iframe src={src} title={video.title || "video"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full aspect-video bg-black" />
+      {/* PLAYER */}
+      <iframe
+        src={src}
+        title={video.title || "video"}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        className="w-full aspect-video bg-black"
+      />
+
+      {/* AD BAR — attached directly to the player, always visible, clickable */}
+      {ad ? (
+        <AdBar ad={ad} />
+      ) : (
+        <a href="/ads/submit" className="block bg-black overflow-hidden">
+          <div className="flex items-center gap-2 px-3 py-2.5">
+            <span className="text-amber-400 text-sm flex-shrink-0">📢</span>
+            <div className="flex-1 overflow-hidden">
+              <p className="ftb-marquee text-xs font-bold text-white">
+                YOUR BUSINESS HERE — advertise on every video & post! Tap to book this bar →
+              </p>
+            </div>
+            <span className="text-[8px] text-gray-400 font-bold flex-shrink-0">AD SPACE</span>
+          </div>
+        </a>
+      )}
 
       {s > 0 && <p className="text-[9px] text-center bg-forest-50 text-forest-600 font-bold py-1">⏱️ Clip: plays {fmt(s)}{e > s ? ` → ${fmt(e)}` : " → end"}</p>}
 
+      {/* TITLE / DESCRIPTION / TAGS */}
       <div className="p-3 bg-forest-50">
         <div className="flex items-center gap-2 mb-1">
           {video.profiles?.avatar_url ? (
@@ -55,8 +81,6 @@ export default function VideoCard({ video }: { video: any }) {
           </div>
         )}
       </div>
-
-      <AdBar ad={ad} />
     </div>
   );
 }
