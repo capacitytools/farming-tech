@@ -9,6 +9,7 @@ import {
   ChevronRight, Newspaper, User, Wallet, Award, Moon, Sun,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import TimeTracker from '@/components/TimeTracker';
 
 const MENU_SECTIONS = [
   {
@@ -46,8 +47,8 @@ const MENU_SECTIONS = [
 export default function TopBar() {
   const [open, setOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
-  const [msgCount, setMsgCount] = useState(0);
-  const [dark, setDark] = useState(false);
+  const [msgCount, setMsgCount] = useState(0);  const [dark, setDark] = useState(false);
+
   useEffect(() => {
     const t = localStorage.getItem('theme') === 'dark';
     setDark(t);
@@ -87,6 +88,7 @@ export default function TopBar() {
 
   return (
     <>
+      <TimeTracker />
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
@@ -94,9 +96,9 @@ export default function TopBar() {
               <Sprout className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
             <div className="leading-tight">
-              <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>
-              <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
-            </div>          </Link>
+              <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>              <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
+            </div>
+          </Link>
           <div className="flex items-center gap-1">
             <Link
               href="/notifications"
@@ -143,9 +145,9 @@ export default function TopBar() {
             <button
               aria-label="Open menu"
               onClick={() => setOpen(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
-            >
-              <Menu className="w-6 h-6 text-forest-700 dark:text-forest-200" />            </button>
+              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"            >
+              <Menu className="w-6 h-6 text-forest-700 dark:text-forest-200" />
+            </button>
           </div>
         </div>
       </header>
@@ -192,9 +194,9 @@ export default function TopBar() {
                             key={item.href}
                             href={item.href}
                             onClick={() => setOpen(false)}
-                            className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"
-                          >
-                            <span className="flex items-center gap-3">                              <span className="w-9 h-9 rounded-xl bg-forest-50 dark:forest-800 flex items-center justify-center">
+                            className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"                          >
+                            <span className="flex items-center gap-3">
+                              <span className="w-9 h-9 rounded-xl bg-forest-50 dark:forest-800 flex items-center justify-center">
                                 <Icon className="w-4.5 h-4.5 text-forest-600 dark:text-gold-400" />
                               </span>
                               <span className="text-sm font-semibold text-forest-800 dark:text-forest-100">
