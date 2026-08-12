@@ -38,6 +38,17 @@ export default async function FarmerPage(props: any) {
     .eq("listings.seller_id", params.id)
     .order("created_at", { ascending: false })
     .limit(10);
+  const { data: timeline } = await supabase
+    .from("feed_posts")
+    .select("id, content, image_url, views_count, created_at")
+    .eq("author_id", params.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+  const { data: theirVideos } = await supabase
+    .from("videos")
+    .select("id, youtube_id, title, category")
+    .eq("author_id", params.id)    .order("created_at", { ascending: false })
+    .limit(6);
 
   const avg = reviews && reviews.length ? (reviews.reduce((a: number, r: any) => a + Number(r.rating), 0) / reviews.length).toFixed(1) : null;
 
@@ -47,7 +58,8 @@ export default async function FarmerPage(props: any) {
         {farmer.avatar_url ? (
           <img src={farmer.avatar_url} alt={farmer.full_name} className="w-20 h-20 rounded-full object-cover mx-auto mb-3" />
         ) : (
-          <div className="w-20 h-20 rounded-full bg-green-200 flex items-center justify-center text-3xl font-bold text-green-800 mx-auto mb-3">            {(farmer.full_name || "?")[0]}
+          <div className="w-20 h-20 rounded-full bg-green-200 flex items-center justify-center text-3xl font-bold text-green-800 mx-auto mb-3">
+            {(farmer.full_name || "?")[0]}
           </div>
         )}
         <h1 className="text-xl font-bold">
@@ -62,7 +74,7 @@ export default async function FarmerPage(props: any) {
         <div className="grid grid-cols-3 gap-2 mt-4 text-center">
           <div className="bg-white/60 rounded-xl p-2"><p className="font-bold">{listings?.length || 0}</p><p className="text-[10px] text-gray-500">Listings</p></div>
           <div className="bg-white/60 rounded-xl p-2"><p className="font-bold">{avg ? `⭐ ${avg}` : "—"}</p><p className="text-[10px] text-gray-500">Rating</p></div>
-          <div className="bg-white/60 rounded-xl p-2"><p className="font-bold">{reviews?.length || 0}</p><p className="text-[10px] text-gray-500">Reviews</p></div>
+          <div className="bg-white/60 rounded-xl p-2"><p className="font-bold">{(timeline || []).length + (theirVideos || []).length}</p><p className="text-[10px] text-gray-500">Posts</p></div>
         </div>
         <div className="flex gap-2 mt-4">
           <Link href={`/inbox?user=${farmer.id}`} className="flex-1 bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">💬 Message</Link>
@@ -72,6 +84,29 @@ export default async function FarmerPage(props: any) {
         </div>
         <ProfileShare id={farmer.id} code={farmer.referral_code || ""} name={farmer.full_name || "this farmer"} />
         <p className="text-[9px] text-gray-400 mt-2">Share this profile — anyone who joins through it becomes your referral (+25 pts)! 🎁</p>
+      </div>
+
+      {/* THEIR TIMELINE */}
+      <h2 className="font-bold mb-3">📣 Their Timeline</h2>
+      <div className="space-y-3 mb-6">
+        {(timeline || []).map((p: any) => (
+          <div key={p.id} className="glass-card p-4 rounded-2xl">
+            <p className="text-sm text-gray-800 whitespace-pre-line">{p.content}</p>
+            {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full h-56 object-cover rounded-xl" />}
+            <p className="text-[10px] text-gray-400 mt-2">{new Date(p.created_at).toLocaleDateString()} · 👁️ {p.views_count || 0}</p>
+          </div>
+        ))}
+        {(theirVideos || []).map((v: any) => (          <a key={v.id} href={`https://youtu.be/${v.youtube_id}`} target="_blank" rel="noopener noreferrer" className="glass-card p-3 rounded-2xl flex gap-3 items-center">
+            <img src={`https://i.ytimg.com/vi/${v.youtube_id}/mqdefault.jpg`} alt="" className="w-24 h-16 object-cover rounded-xl" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm line-clamp-2">🎬 {v.title || "Video"}</p>
+              <p className="text-[10px] text-gray-500">{v.category || "Video"}</p>
+            </div>
+          </a>
+        ))}
+        {(!timeline || timeline.length === 0) && (!theirVideos || theirVideos.length === 0) && (
+          <p className="text-sm text-gray-500">No posts yet.</p>
+        )}
       </div>
 
       <h2 className="font-bold mb-3">🐄 Active Listings</h2>
@@ -96,7 +131,8 @@ export default async function FarmerPage(props: any) {
           <div key={r.id} className="glass-card p-3 rounded-2xl">
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold">{r.profiles?.full_name || "Buyer"}</p>
-              <span className="text-xs text-amber-500">{"⭐".repeat(Number(r.rating))}</span>            </div>
+              <span className="text-xs text-amber-500">{"⭐".repeat(Number(r.rating))}</span>
+            </div>
             {r.comment && <p className="text-xs text-gray-700 mt-1">{r.comment}</p>}
             <p className="text-[10px] text-gray-400 mt-1">on {r.listings?.title}</p>
           </div>
