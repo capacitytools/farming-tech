@@ -31,7 +31,7 @@ export default function ReelsPage() {
   }, []);
 
   async function toggleLike(id: string) {
-    if (!user) return alert("Log in to like reels.");
+    if (!user) return alert("Log in to like videos.");
     const supabase = createClient();
     const mine = likes.find((l) => l.video_id === id);
     if (mine) await supabase.from("video_likes").delete().eq("id", mine.id);
@@ -47,30 +47,31 @@ export default function ReelsPage() {
     load();
   }
 
-  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading reels…</p>;
+  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   return (
     <div className="p-4 pb-24 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-1">🎬 Reels</h1>
-      <p className="text-gray-600 text-xs mb-4">Vertical farm videos · TikTok-style ranking · scroll & discover!</p>
+      <h1 className="text-2xl font-bold mb-1">🎬 Reels / Videos</h1>
+      <p className="text-gray-600 text-xs mb-4">Every farmer's reels (9:16) & videos (16:9) · smart-ranked · scroll & discover!</p>
 
       <div className="space-y-4">
         {reels.map((r, idx) => {
           const myLike = likes.find((l) => l.video_id === r.id);
           const iFollow = following.includes(r.author_id);
+          const portrait = r.aspect === "portrait";
           return (
             <div key={r.id}>
               <div className="rounded-2xl overflow-hidden border-2 border-forest-600 bg-black">
                 <div className="bg-forest-700 text-white px-3 py-1.5 flex items-center gap-2">
                   <span className="text-xs">🌾</span>
-                  <p className="text-[10px] font-extrabold tracking-wide">FARMING TECH & BUSINESS · REELS</p>
+                  <p className="text-[10px] font-extrabold tracking-wide">FARMING TECH & BUSINESS · {portrait ? "REELS" : "VIDEOS"}</p>
                 </div>
                 <div className="flex justify-center bg-black">
                   <iframe
                     src={`https://www.youtube.com/embed/${r.youtube_id}`}
-                    title={r.title || "reel"}
+                    title={r.title || "video"}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
-                    className="w-full aspect-[9/16] max-h-[72vh]"
+                    className={portrait ? "w-full aspect-[9/16] max-h-[72vh]" : "w-full aspect-video"}
                   />
                 </div>
                 <div className="bg-gradient-to-t from-black to-forest-900 p-3 text-white">
@@ -95,8 +96,8 @@ export default function ReelsPage() {
                     <button onClick={() => toggleLike(r.id)} className={myLike ? "text-red-500" : "text-white"}>❤️ {r.likes}</button>
                     <span className="text-white">💬 {r.comments}</span>
                     <Link href="/ads/submit" className="ml-auto text-amber-400 text-[9px]">📢 Advertise here</Link>
-                  </div>
-                </div>              </div>
+                  </div>                </div>
+              </div>
               {idx % 2 === 1 && (
                 <div className="mt-4">
                   <AdBanner type="native" />
@@ -106,7 +107,7 @@ export default function ReelsPage() {
           );
         })}
         {reels.length === 0 && (
-          <p className="text-center text-gray-500 py-10">No reels yet — post a YouTube Shorts link as 9:16 and be the first! 🎬</p>
+          <p className="text-center text-gray-500 py-10">No videos yet — post one from the Timeline! 🎬</p>
         )}
       </div>
     </div>
