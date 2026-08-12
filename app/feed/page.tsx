@@ -204,6 +204,7 @@ export default function FeedPage() {
                       </div>
                       {openC === item.id && (
                         <div className="mt-3 space-y-2">
+                          <AdBanner type="native" />
                           {postComments.map((c) => (
                             <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
                               <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {c.content}
