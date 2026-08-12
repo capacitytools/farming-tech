@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import BookExpert from "@/components/BookExpert";
 
 export default async function ExpertsPage() {
   const supabase = createClient();
@@ -7,7 +8,7 @@ export default async function ExpertsPage() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">🎓 Expert Directory</h1>
-      <p className="text-gray-600 text-sm mb-6">Trusted specialists you can call or chat with for advice.</p>
+      <p className="text-gray-600 text-sm mb-6">Trusted specialists — call, chat, or book a paid consultation.</p>
 
       <div className="space-y-3">
         {(experts || []).map((x: any) => (
@@ -34,7 +35,11 @@ export default async function ExpertsPage() {
               {x.phone && (
                 <a href={`tel:${x.phone}`} className="flex-1 bg-forest-600 text-white text-center py-2 rounded-xl text-sm font-bold">📞 Call</a>
               )}
+              <BookExpert expertId={x.id} fee={Number(x.consultation_fee || 0)} name={x.name} />
             </div>
+            {Number(x.consultation_fee || 0) > 0 && (
+              <p className="text-[10px] text-gray-400 mt-2">📅 Consultation: ₦{Number(x.consultation_fee).toLocaleString()} · platform takes 10% service fee</p>
+            )}
           </div>
         ))}
         {(!experts || experts.length === 0) && (
