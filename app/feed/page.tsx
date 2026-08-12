@@ -21,7 +21,7 @@ export default function FeedPage() {
   const [busy, setBusy] = useState(false);
   const [openC, setOpenC] = useState("");
   const [cText, setCText] = useState("");
-  const [showVideo, setShowVideo] = useState(false);
+  const [videoMode, setVideoMode] = useState<"" | "reel" | "video">("");
   const [loaded, setLoaded] = useState(false);
 
   async function load() {
@@ -40,7 +40,7 @@ export default function FeedPage() {
       supabase.rpc("ranked_feed", { uid: u?.id || null }),
       supabase.from("feed_likes").select("post_id, user_id"),
       supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true }),
-      supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role, referral_code)").eq("context", "feed").neq("aspect", "portrait").order("created_at", { ascending: false }).limit(8),
+      supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role, referral_code)").eq("context", "feed").order("created_at", { ascending: false }).limit(10),
     ]);
 
     let mapped = (ranked.data || []).map((r: any) => ({
@@ -138,7 +138,6 @@ export default function FeedPage() {
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
 
-  // interleave: 1 landscape video after every 4 ranked posts
   const timeline: any[] = [];
   let vi = 0;
   posts.forEach((p, i) => {
@@ -150,7 +149,6 @@ export default function FeedPage() {
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">📣 Farmer Timeline</h1>
 
-      {/* TWITTER TABS */}
       <div className="flex mb-4 border-b border-gray-200">
         <button onClick={() => setTab("foryou")} className={`flex-1 py-2 text-sm font-bold border-b-2 ${tab === "foryou" ? "border-green-600 text-green-700" : "border-transparent text-gray-500"}`}>✨ For You</button>
         <button onClick={() => setTab("following")} className={`flex-1 py-2 text-sm font-bold border-b-2 ${tab === "following" ? "border-green-600 text-green-700" : "border-transparent text-gray-500"}`}>👥 Following</button>
@@ -160,14 +158,21 @@ export default function FeedPage() {
         <div className="mb-5 space-y-3">
           <form onSubmit={publish} className="glass-card p-4 rounded-2xl">
             <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today?" value={content} onChange={(e) => setContent(e.target.value)} />
-            <div className="flex items-center gap-3 mt-2">
+            <div className="flex items-center gap-3 mt-2 flex-wrap">
               <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
-              <button type="button" onClick={() => setShowVideo(!showVideo)} className="text-sm font-semibold text-forest-700">🎬 Video</button>
+              <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
+              <button type="button" onClick={() => setVideoMode(videoMode === "video" ? "" : "video")} className={`text-sm font-semibold ${videoMode === "video" ? "text-forest-700 underline" : "text-forest-600"}`}>🎬 Video</button>
               {image && <img src={image} alt="" className="h-10 w-10 object-cover rounded-lg" />}
               <button className="ml-auto bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>Post</button>
             </div>
           </form>
-          {showVideo && <VideoComposer context="feed" onDone={() => { setShowVideo(false); load(); }} />}
+          {videoMode && (
+            <VideoComposer
+              context="feed"
+              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
+              onDone={() => { setVideoMode(""); load(); }}
+            />
+          )}
         </div>
       )}
 
@@ -189,12 +194,12 @@ export default function FeedPage() {
                       <img src={item.profiles.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{item.profiles?.full_name?.[0] || "?"}</div>
-                    )}
-                  </Link>
+                    )}                  </Link>
                   <div className="flex-1">
                     <p className="font-bold text-sm">
                       <Link href={`/farmer/${item.author_id}`} className="hover:underline">{item.profiles?.full_name || "Farmer"}</Link>
-                      {item.profiles?.verified && <span className="ml-1 text-sky-500">✅</span>}                    </p>
+                      {item.profiles?.verified && <span className="ml-1 text-sky-500">✅</span>}
+                    </p>
                     <p className="text-[10px] text-gray-400">{new Date(item.created_at).toLocaleDateString()} · 👁️ {item.views_count || 0}</p>
                   </div>
                   {user?.id === item.author_id && (
@@ -238,12 +243,12 @@ export default function FeedPage() {
                           {user && (
                             <div className="flex gap-2">
                               <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Write a comment (+3 pts)..." value={cText} onChange={(e) => setCText(e.target.value)} />
-                              <button onClick={() => addComment(item.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
-                            </div>
+                              <button onClick={() => addComment(item.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>                            </div>
                           )}
                         </div>
                       )}
-                    </>                  );
+                    </>
+                  );
                 })()}
               </div>
             )}
