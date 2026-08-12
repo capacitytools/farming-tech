@@ -8,6 +8,7 @@ export default function SubmitAd() {
   const [text, setText] = useState("");
   const [link, setLink] = useState("");
   const [image, setImage] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [msg, setMsg] = useState("");
   const [code, setCode] = useState("");
 
@@ -27,12 +28,18 @@ export default function SubmitAd() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return setMsg("Log in first.");
+    let adVideo: string | null = null;
+    if (videoUrl) {
+      const m = videoUrl.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
+      if (!m) return setMsg("Video ad: paste a valid YouTube link.");
+      adVideo = m[1];
+    }
     const adCode = "AD-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-    const { error } = await supabase.from("ad_campaigns").insert({ code: adCode, user_id: user.id, business_name: business, ad_text: text, link: link || null, image_url: image || null });
+    const { error } = await supabase.from("ad_campaigns").insert({ code: adCode, user_id: user.id, business_name: business, ad_text: text, link: link || null, image_url: image || null, ad_video: adVideo });
     if (error) setMsg("Error: " + error.message);
     else {
       setCode(adCode);
-      setMsg("✅ Submitted! Once admin approves it, give them this code to slot it into videos.");
+      setMsg("✅ Submitted! Your ad is now a code — once approved, admin slots it into videos & posts.");
     }
   }
 
@@ -41,17 +48,18 @@ export default function SubmitAd() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">📢 Promote Your Business</h1>
-      <p className="text-gray-600 text-sm mb-6">Your ad scrolls under videos across the platform — thousands of farmers see it while they watch!</p>
+      <p className="text-gray-600 text-sm mb-6">Text, image or VIDEO ad — it scrolls under videos & posts across the platform while they play!</p>
 
       <form onSubmit={submit} className="glass-card p-5 rounded-2xl space-y-3">
         <input className={input} placeholder="Business name *" required value={business} onChange={(e) => setBusiness(e.target.value)} />
         <textarea className={input} rows={2} placeholder="Ad text (short & catchy) *" required value={text} onChange={(e) => setText(e.target.value)} />
         <input className={input} placeholder="Website / WhatsApp link (optional)" value={link} onChange={(e) => setLink(e.target.value)} />
         <div>
-          <label className="text-sm font-semibold text-gray-600">Logo / image (optional)</label>
+          <label className="text-sm font-semibold text-gray-600">🖼️ Logo / image (optional)</label>
           <input type="file" accept="image/*" onChange={upload} className="w-full text-sm mt-1" />
           {image && <img src={image} alt="" className="mt-2 h-12 w-12 object-cover rounded-lg" />}
         </div>
+        <input className={input} placeholder="🎬 Video ad: YouTube link (optional)" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} />
         {code && <p className="text-center text-lg font-extrabold text-purple-700">Your ad code: {code}</p>}
         {msg && <p className="text-sm text-center text-green-700">{msg}</p>}
         <button className="w-full bg-amber-500 text-white py-3 rounded-xl font-bold">📨 Submit for Approval</button>
