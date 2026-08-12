@@ -21,6 +21,7 @@ export default function VideoComposer({ context, tribeId, onDone }: { context: s
   const [category, setCategory] = useState("Animal");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
+  const [aspect, setAspect] = useState("landscape");
   const [msg, setMsg] = useState("");
 
   function ytId(u: string) {
@@ -38,7 +39,7 @@ export default function VideoComposer({ context, tribeId, onDone }: { context: s
     if (!user) return setMsg("Log in first.");
     const { error } = await supabase.from("videos").insert({
       youtube_id: id, title, description, tags, category,
-      start_sec: toSec(start), end_sec: toSec(end),
+      start_sec: toSec(start), end_sec: toSec(end), aspect,
       author_id: user.id, context, tribe_id: tribeId || null,
     });
     if (error) setMsg("Error: " + error.message);
@@ -49,13 +50,23 @@ export default function VideoComposer({ context, tribeId, onDone }: { context: s
 
   return (
     <form onSubmit={submit} className="glass-card p-4 rounded-2xl space-y-2 border-2 border-forest-300">
-      <p className="text-xs font-bold text-forest-700">🎬 Post a YouTube video (or just the best moment of it!)</p>
-      <input className={input} placeholder="YouTube link *" required value={url} onChange={(e) => setUrl(e.target.value)} />
+      <p className="text-xs font-bold text-forest-700">🎬 Post a YouTube video or Reel</p>
+      <input className={input} placeholder="YouTube / Shorts link *" required value={url} onChange={(e) => setUrl(e.target.value)} />
+
+      <div>
+        <p className="text-xs font-bold text-gray-600 mb-1">📐 Video format</p>
+        <div className="flex gap-2">
+          <button type="button" onClick={() => setAspect("landscape")} className={`flex-1 py-2 rounded-xl text-xs font-bold ${aspect === "landscape" ? "bg-forest-600 text-white" : "bg-gray-200"}`}>📺 16:9 Normal</button>
+          <button type="button" onClick={() => setAspect("portrait")} className={`flex-1 py-2 rounded-xl text-xs font-bold ${aspect === "portrait" ? "bg-purple-600 text-white" : "bg-gray-200"}`}>📱 9:16 Reel</button>
+        </div>
+        <p className="text-[9px] text-gray-400 mt-1">{aspect === "portrait" ? "Reels appear in the vertical Reels feed (use a YouTube Shorts link for best look)." : "Normal videos play wide in the Timeline."}</p>
+      </div>
+
       <input className={input} placeholder="Video title" value={title} onChange={(e) => setTitle(e.target.value)} />
       <textarea className={input} rows={2} placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
       <div className="grid grid-cols-2 gap-2">
-        <input className={input} placeholder="Start time e.g. 1:30 (optional)" value={start} onChange={(e) => setStart(e.target.value)} />
-        <input className={input} placeholder="End time e.g. 2:45 (optional)" value={end} onChange={(e) => setEnd(e.target.value)} />
+        <input className={input} placeholder="Start e.g. 1:30 (optional)" value={start} onChange={(e) => setStart(e.target.value)} />
+        <input className={input} placeholder="End e.g. 2:45 (optional)" value={end} onChange={(e) => setEnd(e.target.value)} />
       </div>
       <div className="grid grid-cols-2 gap-2">
         <input className={input} placeholder="Tags (rabbit, health)" value={tags} onChange={(e) => setTags(e.target.value)} />
@@ -64,7 +75,7 @@ export default function VideoComposer({ context, tribeId, onDone }: { context: s
         </select>
       </div>
       {msg && <p className="text-xs text-red-600">{msg}</p>}
-      <button className="w-full bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">🎬 Publish Video</button>
+      <button className="w-full bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">🎬 Publish {aspect === "portrait" ? "Reel" : "Video"}</button>
     </form>
   );
 }
