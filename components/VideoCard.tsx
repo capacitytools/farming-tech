@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import AdBar from "@/components/AdBar";
+import AdBanner from "@/components/AdBanner";
 
 function renderText(text: string) {
   const parts = text.split(/(https?:\/\/[^\s]+)/g);
@@ -46,8 +47,8 @@ export default function VideoCard({ video }: { video: any }) {
     if (!user) return alert("Log in to comment.");
     await supabase.from("feed_comments").insert({ video_id: video.id, user_id: user.id, content: cText.trim() });
     setCText("");
-    const { data } = await supabase.from("feed_comments").select("*, profiles(full_name, avatar_url)").eq("video_id", video.id).order("created_at", { ascending: true });
-    setVComments(data || []);  }
+    const { data } = await supabase.from("feed_comments").select("*, profiles(full_name, avatar_url)").eq("video_id", video.id).order("created_at", { ascending: true });    setVComments(data || []);
+  }
 
   const s = Number(video.start_sec || 0);
   const e = Number(video.end_sec || 0);
@@ -117,7 +118,7 @@ export default function VideoCard({ video }: { video: any }) {
           </div>
         )}
 
-        {/* SHARE ROW */}
+        {/* SHARE + COMMENT ROW */}
         <div className="flex items-center gap-3 mt-3 pt-2 border-t border-forest-100 text-xs font-bold text-gray-600">
           <span className="text-[9px] text-gray-400">Share:</span>
           <button onClick={() => shareTo("wa")} title="WhatsApp">📤</button>
@@ -129,9 +130,10 @@ export default function VideoCard({ video }: { video: any }) {
           <button onClick={() => setOpenC(!openC)} className="ml-auto text-green-700">💬 {vComments.length}</button>
         </div>
 
-        {/* COMMENTS */}
+        {/* COMMENTS + AD */}
         {openC && (
           <div className="mt-3 space-y-2">
+            <AdBanner type="native" />
             {vComments.map((c) => (
               <div key={c.id} className="bg-white/80 p-2 rounded-xl text-xs">
                 <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span>{" "}
@@ -143,9 +145,9 @@ export default function VideoCard({ video }: { video: any }) {
               <input
                 className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs"
                 placeholder="Share your opinion or paste a link (+3 pts)..."
-                value={cText}
-                onChange={(ev) => setCText(ev.target.value)}
-              />              <button onClick={addComment} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
+                value={cText}                onChange={(ev) => setCText(ev.target.value)}
+              />
+              <button onClick={addComment} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
             </div>
           </div>
         )}
