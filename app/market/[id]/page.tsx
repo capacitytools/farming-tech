@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { currencySymbol } from "@/lib/currency";
 import ListingReviews from "@/components/ListingReviews";
 import SoldButton from "@/components/SoldButton";
+import FeatureButton from "@/components/FeatureButton";
 
 export default async function ListingDetailPage(props: any) {
   const params = await props.params;
@@ -79,7 +80,13 @@ export default async function ListingDetailPage(props: any) {
                 </>
               )}
             </div>
-            {isSeller && <SoldButton id={listing.id} status={listing.status} />}
+            {isSeller && (
+              <>
+                <SoldButton id={listing.id} status={listing.status} />
+                {!listing.is_featured && !listing.featured_requested && <FeatureButton id={listing.id} />}
+                {listing.featured_requested && <p className="mt-2 text-xs text-amber-600 font-semibold text-center">⭐ Feature request pending — pay ₦300 via WhatsApp receipt & admin will activate it.</p>}
+              </>
+            )}
           </div>
 
           <ListingReviews listingId={listing.id} />
