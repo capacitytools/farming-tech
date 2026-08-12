@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import AdBar from "@/components/AdBar";
 
 export default function VideoCard({ video }: { video: any }) {
   const [ad, setAd] = useState<any>(null);
@@ -16,25 +17,25 @@ export default function VideoCard({ video }: { video: any }) {
     })();
   }, [video.ad_id]);
 
+  const s = Number(video.start_sec || 0);
+  const e = Number(video.end_sec || 0);
+  let src = `https://www.youtube.com/embed/${video.youtube_id}`;
+  if (s > 0 || e > s) {
+    src += `?start=${s}${e > s ? `&end=${e}` : ""}`;
+  }
+
   return (
     <div className="rounded-2xl overflow-hidden border-2 border-forest-600 shadow-lg bg-white">
-      {/* BRAND HEADER */}
       <div className="bg-forest-700 text-white px-3 py-2 flex items-center gap-2">
         <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-sm">🌾</span>
         <p className="text-xs font-extrabold tracking-wide">FARMING TECH & BUSINESS</p>
         <span className="ml-auto text-[9px] bg-amber-400 text-forest-900 px-2 py-0.5 rounded-full font-bold uppercase">{video.category || "Video"}</span>
       </div>
 
-      {/* PLAYER */}
-      <iframe
-        src={`https://www.youtube.com/embed/${video.youtube_id}`}
-        title={video.title || "video"}
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        className="w-full aspect-video bg-black"
-      />
+      <iframe src={src} title={video.title || "video"} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full aspect-video bg-black" />
 
-      {/* TITLE / DESCRIPTION / TAGS */}
+      {s > 0 && <p className="text-[9px] text-center bg-forest-50 text-forest-600 font-bold py-1">⏱️ Clip: plays {fmt(s)}{e > s ? ` → ${fmt(e)}` : " → end"}</p>}
+
       <div className="p-3 bg-forest-50">
         <div className="flex items-center gap-2 mb-1">
           {video.profiles?.avatar_url ? (
@@ -55,20 +56,13 @@ export default function VideoCard({ video }: { video: any }) {
         )}
       </div>
 
-      {/* WHITE AD BAR — scrolling ad plays even while video plays */}
-      {ad && (
-        <a href={ad.link || "#"} target="_blank" rel="noopener noreferrer" className="block bg-white border-t-2 border-amber-400 overflow-hidden">
-          <div className="flex items-center gap-2 px-2 py-2">
-            {ad.image_url && <img src={ad.image_url} alt="" className="h-8 w-8 rounded-lg object-cover flex-shrink-0" />}
-            <div className="flex-1 overflow-hidden">
-              <p className="ftb-marquee text-xs font-bold text-forest-800">
-                📢 {ad.business_name}: {ad.ad_text} {ad.link ? "— tap to visit!" : ""}
-              </p>
-            </div>
-            <span className="text-[8px] text-gray-400 font-bold flex-shrink-0">AD</span>
-          </div>
-        </a>
-      )}
+      <AdBar ad={ad} />
     </div>
   );
+}
+
+function fmt(sec: number) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
