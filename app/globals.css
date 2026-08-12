@@ -58,3 +58,6 @@ html.dark input, html.dark textarea, html.dark select { background: #10221a !imp
 html.dark .bg-white\/70, html.dark .bg-white\/60, html.dark .bg-white { background: #10221a !important; color: #e5e7eb; }
 html.dark .text-gray-500, html.dark .text-gray-600, html.dark .text-gray-700 { color: #9ca3af !important; }
 html.dark .bg-gray-200 { background: #1f3a2c !important; color: #d1d5db; }
+/* ===== SCROLLING VIDEO ADS ===== */
+@keyframes ftb-marquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+.ftb-marquee { display: inline-block; white-space: nowrap; animation: ftb-marquee 14s linear infinite; }
