@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import VideoCard from "@/components/VideoCard";
 import VideoComposer from "@/components/VideoComposer";
@@ -27,7 +28,7 @@ export default function FeedPage() {
       supabase.from("feed_posts").select("*, profiles(full_name, avatar_url, referral_code, role, verified), ad:ad_campaigns(*)").order("created_at", { ascending: false }).limit(30),
       supabase.from("feed_likes").select("post_id, user_id"),
       supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true }),
-      supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role)").eq("context", "feed").order("created_at", { ascending: false }).limit(10),
+      supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role, referral_code)").eq("context", "feed").order("created_at", { ascending: false }).limit(10),
     ]);
     setPosts(p.data || []);
     setLikes(l.data || []);
@@ -46,8 +47,8 @@ export default function FeedPage() {
     })();
   }, []);
 
-  async function uploadImage(e: any) {
-    const file = e.target.files?.[0];    if (!file) return;
+  async function uploadImage(e: any) {    const file = e.target.files?.[0];
+    if (!file) return;
     const supabase = createClient();
     const ext = file.name.split(".").pop() || "jpg";
     const path = `feed-${Date.now()}.${ext}`;
@@ -95,22 +96,27 @@ export default function FeedPage() {
 
   async function deleteVideo(id: string) {
     if (!confirm("Delete this video?")) return;
-    const supabase = createClient();
-    await supabase.from("videos").delete().eq("id", id);    load();
+    const supabase = createClient();    await supabase.from("videos").delete().eq("id", id);
+    load();
   }
 
   function share(item: any, network: string) {
     const ref = item.profiles?.referral_code || "";
-    const url = `${window.location.origin}/feed?ref=${ref}`;
-    const text = `"${(item.content || item.title || "").slice(0, 100)}" — join me on Farming Tech & Business 🌾`;
-    const e = encodeURIComponent;
+    const url = `${window.location.origin}/post/${item.id}?ref=${ref}`;
+    const text = `${(item.content || item.title || "").slice(0, 120)} 🌾 Join, Learn, Grow, Connect & Earn on Farming Tech & Business!`;
+    const en = encodeURIComponent;
+    const media = item.image_url || "";
     const links: any = {
-      wa: `https://wa.me/?text=${e(text + " " + url)}`,
-      fb: `https://www.facebook.com/sharer/sharer.php?u=${e(url)}`,
-      x: `https://twitter.com/intent/tweet?text=${e(text)}&url=${e(url)}`,
+      wa: `https://wa.me/?text=${en(text + " " + url)}`,
+      fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
+      x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
+      pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
     };
     if (network === "copy") navigator.clipboard.writeText(url);
-    else window.open(links[network], "_blank");
+    else if (network === "status") {
+      navigator.clipboard.writeText(text + " " + url);
+      window.open("https://wa.me/", "_blank");
+    } else window.open(links[network], "_blank");
   }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
@@ -139,27 +145,29 @@ export default function FeedPage() {
           {showVideo && <VideoComposer context="feed" onDone={() => { setShowVideo(false); load(); }} />}
         </div>
       )}
-
       <div className="space-y-4">
         {timeline.map((item: any, idx: number) => (
           <div key={`${item.kind}-${item.id}`}>
             {item.kind === "video" ? (
               <div>
-                <VideoCard video={item} />                {(user?.id === item.author_id || user?.role === "admin") && (
+                <VideoCard video={item} />
+                {(user?.id === item.author_id || user?.role === "admin") && (
                   <button onClick={() => deleteVideo(item.id)} className="text-red-500 text-xs font-semibold mt-1">Delete video</button>
                 )}
               </div>
             ) : (
               <div className="glass-card p-4 rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
-                  {item.profiles?.avatar_url ? (
-                    <img src={item.profiles.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{item.profiles?.full_name?.[0] || "?"}</div>
-                  )}
+                  <Link href={`/farmer/${item.author_id}`}>
+                    {item.profiles?.avatar_url ? (
+                      <img src={item.profiles.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{item.profiles?.full_name?.[0] || "?"}</div>
+                    )}
+                  </Link>
                   <div className="flex-1">
                     <p className="font-bold text-sm">
-                      {item.profiles?.full_name || "Farmer"}
+                      <Link href={`/farmer/${item.author_id}`} className="hover:underline">{item.profiles?.full_name || "Farmer"}</Link>
                       {item.profiles?.verified && <span className="ml-1 text-sky-500">✅</span>}
                       {item.profiles?.role === "admin" && <span className="ml-1 text-[9px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold">ADMIN</span>}
                     </p>
@@ -185,16 +193,18 @@ export default function FeedPage() {
                   const postComments = comments.filter((c) => c.post_id === item.id);
                   return (
                     <>
-                      <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
-                        <button onClick={() => toggleLike(item.id)} className={myLike ? "text-red-600" : ""}>❤️ {postLikes.length}</button>
-                        <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="text-green-700">💬 {postComments.length}</button>
-                        <button onClick={() => share(item, "wa")} className="ml-auto">📤</button>
-                        <button onClick={() => share(item, "fb")}>f</button>
-                        <button onClick={() => share(item, "x")}>𝕏</button>
-                        <button onClick={() => share(item, "copy")}>🔗</button>
+                      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600 flex-wrap">
+                        <button onClick={() => toggleLike(item.id)} className={myLike ? "text-red-600" : ""}>❤️ {postLikes.length}</button>                        <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="text-green-700">💬 {postComments.length}</button>
+                        <button onClick={() => share(item, "wa")} className="ml-auto" title="WhatsApp">📤</button>
+                        <button onClick={() => share(item, "status")} title="WhatsApp Status (copies caption)">🟢</button>
+                        <button onClick={() => share(item, "fb")} title="Facebook">f</button>
+                        <button onClick={() => share(item, "x")} title="X / Twitter">𝕏</button>
+                        <button onClick={() => share(item, "pin")} title="Pinterest">📌</button>
+                        <button onClick={() => share(item, "copy")} title="Copy link">🔗</button>
                       </div>
                       {openC === item.id && (
-                        <div className="mt-3 space-y-2">                          {postComments.map((c) => (
+                        <div className="mt-3 space-y-2">
+                          {postComments.map((c) => (
                             <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
                               <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {c.content}
                             </div>
