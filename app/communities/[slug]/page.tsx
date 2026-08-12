@@ -2,298 +2,253 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import TrainingRoom from "@/components/TrainingRoom";
 
-export default function TribeDetailPage() {
-  const [slug, setSlug] = useState("");
-  const [loaded, setLoaded] = useState(false);
+export default function TribePage(props: any) {
+  const slug = props.params.slug;
   const [tribe, setTribe] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [members, setMembers] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
-  const [profileRole, setProfileRole] = useState("");
-  const [myRole, setMyRole] = useState("");
-  const [myBanned, setMyBanned] = useState(false);
-  const [joined, setJoined] = useState(false);
+  const [member, setMember] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [replies, setReplies] = useState<any[]>([]);
+  const [trainings, setTrainings] = useState<any[]>([]);
   const [content, setContent] = useState("");
   const [image, setImage] = useState("");
-  const [replyTo, setReplyTo] = useState("");
-  const [replyText, setReplyText] = useState("");
-  const [showManage, setShowManage] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
+  const [replyText, setReplyText] = useState<any>({});
+  const [openReplies, setOpenReplies] = useState("");
+  const [showStart, setShowStart] = useState(false);
+  const [tTitle, setTTitle] = useState("");
+  const [tDur, setTDur] = useState(15);
+  const [tRec, setTRec] = useState(true);
+  const [room, setRoom] = useState<any>(null);
+  const [loaded, setLoaded] = useState(false);
 
-  const isAdmin = profileRole === "admin";
-  const isMod = isAdmin || myRole === "master";
-  const canPost = !!user && !myBanned && (isAdmin || joined);
+  const isMaster = member?.role === "master" || member?.role === "admin";
 
   async function load() {
     const supabase = createClient();
     const { data: t } = await supabase.from("tribes").select("*").eq("slug", slug).single();
     setTribe(t);
-    if (!t) {
-      setLoaded(true);
-      return;
-    }
-    const { data: p } = await supabase
-      .from("tribe_posts")
-      .select("*, profiles(full_name, avatar_url, role)")
-      .eq("tribe_id", t.id)
-      .order("created_at", { ascending: false });
-    setPosts(p || []);
-    const { data: m } = await supabase
-      .from("tribe_members")
-      .select("*, profiles(full_name, avatar_url, role)")
-      .eq("tribe_id", t.id);
-    setMembers(m || []);
     const { data: { user: u } } = await supabase.auth.getUser();
     setUser(u);
-    if (u) {      const { data: prof } = await supabase.from("profiles").select("role").eq("id", u.id).single();
-      setProfileRole(prof?.role || "");
-      const mine = (m || []).find((x: any) => x.user_id === u.id);
-      setJoined(!!mine && !mine.is_banned);
-      setMyRole(mine?.role || "");
-      setMyBanned(!!mine?.is_banned);
+    if (u && t) {
+      const { data: m } = await supabase.from("tribe_members").select("*").eq("tribe_id", t.id).eq("user_id", u.id).single();
+      setMember(m);
+    }
+    if (t) {
+      const { data: p } = await supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url, role)").eq("tribe_id", t.id).is("parent_id", null).order("created_at", { ascending: false }).limit(30);
+      const { data: r } = await supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url)").eq("tribe_id", t.id).not("parent_id", "is", null).order("created_at", { ascending: true });
+      const { data: tr } = await supabase.from("tribe_trainings").select("*, profiles(full_name)").eq("tribe_id", t.id).order("created_at", { ascending: false }).limit(10);
+      setPosts(p || []);
+      setReplies(r || []);
+      setTrainings(tr || []);
     }
     setLoaded(true);
   }
 
   useEffect(() => {
-    setSlug(decodeURIComponent(window.location.pathname.split("/").pop() || ""));
-  }, []);
+    load();  }, [slug]);
 
-  useEffect(() => {
-    if (slug) load();
-  }, [slug]);
+  async function join() {
+    const supabase = createClient();
+    const { error } = await supabase.from("tribe_members").insert({ tribe_id: tribe.id, user_id: user.id, role: "member" });
+    if (error) alert(error.message);
+    load();
+  }
+
+  async function leave() {
+    const supabase = createClient();
+    await supabase.from("tribe_members").delete().eq("tribe_id", tribe.id).eq("user_id", user.id);
+    setMember(null);
+    load();
+  }
 
   async function uploadImage(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setBusy(true);
     const supabase = createClient();
     const ext = file.name.split(".").pop() || "jpg";
-    const path = `tribe-post-${Date.now()}.${ext}`;
+    const path = `tribe-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file);
     if (!error) setImage(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
-    setBusy(false);
   }
 
-  async function toggleJoin() {
-    if (!user) return;
-    setBusy(true);
-    const supabase = createClient();
-    if (joined) await supabase.rpc("leave_tribe", { t_id: tribe.id });
-    else await supabase.rpc("join_tribe", { t_id: tribe.id });
-    await load();
-    setBusy(false);
-  }
-
-  async function submitPost(e: any) {
+  async function addPost(e: any) {
     e.preventDefault();
-    if (!content.trim() || !user) return;
-    setBusy(true);
+    if (!content.trim()) return;
     const supabase = createClient();
-    const { error } = await supabase.from("tribe_posts").insert({
-      tribe_id: tribe.id,
-      author_id: user.id,
-      content: content.trim(),
-      image_url: image || null,    });
-    if (!error) {
-      setContent("");
-      setImage("");
-    } else setMessage(error.message);
-    await load();
-    setBusy(false);
+    await supabase.from("tribe_posts").insert({ tribe_id: tribe.id, author_id: user.id, content: content.trim(), image_url: image || null });
+    setContent("");
+    setImage("");
+    load();
   }
 
-  async function submitReply(postId: string) {
-    if (!replyText.trim() || !user) return;
-    setBusy(true);
+  async function addReply(postId: string) {
+    const text = (replyText[postId] || "").trim();
+    if (!text) return;
     const supabase = createClient();
-    await supabase.from("tribe_posts").insert({
-      tribe_id: tribe.id,
-      author_id: user.id,
-      content: replyText.trim(),
-      parent_id: postId,
-    });
-    setReplyText("");
-    setReplyTo("");
-    await load();
-    setBusy(false);
+    await supabase.from("tribe_posts").insert({ tribe_id: tribe.id, author_id: user.id, content: text, parent_id: postId });
+    setReplyText({ ...replyText, [postId]: "" });
+    load();
   }
 
   async function deletePost(id: string) {
     if (!confirm("Delete this post?")) return;
     const supabase = createClient();
     await supabase.from("tribe_posts").delete().eq("id", id);
-    load();
-  }
-
-  async function setMemberRole(id: string, role: string) {
-    const supabase = createClient();
-    await supabase.from("tribe_members").update({ role }).eq("id", id);
-    load();
-  }
-
-  async function toggleBan(id: string, banned: boolean) {
-    const supabase = createClient();
-    await supabase.from("tribe_members").update({ is_banned: banned }).eq("id", id);
-    load();
-  }
-
-  async function kick(id: string) {
-    if (!confirm("Remove this member from the tribe?")) return;
-    const supabase = createClient();
-    await supabase.from("tribe_members").delete().eq("id", id);
-    await supabase.from("tribes").update({ member_count: Math.max((tribe.member_count || 1) - 1, 0) }).eq("id", tribe.id);
     load();  }
 
-  function badge(post: any) {
-    if (post.profiles?.role === "admin") return <span className="text-[9px] font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">ADMIN</span>;
-    const role = members.find((m) => m.user_id === post.author_id)?.role;
-    if (role === "master") return <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">👑 MASTER</span>;
-    return null;
+  async function kick(userId: string) {
+    if (!confirm("Remove this member from the tribe?")) return;
+    const supabase = createClient();
+    await supabase.from("tribe_members").delete().eq("tribe_id", tribe.id).eq("user_id", userId);
+    load();
   }
 
-  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
-  if (!tribe) return <div className="p-8 text-center text-gray-500">Tribe not found</div>;
+  async function startTraining(e: any) {
+    e.preventDefault();
+    const supabase = createClient();
+    const roomName = `FTB-${tribe.slug}-${Date.now()}`;
+    const { data, error } = await supabase.from("tribe_trainings").insert({ tribe_id: tribe.id, title: tTitle || "Live Training", room: roomName, duration_min: tDur, record: tRec, started_by: user.id, status: "live" }).select().single();
+    if (error) return alert(error.message);
+    setShowStart(false);
+    setRoom({ ...data, isHost: true });
+  }
 
-  const topPosts = posts.filter((p) => !p.parent_id);
+  const liveTraining = trainings.find((t) => t.status === "live");
+  const ended = trainings.filter((t) => t.status === "ended" && t.audio_url);
+
+  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
+  if (!tribe) return <p className="text-center text-gray-500 py-10">Tribe not found.</p>;
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
-      <div className="glass-card p-5 rounded-2xl shadow-lg text-center mb-4">
-        {tribe.image_url ? (
-          <img src={tribe.image_url} alt={tribe.name} className="w-full h-32 object-cover rounded-xl mb-3" />
-        ) : (
-          <span className="text-6xl">{tribe.icon}</span>
-        )}
-        <h1 className="text-2xl font-bold mt-2">{tribe.name}</h1>
-        <p className="text-gray-600 text-sm mt-1">{tribe.description}</p>
-        <p className="text-sm text-green-600 font-semibold mt-2">👥 {tribe.member_count} members</p>
-        {myBanned ? (
-          <p className="mt-4 text-red-600 font-semibold">🚫 You are banned from this tribe.</p>
-        ) : user ? (
-          <button onClick={toggleJoin} disabled={busy} className={`mt-4 px-6 py-2 rounded-xl font-semibold text-white ${joined ? "bg-gray-500" : "bg-green-600"}`}>
-            {joined ? "✅ Joined — tap to leave" : "➕ Join this tribe"}
-          </button>
-        ) : (
-          <a href="/login" className="inline-block mt-4 bg-green-600 text-white px-6 py-2 rounded-xl font-semibold">Log in to join & post</a>
-        )}
-        {isMod && (
-          <button onClick={() => setShowManage(!showManage)} className="block mx-auto mt-3 text-sm font-semibold text-purple-700">
-            🛡️ {showManage ? "Hide" : "Manage"} members & moderation
-          </button>
-        )}
-      </div>
+      {room && (
+        <TrainingRoom room={room.room} isHost={room.isHost} record={room.record} durationMin={room.duration_min} tribeId={tribe.id} trainingId={room.id} onEnd={() => { setRoom(null); load(); }} />
+      )}
 
-      {showManage && isMod && (
-        <div className="glass-card p-4 rounded-2xl mb-4 border-2 border-purple-200">
-          <h2 className="font-bold mb-3 text-purple-700">🛡️ Tribe Management</h2>
+      <div className="glass-card p-5 rounded-2xl mb-4">
+        <div className="flex items-center gap-3">
+          {tribe.image_url ? (
+            <img src={tribe.image_url} alt={tribe.name} className="w-14 h-14 object-cover rounded-2xl" />
+          ) : (
+            <div className="w-14 h-14 bg-forest-100 rounded-2xl flex items-center justify-center text-3xl">{tribe.icon}</div>
+          )}
+          <div className="flex-1">
+            <h1 className="text-xl font-bold">{tribe.name} {tribe.verified_only && "🔒"}</h1>
+            <p className="text-xs text-gray-500">👥 {tribe.member_count || 0} members {isMaster && "· 👑 you're a leader"}</p>
+          </div>
+          {user && (member ? (
+            <button onClick={leave} className="text-red-600 text-xs font-bold">Leave</button>
+          ) : (
+            <button onClick={join} className="bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Join</button>
+          ))}
+        </div>
+        {tribe.description && <p className="text-sm text-gray-600 mt-3">{tribe.description}</p>}
+      </div>
+      {/* LIVE TRAINING */}
+      {isMaster && !showStart && (
+        <button onClick={() => setShowStart(true)} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-bold mb-3">
+          🎙️ Start Live Training
+        </button>
+      )}
+      {showStart && (
+        <form onSubmit={startTraining} className="glass-card p-4 rounded-2xl mb-4 space-y-3 border-2 border-purple-300">
+          <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Training title (e.g. Rabbit Mite Treatment)" value={tTitle} onChange={(e) => setTTitle(e.target.value)} />
+          <div>
+            <p className="text-xs font-bold text-gray-600 mb-1">⏱️ Duration</p>
+            <div className="flex gap-2 flex-wrap">
+              {[5, 10, 15, 20, 30].map((d) => (
+                <button type="button" key={d} onClick={() => setTDur(d)} className={`px-3 py-1 rounded-full text-xs font-bold ${tDur === d ? "bg-purple-600 text-white" : "bg-gray-200"}`}>{d} min</button>
+              ))}
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={tRec} onChange={(e) => setTRec(e.target.checked)} /> 🔴 Record & save as MP3 to tribe library
+          </label>
+          <div className="flex gap-2">
+            <button className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold">🔴 Go LIVE</button>
+            <button type="button" onClick={() => setShowStart(false)} className="px-4 bg-gray-200 rounded-xl font-bold">Cancel</button>
+          </div>
+        </form>
+      )}
+
+      {liveTraining && !room && (
+        <button onClick={() => setRoom({ ...liveTraining, isHost: liveTraining.started_by === user?.id })} className="w-full bg-red-600 text-white py-3 rounded-2xl font-bold mb-3 animate-pulse">
+          🔴 LIVE NOW: {liveTraining.title} — TAP TO JOIN
+        </button>
+      )}
+
+      {/* TRAINING LIBRARY */}
+      {ended.length > 0 && (
+        <div className="mb-6">
+          <h2 className="font-bold mb-2">🎧 Training Library</h2>
           <div className="space-y-2">
-            {members.map((m: any) => (
-              <div key={m.id} className="bg-white/70 p-3 rounded-xl flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">
-                  {m.profiles?.full_name?.[0] || "?"}
-                </div>                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{m.profiles?.full_name || "User"}</p>
-                  <p className="text-[10px] text-gray-500">
-                    {m.profiles?.role === "admin" ? "ADMIN" : m.role === "master" ? "👑 MASTER" : "member"}
-                    {m.is_banned && " · 🚫 banned"}
-                  </p>
-                </div>
-                {m.user_id !== user?.id && m.profiles?.role !== "admin" && (
-                  <div className="flex gap-1">
-                    {isAdmin && (
-                      <button onClick={() => setMemberRole(m.id, m.role === "master" ? "member" : "master")} className="text-[10px] font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-full">
-                        {m.role === "master" ? "Remove 👑" : "Make 👑"}
-                      </button>
-                    )}
-                    <button onClick={() => toggleBan(m.id, !m.is_banned)} className="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                      {m.is_banned ? "Unban" : "Ban"}
-                    </button>
-                    <button onClick={() => kick(m.id)} className="text-[10px] font-bold bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
-                      Kick
-                    </button>
-                  </div>
-                )}
+            {ended.map((t) => (
+              <div key={t.id} className="glass-card p-3 rounded-2xl">
+                <p className="font-semibold text-sm">{t.title} <span className="text-[10px] text-gray-400">· {t.duration_min} min · by {t.profiles?.full_name}</span></p>
+                <audio controls src={t.audio_url} className="w-full mt-2" style={{ height: 36 }} />
+                <a href={t.audio_url} download className="text-xs font-bold text-green-700">⬇️ Download MP3</a>
               </div>
             ))}
           </div>
         </div>
       )}
-
-      {canPost && (
-        <form onSubmit={submitPost} className="glass-card p-4 rounded-2xl mb-4">
-          <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={3} placeholder={`Share something with ${tribe.name}...`} value={content} onChange={(e) => setContent(e.target.value)} />
-          <div className="flex items-center gap-3 mt-3">
-            <label className="text-sm font-semibold text-green-700 cursor-pointer">
-              📷 Add photo
-              <input type="file" accept="image/*" onChange={uploadImage} className="hidden" />
-            </label>
-            {image && <img src={image} alt="preview" className="h-10 w-10 object-cover rounded-lg" />}
-            <button className="ml-auto bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-semibold disabled:opacity-50" disabled={busy}>
-              📣 Post
-            </button>
+      {/* POSTS */}
+      {member && !member.is_banned && (
+        <form onSubmit={addPost} className="glass-card p-4 rounded-2xl mb-4">
+          <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder={`Share with ${tribe.name}...`} value={content} onChange={(e) => setContent(e.target.value)} />
+          <div className="flex items-center gap-3 mt-2">
+            <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
+            {image && <img src={image} alt="" className="h-10 w-10 object-cover rounded-lg" />}
+            <button className="ml-auto bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold">Post</button>
           </div>
         </form>
       )}
-      {user && !canPost && <p className="text-center text-sm text-gray-500 mb-4">Join this tribe to post. 👆</p>}
 
-      {message && <p className="text-sm text-center text-red-600 mb-4">{message}</p>}
-
-      <h2 className="text-xl font-bold mb-4">💬 Discussions</h2>
       <div className="space-y-4">
-        {topPosts.length > 0 ? (          topPosts.map((post) => {
-            const replies = posts.filter((r) => r.parent_id === post.id).reverse();
-            return (
-              <div key={post.id} className="glass-card p-4 rounded-2xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">
-                    {post.profiles?.full_name?.[0] || "?"}
-                  </div>
-                  <div className="flex-1">
-                    <span className="font-semibold text-sm">{post.profiles?.full_name || "Farmer"}</span> {badge(post)}
-                    <p className="text-[10px] text-gray-400">{new Date(post.created_at).toLocaleDateString()}</p>
-                  </div>
-                  {(isMod || post.author_id === user?.id) && (
-                    <button onClick={() => deletePost(post.id)} className="text-red-500 text-xs font-semibold">Delete</button>
-                  )}
-                </div>
-                <p className="text-gray-800 text-sm">{post.content}</p>
-                {post.image_url && <img src={post.image_url} alt="post" className="mt-2 w-full h-48 object-cover rounded-xl" />}
-
-                {replies.length > 0 && (
-                  <div className="mt-3 space-y-2 border-l-2 border-green-200 pl-3">
-                    {replies.map((r) => (
-                      <div key={r.id} className="bg-white/60 p-2 rounded-xl">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold">{r.profiles?.full_name || "Farmer"}</span> {badge(r)}
-                          {(isMod || r.author_id === user?.id) && (
-                            <button onClick={() => deletePost(r.id)} className="ml-auto text-red-500 text-[10px] font-semibold">Delete</button>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-700 mt-1">{r.content}</p>
-                      </div>
-                    ))}
-                  </div>
+        {posts.map((p) => {
+          const postReplies = replies.filter((r) => r.parent_id === p.id);
+          return (
+            <div key={p.id} className="glass-card p-4 rounded-2xl">
+              <div className="flex items-center gap-2 mb-2">
+                {p.profiles?.avatar_url ? (
+                  <img src={p.profiles.avatar_url} className="w-9 h-9 rounded-full object-cover" alt="" />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{p.profiles?.full_name?.[0] || "?"}</div>
                 )}
-
-                {user ? (
-                  replyTo === post.id ? (
-                    <div className="mt-3 flex gap-2">
-                      <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Write a reply..." value={replyText} onChange={(e) => setReplyText(e.target.value)} />
-                      <button onClick={() => submitReply(post.id)} className="bg-green-600 text-white px-3 rounded-xl text-sm font-semibold">Send</button>
-                      <button onClick={() => setReplyTo("")} className="bg-gray-200 px-3 rounded-xl text-sm">✕</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setReplyTo(post.id)} className="mt-3 text-xs font-semibold text-green-700">💬 Reply</button>
-                  )
-                ) : null}
+                <div className="flex-1">
+                  <p className="font-bold text-sm">{p.profiles?.full_name || "Member"}</p>
+                  <p className="text-[10px] text-gray-400">{new Date(p.created_at).toLocaleDateString()}</p>
+                </div>
+                {(isMaster || user?.id === p.author_id) && (
+                  <button onClick={() => deletePost(p.id)} className="text-red-500 text-xs font-semibold">Delete</button>
+                )}
+                {isMaster && user?.id !== p.author_id && (
+                  <button onClick={() => kick(p.author_id)} className="text-red-500 text-xs font-semibold">Kick</button>
+                )}
               </div>
-            );
-          })
-        ) : (          <p className="text-gray-500 text-center py-4">No posts yet. Be the first!</p>
-        )}
+              <p className="text-sm text-gray-800 whitespace-pre-line">{p.content}</p>
+              {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
+              <button onClick={() => setOpenReplies(openReplies === p.id ? "" : p.id)} className="text-xs font-bold text-green-700 mt-2">💬 {postReplies.length} replies</button>
+              {openReplies === p.id && (
+                <div className="mt-2 space-y-2">
+                  {postReplies.map((r) => (
+                    <div key={r.id} className="bg-white/70 p-2 rounded-xl text-xs">
+                      <span className="font-bold">{r.profiles?.full_name || "Member"}:</span> {r.content}
+                    </div>
+                  ))}
+                  {member && (
+                    <div className="flex gap-2">
+                      <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Reply..." value={replyText[p.id] || ""} onChange={(e) => setReplyText({ ...replyText, [p.id]: e.target.value })} />
+                      <button onClick={() => addReply(p.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
+                    </div>
+                  )}                </div>
+              )}
+            </div>
+          );
+        })}
+        {posts.length === 0 && <p className="text-center text-gray-500 py-6">No posts yet — start the conversation!</p>}
       </div>
     </div>
   );
