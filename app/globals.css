@@ -50,3 +50,11 @@ body {
   right: 12px !important;
   z-index: 30 !important;
 }
+/* ===== DARK MODE ===== */
+html.dark body { background-color: #0a1a12 !important; color: #e5e7eb; }
+html.dark .glass-card { background: rgba(16, 34, 24, 0.85) !important; border-color: rgba(255,255,255,0.08); color: #e5e7eb; }
+html.dark header { background: rgba(10, 26, 18, 0.9) !important; }
+html.dark input, html.dark textarea, html.dark select { background: #10221a !important; color: #e5e7eb; border-color: #234434 !important; }
+html.dark .bg-white\/70, html.dark .bg-white\/60, html.dark .bg-white { background: #10221a !important; color: #e5e7eb; }
+html.dark .text-gray-500, html.dark .text-gray-600, html.dark .text-gray-700 { color: #9ca3af !important; }
+html.dark .bg-gray-200 { background: #1f3a2c !important; color: #d1d5db; }
