@@ -28,10 +28,18 @@ export default function AdminBlogsPage() {
   }
 
   function copyLink(slug: string) {
-    const url = `https://farmtechbusiness.com/blog/${slug}`;
+    const url = `https://farming-tech.vercel.app/blog/${slug}`;
     navigator.clipboard.writeText(url);
     setMessage("Link copied! ✅");
     setTimeout(() => setMessage(""), 2000);
+  }
+
+  function shareBlog(b: any, net: string) {
+    const url = `https://farming-tech.vercel.app/blog/${b.slug}`;
+    const caption = `🌾 ${b.title} — read free on Farming Tech & Business! 👨‍🌾 Practical tips for Nigerian farmers.`;
+    const e = encodeURIComponent;
+    if (net === "wa") window.open(`https://wa.me/?text=${e(caption + " " + url)}`);
+    else window.open(`https://www.facebook.com/sharer/sharer.php?u=${e(url)}`);
   }
 
   const filtered = filter === "All" ? blogs : blogs.filter((b) => b.category === filter);
@@ -72,10 +80,12 @@ export default function AdminBlogsPage() {
                     <span className="font-semibold">👁️ {b.views_count || 0} views</span>
                   </div>
                   <p className="text-xs text-gray-600 mt-1 line-clamp-2">{b.excerpt}</p>
-                  <div className="flex gap-2 mt-2">
+                  <div className="flex gap-3 mt-2 flex-wrap">
                     <a href={`/admin/blogs/edit?id=${b.id}`} className="text-blue-600 text-sm font-semibold">Edit</a>
                     <button onClick={() => deleteBlog(b.id)} className="text-red-600 text-sm font-semibold">Delete</button>
                     <button onClick={() => copyLink(b.slug)} className="text-green-600 text-sm font-semibold">Copy Link</button>
+                    <button onClick={() => shareBlog(b, "wa")} className="text-green-700 text-sm font-semibold">📤 WhatsApp</button>
+                    <button onClick={() => shareBlog(b, "fb")} className="text-blue-700 text-sm font-semibold">📘 Facebook</button>
                   </div>
                 </div>
               </div>
