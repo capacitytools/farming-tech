@@ -1,47 +1,57 @@
+"use client";
+
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
 export default function ContactPage() {
+  const [message, setMessage] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: any) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg("");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setMsg("Please log in first so we can reply to you. 🙏");
+      setBusy(false);
+      return;
+    }
+    const { data: admin } = await supabase.from("profiles").select("id").eq("role", "admin").limit(1).single();
+    if (!admin) {
+      setMsg("Admin not found.");
+      setBusy(false);
+      return;
+    }
+    const { error } = await supabase.from("direct_messages").insert({ sender_id: user.id, receiver_id: admin.id, content: "📬 CONTACT: " + message.trim() });
+    if (error) setMsg("Error: " + error.message);
+    else {
+      setMsg("✅ Message sent! The admin will reply in your Inbox.");
+      setMessage("");
+    }
+    setBusy(false);
+  }
+
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
-      <div className="glass-card p-6 rounded-2xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-6 text-center">Contact Us</h1>
-        <p className="text-gray-700 text-center mb-8">
-          Have questions, feedback, or partnership ideas or will love to be connected to an expert? We'd love to hear from you.
-        </p>
-        
-        <div className="space-y-4">
-          <div className="p-4 bg-white/60 rounded-xl">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">📧</span>
-              <p className="font-semibold">Email Support</p>
-            </div>
-            <div className="pl-10 text-sm text-gray-600 space-y-1">
-              <a href="mailto:akinsuroju.olubunmi@gmail.com" className="hover:underline">akinsuroju.olubunmi@gmail.com</a><br />
-              <a href="mailto:support@farmingtech.com" className="hover:underline">support@farmingtech.com</a>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-white/60 rounded-xl">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">📞</span>
-              <p className="font-semibold">Phone / WhatsApp</p>
-            </div>
-            <div className="pl-10 text-sm text-gray-600 space-y-1">
-              <a href="https://wa.me/2347033143508" target="_blank" rel="noopener noreferrer" className="hover:underline">+234 7033143508</a><br />
-              <a href="https://wa.me/2349159884244" target="_blank" rel="noopener noreferrer" className="hover:underline">+234 9159884244</a>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-white/60 rounded-xl">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-2xl">📍</span>
-              <p className="font-semibold">Headquarters</p>
-            </div>
-            <div className="pl-10 text-sm text-gray-600 space-y-1">
-              <p>Akure, Nigeria</p>
-              <p>Branch: Lagos, Nigeria</p>
-              <p>Branch: Ile-Oluji, Nigeria</p>
-            </div>
-          </div>
-        </div>
+      <h1 className="text-2xl font-bold mb-2">📬 Contact Admin</h1>
+      <p className="text-gray-600 text-sm mb-6">Questions, partnerships, verification receipts, reports — we reply fast.</p>
+
+      <form onSubmit={submit} className="glass-card p-5 rounded-2xl space-y-4">
+        <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={4} placeholder="Write your message..." required value={message} onChange={(e) => setMessage(e.target.value)} />
+        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-bold disabled:opacity-50" disabled={busy}>
+          {busy ? "Sending..." : "📨 Send Message"}
+        </button>
+        {msg && <p className="text-sm text-center text-green-700">{msg}</p>}
+      </form>
+
+      <div className="glass-card p-4 rounded-2xl mt-6 text-sm text-gray-600 space-y-2">
+        <p className="font-bold text-gray-800">Other ways to reach us:</p>
+        <p>💬 WhatsApp: +234 915 988 4244</p>
+        <p>📘 Facebook: Farming Tech & Business</p>
+        <p>▶️ YouTube: @animalstipss</p>
       </div>
     </div>
   );
