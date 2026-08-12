@@ -20,7 +20,7 @@ export default async function HomePage() {
   const supabase = createClient();
   const TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
 
-  const [blogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount, authUser] = await Promise.all([
+  const [blogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount, authUser, hot] = await Promise.all([
     supabase.from("blogs").select("title, slug, cover_image_url, category, views_count").eq("status", "published").order("published_at", { ascending: false }).limit(4),
     supabase.from("tribes").select("name, slug, icon, image_url, member_count").order("member_count", { ascending: false }).limit(6),
     supabase.from("livestock_listings").select("id, title, price, currency, images").eq("status", "active").order("created_at", { ascending: false }).limit(4),
@@ -30,6 +30,7 @@ export default async function HomePage() {
     supabase.from("tribes").select("*", { count: "exact", head: true }),
     supabase.from("livestock_listings").select("*", { count: "exact", head: true }).eq("status", "active"),
     supabase.auth.getUser(),
+    supabase.rpc("hot_posts"),
   ]);
 
   let onboarding: any = null;
@@ -46,8 +47,8 @@ export default async function HomePage() {
       { label: "📣 Post on the Timeline", done: (fp.count || 0) > 0, href: "/feed" },
       { label: "🩺 Scan with AI Doctor", done: (sc.count || 0) > 0, href: "/scanner" },
       { label: "📚 Get an e-book", done: (eb.count || 0) > 0, href: "/ebooks" },
-    ];
-    const doneCount = steps.filter((s: any) => s.done).length;    if (doneCount < steps.length) onboarding = { steps, doneCount };
+    ];    const doneCount = steps.filter((s: any) => s.done).length;
+    if (doneCount < steps.length) onboarding = { steps, doneCount };
   }
 
   return (
@@ -67,7 +68,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* AI AGRI-DOCTOR — FIRST THING USERS SEE */}
+      {/* AI AGRI-DOCTOR */}
       <div className="p-4 -mt-4">
         <QuickScanWidget />
       </div>
@@ -82,7 +83,7 @@ export default async function HomePage() {
         </div>
       </div>
 
-      {/* ONBOARDING CHECKLIST */}
+      {/* ONBOARDING */}
       {onboarding && (
         <div className="px-4 mt-4">
           <div className="glass-card p-4 rounded-2xl border-2 border-green-300">
@@ -95,8 +96,8 @@ export default async function HomePage() {
             </div>
             <div className="space-y-1">
               {onboarding.steps.map((st: any) => (
-                <Link key={st.label} href={st.href} className={`flex items-center gap-2 p-2 rounded-xl text-sm font-semibold ${st.done ? "text-gray-400 line-through" : "bg-green-50 text-green-800"}`}>
-                  <span>{st.done ? "✅" : "⬜"}</span> {st.label}                </Link>
+                <Link key={st.label} href={st.href} className={`flex items-center gap-2 p-2 rounded-xl text-sm font-semibold ${st.done ? "text-gray-400 line-through" : "bg-green-50 text-green-800"}`}>                  <span>{st.done ? "✅" : "⬜"}</span> {st.label}
+                </Link>
               ))}
             </div>
             <p className="text-[10px] text-gray-500 mt-2">Finish all 4 to earn your first badges & climb the leaderboard! 🏅</p>
@@ -116,6 +117,39 @@ export default async function HomePage() {
             <span className="text-xl">→</span>
           </div>
         </Link>
+      </div>
+
+      {/* 🔥 FOR YOU — smart-ranked top 10 posts */}
+      <div className="px-4 mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
+          <span className="text-[10px] text-gray-500 font-semibold">🤖 re-ranked every 10 min</span>
+        </div>
+        <div className="space-y-3">
+          {(hot.data || []).map((p: any, i: number) => (
+            <div key={p.id} className="glass-card p-3 rounded-2xl">
+              <div className="flex items-center gap-2 mb-1">
+                <Link href={`/farmer/${p.author_id}`}>
+                  {p.author_avatar ? (
+                    <img src={p.author_avatar} className="w-8 h-8 rounded-full object-cover" alt="" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{(p.author_name || "?")[0]}</div>
+                  )}
+                </Link>
+                <Link href={`/farmer/${p.author_id}`} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
+                {p.author_verified && <span className="text-sky-500 text-xs">✅</span>}
+                <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>
+              </div>
+              <Link href="/feed" className="block text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{p.content}</Link>
+              {p.image_url && (
+                <Link href="/feed">
+                  <img src={p.image_url} alt="" className="mt-2 w-full h-40 object-cover rounded-xl" />
+                </Link>
+              )}              <p className="text-[10px] text-gray-500 mt-2">❤️ {p.likes} · 💬 {p.comments} · 👁️ {p.views_count}</p>
+            </div>
+          ))}
+          {(hot.data || []).length === 0 && <p className="text-sm text-gray-500">No posts yet — be the first on the For You board!</p>}
+        </div>
       </div>
 
       {/* TIP OF THE DAY */}
@@ -145,7 +179,8 @@ export default async function HomePage() {
                 <p className="text-[10px] text-gray-500 mt-1">{b.category} · 👁️ {b.views_count || 0}</p>
               </div>
             </Link>
-          ))}        </div>
+          ))}
+        </div>
       </div>
 
       {/* TRENDING TRIBES */}
@@ -159,8 +194,7 @@ export default async function HomePage() {
             <Link key={t.slug} href={`/communities/${t.slug}`} className="glass-card p-3 rounded-2xl w-36 flex-shrink-0 text-center">
               {t.image_url ? (
                 <img src={t.image_url} alt={t.name} className="w-full h-20 object-cover rounded-xl mb-2" />
-              ) : (
-                <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
+              ) : (                <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
               )}
               <p className="font-bold text-xs line-clamp-1">{t.name}</p>
               <p className="text-[10px] text-gray-500">👥 {t.member_count || 0}</p>
@@ -194,21 +228,21 @@ export default async function HomePage() {
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🏆 Top Farmers</h2>
-          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>        </div>
+          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
+        </div>
         <div className="glass-card p-4 rounded-2xl space-y-2">
           {(leaders.data || []).slice(0, 3).map((u: any, i: number) => (
-            <div key={i} className="flex items-center gap-3">
+            <Link key={i} href={`/farmer/${u.id}`} className="flex items-center gap-3">
               <span className="text-lg">{["🥇", "", ""][i]}</span>
               <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">
                 {(u.full_name || "?")[0]}
               </div>
               <p className="flex-1 font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
               <span className="text-xs font-bold text-amber-600">{u.points} pts</span>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
-
       {/* EBOOK TEASER */}
       {(ebooks.data || []).length > 0 && (
         <div className="px-4 mt-8">
