@@ -49,7 +49,7 @@ export default function FarmerPage(props: any) {
     ]);
     setFollowers(fc || 0);    setFollowingCount(gc || 0);
     setIFollow(!!mine);
-    const [po, vi, li, re] = await Promise.all([
+    const [{ data: po }, { data: vi }, { data: li }, { data: re }] = await Promise.all([
       supabase.from("feed_posts").select("*, ad:ad_campaigns(*)").eq("author_id", id).order("created_at", { ascending: false }).limit(20),
       supabase.from("videos").select("*").eq("author_id", id).order("created_at", { ascending: false }).limit(12),
       supabase.from("livestock_listings").select("*").eq("seller_id", id).eq("status", "active").limit(6),
