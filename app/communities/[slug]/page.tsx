@@ -9,6 +9,7 @@ export default function TribePage(props: any) {
   const [tribe, setTribe] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
   const [member, setMember] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [posts, setPosts] = useState<any[]>([]);
   const [replies, setReplies] = useState<any[]>([]);
   const [trainings, setTrainings] = useState<any[]>([]);
@@ -21,9 +22,11 @@ export default function TribePage(props: any) {
   const [tDur, setTDur] = useState(15);
   const [tRec, setTRec] = useState(true);
   const [room, setRoom] = useState<any>(null);
+  const [notice, setNotice] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  const isMaster = member?.role === "master" || member?.role === "admin";
+  const isMaster = member?.role === "master" || profile?.role === "admin";
+  const canHost = profile?.role === "admin" || member?.role === "master" || profile?.can_host_training;
 
   async function load() {
     const supabase = createClient();
@@ -31,23 +34,27 @@ export default function TribePage(props: any) {
     setTribe(t);
     const { data: { user: u } } = await supabase.auth.getUser();
     setUser(u);
-    if (u && t) {
-      const { data: m } = await supabase.from("tribe_members").select("*").eq("tribe_id", t.id).eq("user_id", u.id).single();
-      setMember(m);
+    if (u) {
+      const { data: pr } = await supabase.from("profiles").select("role, can_host_training, trainer_requested").eq("id", u.id).single();
+      setProfile(pr);
+      if (t) {
+        const { data: m } = await supabase.from("tribe_members").select("*").eq("tribe_id", t.id).eq("user_id", u.id).single();
+        setMember(m);
+      }
     }
     if (t) {
       const { data: p } = await supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url, role)").eq("tribe_id", t.id).is("parent_id", null).order("created_at", { ascending: false }).limit(30);
       const { data: r } = await supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url)").eq("tribe_id", t.id).not("parent_id", "is", null).order("created_at", { ascending: true });
       const { data: tr } = await supabase.from("tribe_trainings").select("*, profiles(full_name)").eq("tribe_id", t.id).order("created_at", { ascending: false }).limit(10);
       setPosts(p || []);
-      setReplies(r || []);
-      setTrainings(tr || []);
+      setReplies(r || []);      setTrainings(tr || []);
     }
     setLoaded(true);
   }
 
   useEffect(() => {
-    load();  }, [slug]);
+    load();
+  }, [slug]);
 
   async function join() {
     const supabase = createClient();
@@ -89,20 +96,38 @@ export default function TribePage(props: any) {
     const supabase = createClient();
     await supabase.from("tribe_posts").insert({ tribe_id: tribe.id, author_id: user.id, content: text, parent_id: postId });
     setReplyText({ ...replyText, [postId]: "" });
-    load();
-  }
+    load();  }
 
   async function deletePost(id: string) {
     if (!confirm("Delete this post?")) return;
     const supabase = createClient();
     await supabase.from("tribe_posts").delete().eq("id", id);
-    load();  }
+    load();
+  }
 
   async function kick(userId: string) {
     if (!confirm("Remove this member from the tribe?")) return;
     const supabase = createClient();
     await supabase.from("tribe_members").delete().eq("tribe_id", tribe.id).eq("user_id", userId);
     load();
+  }
+
+  async function requestTrainer() {
+    setNotice("");
+    if (!user) return setNotice("Log in first to request trainer access. 🔓");
+    if (profile?.trainer_requested) return setNotice("⏳ Your request is pending — admin will approve soon!");
+    const supabase = createClient();
+    await supabase.from("profiles").update({ trainer_requested: true }).eq("id", user.id);
+    setNotice("✅ Request sent! Admin will approve you in /admin/trainers.");
+    load();
+  }
+
+  function onStartClick() {
+    if (canHost) {
+      setShowStart(true);
+    } else {
+      requestTrainer();
+    }
   }
 
   async function startTraining(e: any) {
@@ -120,7 +145,6 @@ export default function TribePage(props: any) {
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   if (!tribe) return <p className="text-center text-gray-500 py-10">Tribe not found.</p>;
-
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       {room && (
@@ -146,12 +170,19 @@ export default function TribePage(props: any) {
         </div>
         {tribe.description && <p className="text-sm text-gray-600 mt-3">{tribe.description}</p>}
       </div>
-      {/* LIVE TRAINING */}
-      {isMaster && !showStart && (
-        <button onClick={() => setShowStart(true)} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-2xl font-bold mb-3">
-          🎙️ Start Live Training
+
+      {/* START TRAINING — visible to EVERYONE, works only for approved hosts */}
+      {!showStart && (
+        <button
+          onClick={onStartClick}
+          className={`w-full py-3 rounded-2xl font-bold mb-3 ${canHost ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white" : "bg-purple-100 text-purple-700 border-2 border-purple-300"}`}
+        >
+          🎙️ Start Live Training {canHost ? "" : profile?.trainer_requested ? "· ⏳ pending approval" : "· 🔒 tap to request access"}
         </button>
       )}
+
+      {notice && <p className="text-sm text-center text-purple-700 mb-3">{notice}</p>}
+
       {showStart && (
         <form onSubmit={startTraining} className="glass-card p-4 rounded-2xl mb-4 space-y-3 border-2 border-purple-300">
           <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" placeholder="Training title (e.g. Rabbit Mite Treatment)" value={tTitle} onChange={(e) => setTTitle(e.target.value)} />
@@ -163,8 +194,7 @@ export default function TribePage(props: any) {
               ))}
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm font-semibold">
-            <input type="checkbox" checked={tRec} onChange={(e) => setTRec(e.target.checked)} /> 🔴 Record & save as MP3 to tribe library
+          <label className="flex items-center gap-2 text-sm font-semibold">            <input type="checkbox" checked={tRec} onChange={(e) => setTRec(e.target.checked)} /> 🔴 Record & save as MP3 to tribe library
           </label>
           <div className="flex gap-2">
             <button className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-bold">🔴 Go LIVE</button>
@@ -175,7 +205,7 @@ export default function TribePage(props: any) {
 
       {liveTraining && !room && (
         <button onClick={() => setRoom({ ...liveTraining, isHost: liveTraining.started_by === user?.id })} className="w-full bg-red-600 text-white py-3 rounded-2xl font-bold mb-3 animate-pulse">
-          🔴 LIVE NOW: {liveTraining.title} — TAP TO JOIN
+          🔴 LIVE NOW: {liveTraining.title} — TAP TO JOIN & LISTEN
         </button>
       )}
 
@@ -194,6 +224,7 @@ export default function TribePage(props: any) {
           </div>
         </div>
       )}
+
       {/* POSTS */}
       {member && !member.is_banned && (
         <form onSubmit={addPost} className="glass-card p-4 rounded-2xl mb-4">
@@ -212,8 +243,7 @@ export default function TribePage(props: any) {
           return (
             <div key={p.id} className="glass-card p-4 rounded-2xl">
               <div className="flex items-center gap-2 mb-2">
-                {p.profiles?.avatar_url ? (
-                  <img src={p.profiles.avatar_url} className="w-9 h-9 rounded-full object-cover" alt="" />
+                {p.profiles?.avatar_url ? (                  <img src={p.profiles.avatar_url} className="w-9 h-9 rounded-full object-cover" alt="" />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{p.profiles?.full_name?.[0] || "?"}</div>
                 )}
@@ -243,7 +273,8 @@ export default function TribePage(props: any) {
                       <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Reply..." value={replyText[p.id] || ""} onChange={(e) => setReplyText({ ...replyText, [p.id]: e.target.value })} />
                       <button onClick={() => addReply(p.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
                     </div>
-                  )}                </div>
+                  )}
+                </div>
               )}
             </div>
           );
