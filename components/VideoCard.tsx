@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AdBar from "@/components/AdBar";
 import AdBanner from "@/components/AdBanner";
@@ -46,8 +47,8 @@ export default function VideoCard({ video }: { video: any }) {
   async function toggleVLike() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("Log in to like videos.");
-    if (myVLike) {      await supabase.from("video_likes").delete().eq("video_id", video.id).eq("user_id", user.id);
+    if (!user) return alert("Log in to like videos.");    if (myVLike) {
+      await supabase.from("video_likes").delete().eq("video_id", video.id).eq("user_id", user.id);
       setVLikes(vLikes - 1);
       setMyVLike(false);
     } else {
@@ -95,8 +96,8 @@ export default function VideoCard({ video }: { video: any }) {
 
   return (
     <div className="rounded-2xl overflow-hidden border-2 border-forest-600 shadow-lg bg-white">
-      <div className="bg-forest-700 text-white px-3 py-2 flex items-center gap-2">
-        <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-sm">🌾</span>        <p className="text-xs font-extrabold tracking-wide">FARMING TECH & BUSINESS</p>
+      <div className="bg-forest-700 text-white px-3 py-2 flex items-center gap-2">        <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-sm">🌾</span>
+        <p className="text-xs font-extrabold tracking-wide">FARMING TECH & BUSINESS</p>
         <span className="ml-auto text-[9px] bg-amber-400 text-forest-900 px-2 py-0.5 rounded-full font-bold uppercase">{portrait ? "📱 REEL" : video.category || "Video"}</span>
       </div>
 
@@ -126,12 +127,16 @@ export default function VideoCard({ video }: { video: any }) {
 
       <div className="p-3 bg-forest-50">
         <div className="flex items-center gap-2 mb-1">
-          {video.profiles?.avatar_url ? (
-            <img src={video.profiles.avatar_url} className="w-6 h-6 rounded-full object-cover" alt="" />
-          ) : (
-            <div className="w-6 h-6 rounded-full bg-green-200 flex items-center justify-center text-[10px] font-bold text-green-800">{video.profiles?.full_name?.[0] || "?"}</div>
-          )}
-          <p className="text-xs font-bold text-forest-800">{video.profiles?.full_name || "Farmer"} {video.profiles?.verified && "✅"}</p>
+          <Link href={`/farmer/${video.author_id}`}>
+            {video.profiles?.avatar_url ? (
+              <img src={video.profiles.avatar_url} className="w-6 h-6 rounded-full object-cover" alt="" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-green-200 flex items-center justify-center text-[10px] font-bold text-green-800">{video.profiles?.full_name?.[0] || "?"}</div>
+            )}
+          </Link>
+          <p className="text-xs font-bold text-forest-800">
+            <Link href={`/farmer/${video.author_id}`} className="hover:underline">{video.profiles?.full_name || "Farmer"}</Link> {video.profiles?.verified && "✅"}
+          </p>
         </div>
         {video.title && <h3 className="font-bold text-sm text-forest-900">{video.title}</h3>}
         {video.description && <p className="text-xs text-gray-600 mt-1">{video.description}</p>}
@@ -140,12 +145,12 @@ export default function VideoCard({ video }: { video: any }) {
             {video.tags.split(",").map((t: string, i: number) => (
               <span key={i} className="text-[9px] font-bold text-forest-700 bg-forest-100 px-2 py-0.5 rounded-full">#{t.trim()}</span>
             ))}
-          </div>
-        )}
+          </div>        )}
 
         <div className="flex items-center gap-3 mt-3 pt-2 border-t border-forest-100 text-xs font-bold text-gray-600">
           <button onClick={toggleVLike} className={myVLike ? "text-red-600" : ""}>❤️ {vLikes}</button>
-          <button onClick={() => setOpenC(!openC)} className="text-green-700">💬 {vComments.length}</button>          <span className="ml-auto text-[9px] text-gray-400">Share:</span>
+          <button onClick={() => setOpenC(!openC)} className="text-green-700">💬 {vComments.length}</button>
+          <span className="ml-auto text-[9px] text-gray-400">Share:</span>
           <button onClick={() => shareTo("wa")} title="WhatsApp">📤</button>
           <button onClick={() => shareTo("status")} title="WhatsApp Status">🟢</button>
           <button onClick={() => shareTo("fb")} title="Facebook">f</button>
@@ -165,7 +170,12 @@ export default function VideoCard({ video }: { video: any }) {
             ))}
             {vComments.length === 0 && <p className="text-[10px] text-gray-400 text-center">No comments yet — start the discussion!</p>}
             <div className="flex gap-2">
-              <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Share your opinion or paste a link (+3 pts)..." value={cText} onChange={(ev) => setCText(ev.target.value)} />
+              <input
+                className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs"
+                placeholder="Share your opinion or paste a link (+3 pts)..."
+                value={cText}
+                onChange={(ev) => setCText(ev.target.value)}
+              />
               <button onClick={addComment} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
             </div>
           </div>
