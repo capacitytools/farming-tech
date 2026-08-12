@@ -13,7 +13,7 @@ function toSec(v: string) {
   return 0;
 }
 
-export default function VideoComposer({ context, tribeId, onDone }: { context: string; tribeId?: string; onDone: () => void }) {
+export default function VideoComposer({ context, tribeId, onDone, initialAspect }: { context: string; tribeId?: string; onDone: () => void; initialAspect?: string }) {
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -21,7 +21,7 @@ export default function VideoComposer({ context, tribeId, onDone }: { context: s
   const [category, setCategory] = useState("Animal");
   const [start, setStart] = useState("");
   const [end, setEnd] = useState("");
-  const [aspect, setAspect] = useState("landscape");
+  const [aspect, setAspect] = useState(initialAspect || "landscape");
   const [msg, setMsg] = useState("");
 
   function ytId(u: string) {
@@ -59,7 +59,7 @@ export default function VideoComposer({ context, tribeId, onDone }: { context: s
           <button type="button" onClick={() => setAspect("landscape")} className={`flex-1 py-2 rounded-xl text-xs font-bold ${aspect === "landscape" ? "bg-forest-600 text-white" : "bg-gray-200"}`}>📺 16:9 Normal</button>
           <button type="button" onClick={() => setAspect("portrait")} className={`flex-1 py-2 rounded-xl text-xs font-bold ${aspect === "portrait" ? "bg-purple-600 text-white" : "bg-gray-200"}`}>📱 9:16 Reel</button>
         </div>
-        <p className="text-[9px] text-gray-400 mt-1">{aspect === "portrait" ? "Reels appear in the vertical Reels feed (use a YouTube Shorts link for best look)." : "Normal videos play wide in the Timeline."}</p>
+        <p className="text-[9px] text-gray-400 mt-1">{aspect === "portrait" ? "Reels appear in the vertical Reels / Videos feed (use a YouTube Shorts link for best look)." : "Normal videos play wide in the Timeline."}</p>
       </div>
 
       <input className={input} placeholder="Video title" value={title} onChange={(e) => setTitle(e.target.value)} />
