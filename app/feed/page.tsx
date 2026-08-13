@@ -8,6 +8,17 @@ import VideoComposer from "@/components/VideoComposer";
 import AdBar from "@/components/AdBar";
 import AdBanner from "@/components/AdBanner";
 
+function renderText(text: string) {
+  const parts = (text || "").split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((p, i) =>
+    p.match(/^https?:\/\//) ? (
+      <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{p}</a>
+    ) : (
+      <span key={i}>{p}</span>
+    )
+  );
+}
+
 export default function FeedPage() {
   const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState("foryou");
@@ -36,18 +47,17 @@ export default function FeedPage() {
       setFollowingIds(fIds);
     }
 
-    const [ranked, l, c, v] = await Promise.all([
-      supabase.rpc("ranked_feed", { uid: u?.id || null }),
+    const [ranked, l, c, v] = await Promise.all([      supabase.rpc("ranked_feed", { uid: u?.id || null }),
       supabase.from("feed_likes").select("post_id, user_id"),
       supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true }),
       supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role, referral_code)").eq("context", "feed").order("created_at", { ascending: false }).limit(10),
     ]);
 
-    // OPTIMIZED view counter: counts each post ONCE per visitor per session (saves ~90% of API calls)
     (ranked.data || []).slice(0, 10).forEach((post: any) => {
       const key = "viewed-" + post.id;
       if (!sessionStorage.getItem(key)) {
-        sessionStorage.setItem(key, "1");        supabase.rpc("bump_feed_views", { pid: post.id });
+        sessionStorage.setItem(key, "1");
+        supabase.rpc("bump_feed_views", { pid: post.id });
       }
     });
 
@@ -86,8 +96,7 @@ export default function FeedPage() {
     e.preventDefault();
     if (!content.trim() || !user) return;
     setBusy(true);
-    const supabase = createClient();
-    await supabase.from("feed_posts").insert({ author_id: user.id, content: content.trim(), image_url: image || null });
+    const supabase = createClient();    await supabase.from("feed_posts").insert({ author_id: user.id, content: content.trim(), image_url: image || null });
     setContent("");
     setImage("");
     await load();
@@ -96,7 +105,8 @@ export default function FeedPage() {
 
   async function toggleLike(postId: string) {
     if (!user) return;
-    const supabase = createClient();    const mine = likes.find((l) => l.post_id === postId && l.user_id === user.id);
+    const supabase = createClient();
+    const mine = likes.find((l) => l.post_id === postId && l.user_id === user.id);
     if (mine) await supabase.from("feed_likes").delete().eq("id", mine.id);
     else await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id });
     const { data: l } = await supabase.from("feed_likes").select("post_id, user_id");
@@ -135,8 +145,7 @@ export default function FeedPage() {
     const links: any = {
       wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
-      x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
-      pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
+      x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,      pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
     };
     if (network === "copy") navigator.clipboard.writeText(url);
     else if (network === "status") {
@@ -146,6 +155,7 @@ export default function FeedPage() {
   }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
+
   const timeline: any[] = [];
   let vi = 0;
   posts.forEach((p, i) => {
@@ -166,7 +176,7 @@ export default function FeedPage() {
       {user && (
         <div className="mb-5 space-y-3">
           <form onSubmit={publish} className="glass-card p-4 rounded-2xl">
-            <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today?" value={content} onChange={(e) => setContent(e.target.value)} />
+            <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today? Paste links — they become clickable!" value={content} onChange={(e) => setContent(e.target.value)} />
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
               <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
@@ -184,7 +194,6 @@ export default function FeedPage() {
           )}
         </div>
       )}
-
       <div className="space-y-4">
         {timeline.map((item: any, idx: number) => (
           <div key={`${item.kind}-${item.id}`}>
@@ -194,7 +203,8 @@ export default function FeedPage() {
                 {(user?.id === item.author_id || user?.role === "admin") && (
                   <button onClick={() => deleteVideo(item.id)} className="text-red-500 text-xs font-semibold mt-1">Delete video</button>
                 )}
-              </div>            ) : (
+              </div>
+            ) : (
               <div className="glass-card p-4 rounded-2xl">
                 <div className="flex items-center gap-2 mb-2">
                   <Link href={`/farmer/${item.author_id}`}>
@@ -216,7 +226,7 @@ export default function FeedPage() {
                   )}
                 </div>
 
-                <p className="text-sm text-gray-800 whitespace-pre-line">{item.content}</p>
+                <p className="text-sm text-gray-800 whitespace-pre-line">{renderText(item.content)}</p>
                 {item.image_url && <img src={item.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
 
                 {item.ad && (
@@ -233,8 +243,7 @@ export default function FeedPage() {
                     <>
                       <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600 flex-wrap">
                         <button onClick={() => toggleLike(item.id)} className={myLike ? "text-red-600" : ""}>❤️ {postLikes.length}</button>
-                        <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="text-green-700">💬 {postComments.length}</button>
-                        <button onClick={() => share(item, "wa")} className="ml-auto" title="WhatsApp">📤</button>
+                        <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="text-green-700">💬 {postComments.length}</button>                        <button onClick={() => share(item, "wa")} className="ml-auto" title="WhatsApp">📤</button>
                         <button onClick={() => share(item, "status")} title="WhatsApp Status (copies caption)">🟢</button>
                         <button onClick={() => share(item, "fb")} title="Facebook">f</button>
                         <button onClick={() => share(item, "x")} title="X / Twitter">𝕏</button>
@@ -243,9 +252,10 @@ export default function FeedPage() {
                       </div>
                       {openC === item.id && (
                         <div className="mt-3 space-y-2">
-                          <AdBanner type="native" />                          {postComments.map((c) => (
+                          <AdBanner type="native" />
+                          {postComments.map((c) => (
                             <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
-                              <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {c.content}
+                              <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {renderText(c.content)}
                             </div>
                           ))}
                           {user && (
