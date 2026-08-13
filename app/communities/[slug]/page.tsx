@@ -42,7 +42,7 @@ export default function TribePage(props: any) {
     }
     const gated = t.verified_only && !mem && !(pr?.verified) && pr?.role !== "admin";
     if (!gated) {
-      const [po, vi, tr] = await Promise.all([
+      const [{ data: po }, { data: vi }, { data: tr }] = await Promise.all([
         supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url, role), replies:tribe_posts!tribe_posts_parent_id_fkey(*, profiles(full_name))").eq("tribe_id", t.id).is("parent_id", null).order("created_at", { ascending: false }).limit(30),
         supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, referral_code)").eq("context", "tribe").eq("tribe_id", t.id).order("created_at", { ascending: false }).limit(10),
         supabase.from("tribe_trainings").select("*").eq("tribe_id", t.id).order("created_at", { ascending: false }).limit(10),
@@ -246,7 +246,7 @@ export default function TribePage(props: any) {
                 {canHost && !live && (                  <button onClick={startTraining} className="w-full bg-red-600 text-white py-3 rounded-xl text-sm font-bold">🔴 Start Live Training (records MP3)</button>
                 )}
                 {live && <TrainingRoom training={live} onDone={load} />}
-                <h3 className="font-bold pt-2"> Training Library</h3>
+                <h3 className="font-bold pt-2">🎧 Training Library</h3>
                 {trainings.filter((t) => t.audio_url).map((t) => (
                   <div key={t.id} className="glass-card p-3 rounded-2xl">
                     <p className="text-xs font-bold">🎙️ {tribe.name} Training · {new Date(t.created_at).toLocaleDateString()}</p>
