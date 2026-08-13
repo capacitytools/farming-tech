@@ -362,7 +362,27 @@ export default function HomeExperience({ d }: { d: any }) {
                 {b.cover_url ? (
                   <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
                 ) : (
-                  <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
+                <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
                 )}
                 <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
-                <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number
+                <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number(b.price).toLocaleString()}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* INSTALL CTA */}
+      <div className="p-4 mt-8">
+        <div className="bg-gradient-to-r from-green-600 to-forest-700 text-white p-5 rounded-2xl text-center">
+          <p className="text-lg font-bold mb-1">📲 Take us everywhere</p>
+          <p className="text-xs text-green-100 mb-3">Install Farming Tech & Business on your phone — works like a real app, even offline.</p>
+          <p className="text-[10px] text-green-200">Menu (⋮) → "Add to Home screen" / "Install app"</p>
+        </div>
+      </div>
+
+      <SpinWheel userId={d.user ? d.user.id : null} />
+      <HelperBubble />
+    </div>
+  );
+}
