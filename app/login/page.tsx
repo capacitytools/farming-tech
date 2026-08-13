@@ -1,17 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [location, setLocation] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const router = useRouter();
@@ -21,82 +17,88 @@ export default function LoginPage() {
     if (ref) localStorage.setItem("refCode", ref);
   }, []);
 
-  async function submit(e: any) {
+  async function login(e: any) {
     e.preventDefault();
     setBusy(true);
     setMsg("");
     const supabase = createClient();
-
-    if (mode === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setMsg(error.message);
-      else router.push("/");
-    } else {
-      const ref = localStorage.getItem("refCode") || new URLSearchParams(window.location.search).get("ref");
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
-      });
-      if (error) {
-        setMsg(error.message);
-      } else {
-        const uid = data.user?.id;
-        if (uid) {
-          const code = "FT" + uid.replace(/-/g, "").slice(0, 6).toUpperCase();
-          const { data: existing } = await supabase.from("profiles").select("referral_code").eq("id", uid).single();
-          await supabase.from("profiles").upsert(
-            {
-              id: uid,              full_name: fullName,
-              phone: phone || null,
-              whatsapp: whatsapp || null,
-              location: location || null,
-              referral_code: existing?.referral_code || code,
-              referred_by: ref || null,
-            },
-            { onConflict: "id" }
-          );
-        }
-        localStorage.removeItem("refCode");
-        setMsg("Account created! Now log in. 🎉");
-        setMode("login");
-      }
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setMsg("Login failed: " + error.message);
+    else router.push("/feed");
     setBusy(false);
   }
 
-  const input = "w-full p-3 rounded-xl border border-gray-200 bg-white/70";
+  async function google() {
+    setMsg("");
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + "/feed" },
+    });
+    if (error) setMsg("Google login not ready yet: " + error.message + " — use email below, or ask admin to enable Google in Supabase → Authentication → Providers.");
+  }
 
   return (
     <div className="p-4 pb-24 max-w-md mx-auto">
-      <div className="text-center mb-6 mt-4">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-forest-600 flex items-center justify-center text-3xl mb-3">🌾</div>
-        <h1 className="text-2xl font-extrabold">Farming Tech & Business</h1>
-        <p className="text-sm text-gray-500">Farm smarter. Sell faster. Grow together.</p>
+      <div className="text-center mt-8 mb-8">
+        <div className="w-16 h-16 rounded-2xl bg-forest-600 flex items-center justify-center mx-auto mb-3">
+          <span className="text-3xl">🌾</span>
+        </div>
+        <h1 className="text-2xl font-extrabold text-forest-900">Welcome back!</h1>
+        <p className="text-sm text-gray-500 mt-1">Join · Learn · Grow · Connect · Earn</p>
       </div>
+      <div className="glass-card p-5 rounded-2xl space-y-4">
+        {/* GOOGLE ONE-TAP */}
+        <button
+          type="button"
+          onClick={google}
+          className="w-full bg-white border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:scale-[0.98]"
+        >
+          <span className="font-extrabold text-blue-600">G</span> Continue with Google
+        </button>
 
-      <div className="glass-card p-5 rounded-2xl">
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <button onClick={() => setMode("login")} className={`py-2 rounded-xl font-bold text-sm ${mode === "login" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}>Log In</button>
-          <button onClick={() => setMode("signup")} className={`py-2 rounded-xl font-bold text-sm ${mode === "signup" ? "bg-green-600 text-white" : "bg-gray-200 text-gray-600"}`}>Sign Up</button>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-gray-200" />
+          <p className="text-[10px] text-gray-400 font-bold">OR USE EMAIL</p>
+          <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        <form onSubmit={submit} className="space-y-3">
-          {mode === "signup" && (
-            <>
-              <input className={input} placeholder="Full name *" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              <input className={input} placeholder="Phone (e.g. 0803...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <input className={input} placeholder="WhatsApp number (with country code)" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} />
-              <input className={input} placeholder="Location (town, state)" value={location} onChange={(e) => setLocation(e.target.value)} />
-            </>
-          )}
-          <input className={input} type="email" placeholder="Email *" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input className={input} type="password" placeholder="Password *" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
-          {msg && <p className="text-sm text-center text-green-700">{msg}</p>}
+        <form onSubmit={login} className="space-y-3">
+          <input
+            className="w-full p-3 rounded-xl border border-gray-200 bg-white/70"
+            type="email"
+            placeholder="Email address"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="w-full p-3 rounded-xl border border-gray-200 bg-white/70"
+            type="password"
+            placeholder="Password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {msg && <p className="text-xs text-red-600 text-center">{msg}</p>}
           <button className="w-full bg-green-600 text-white py-3 rounded-xl font-bold disabled:opacity-50" disabled={busy}>
-            {busy ? "Please wait..." : mode === "login" ? "🔓 Log In" : "🌱 Create My Account"}
+            {busy ? "Logging in..." : "🔓 Log In"}
           </button>
-        </form>      </div>
+        </form>
+
+        <p className="text-center text-sm text-gray-600">
+          New here?{" "}
+          <Link href="/register" className="font-bold text-green-700 underline">
+            Create FREE account 🎁
+          </Link>
+        </p>
+        <p className="text-center text-[10px] text-gray-400">
+          Forgot password? Use "Reset password" on the register page or contact admin on WhatsApp.
+        </p>
+      </div>
+      <div className="bg-gradient-to-r from-green-600 to-forest-700 text-white p-4 rounded-2xl text-center mt-6">
+        <p className="text-xs font-bold">💵 Remember: every like, post, comment & minute here earns you points → monthly money!</p>
+      </div>
     </div>
   );
 }
