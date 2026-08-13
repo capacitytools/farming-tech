@@ -7,6 +7,17 @@ import VideoCard from "@/components/VideoCard";
 import VideoComposer from "@/components/VideoComposer";
 import TrainingRoom from "@/components/TrainingRoom";
 
+function renderText(text: string) {
+  const parts = (text || "").split(/(https?:\/\/[^\s]+)/g);
+  return parts.map((p, i) =>
+    p.match(/^https?:\/\//) ? (
+      <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{p}</a>
+    ) : (
+      <span key={i}>{p}</span>
+    )
+  );
+}
+
 export default function TribePage(props: any) {
   const slug = props.params.slug;
   const [user, setUser] = useState<any>(null);
@@ -36,18 +47,24 @@ export default function TribePage(props: any) {
       const [{ data: p }, { data: m }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", u.id).single(),
         supabase.from("tribe_members").select("*").eq("user_id", u.id).eq("tribe_id", t.id).single(),
-      ]);
-      pr = p; mem = m;
+      ]);      pr = p; mem = m;
       setProfile(p); setMember(m);
     }
     const gated = t.verified_only && !mem && !(pr?.verified) && pr?.role !== "admin";
     if (!gated) {
       const [{ data: po }, { data: vi }, { data: tr }] = await Promise.all([
-        supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url, role), replies:tribe_posts!tribe_posts_parent_id_fkey(*, profiles(full_name))").eq("tribe_id", t.id).is("parent_id", null).order("created_at", { ascending: false }).limit(30),
+        supabase.from("tribe_posts").select("*, profiles(full_name, avatar_url, role)").eq("tribe_id", t.id).is("parent_id", null).order("created_at", { ascending: false }).limit(30),
         supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, referral_code)").eq("context", "tribe").eq("tribe_id", t.id).order("created_at", { ascending: false }).limit(10),
         supabase.from("tribe_trainings").select("*").eq("tribe_id", t.id).order("created_at", { ascending: false }).limit(10),
       ]);
-      setPosts(po || []);      setVideos(vi || []);
+      let withReplies = po || [];
+      if (po && po.length) {
+        const ids = po.map((p: any) => p.id);
+        const { data: rp } = await supabase.from("tribe_posts").select("*, profiles(full_name)").in("parent_id", ids).order("created_at", { ascending: true });
+        withReplies = po.map((p: any) => ({ ...p, replies: (rp || []).filter((r: any) => r.parent_id === p.id) }));
+      }
+      setPosts(withReplies);
+      setVideos(vi || []);
       setTrainings(tr || []);
     }
     setLoaded(true);
@@ -79,8 +96,7 @@ export default function TribePage(props: any) {
     const ext = file.name.split(".").pop() || "jpg";
     const path = `tribe-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("blog-images").upload(path, file);
-    if (!error) setImage(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
-  }
+    if (!error) setImage(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);  }
 
   async function publish(e: any) {
     e.preventDefault();
@@ -96,7 +112,8 @@ export default function TribePage(props: any) {
     const supabase = createClient();
     await supabase.from("tribe_posts").insert({ tribe_id: tribe.id, author_id: user.id, content: replyText.trim(), parent_id: postId });
     setReplyText(""); setReplyFor("");
-    load();  }
+    load();
+  }
 
   async function deletePost(id: string) {
     if (!confirm("Delete?")) return;
@@ -128,8 +145,8 @@ export default function TribePage(props: any) {
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   if (!tribe) return <p className="text-center text-gray-500 py-10">Tribe not found.</p>;
-
   const gated = tribe.verified_only && !member && !(profile?.verified) && profile?.role !== "admin";
+  const canPost = user && (member || profile?.role === "admin");
   const canHost = profile?.role === "admin" || profile?.can_host_training || member?.role === "master";
   const live = trainings.find((t) => t.status === "live");
   const tabBtn = (t: string, label: string) => (
@@ -138,20 +155,21 @@ export default function TribePage(props: any) {
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
-      {/* TRIBE HEADER */}
       <div className="h-24 bg-gradient-to-r from-forest-700 to-green-500" />
       <div className="px-4">
         <div className="flex items-end justify-between -mt-8">
           <div className="w-16 h-16 rounded-2xl bg-white shadow-lg flex items-center justify-center text-3xl border-4 border-white">
             {tribe.image_url ? <img src={tribe.image_url} className="w-full h-full object-cover rounded-xl" alt="" /> : tribe.icon || "🌾"}
           </div>
-          {user && (member ? (            <button onClick={leave} className="px-4 py-2 rounded-full text-sm font-bold bg-gray-200 text-gray-700">Joined ✓</button>
+          {user && (member ? (
+            <button onClick={leave} className="px-4 py-2 rounded-full text-sm font-bold bg-gray-200 text-gray-700">Joined ✓</button>
           ) : (
             <button onClick={join} className="px-4 py-2 rounded-full text-sm font-bold bg-green-600 text-white">+ Join Tribe</button>
           ))}
         </div>
         <h1 className="text-xl font-extrabold mt-2">{tribe.name} {tribe.verified_only && "🔒"}</h1>
         <p className="text-xs text-gray-500">👥 {tribe.member_count || 0} members · {tribe.verified_only ? "Verified members only" : "Open to all farmers"}</p>
+        {tribe.description && <p className="text-xs text-gray-600 mt-1">{tribe.description}</p>}
       </div>
 
       {gated ? (
@@ -165,7 +183,6 @@ export default function TribePage(props: any) {
         </div>
       ) : (
         <>
-          {/* TABS */}
           <div className="flex mt-4 border-b border-gray-200 px-2 bg-white/60 sticky top-14 z-30">
             {tabBtn("posts", "💬 Posts")}
             {tabBtn("videos", "🎬 Videos")}
@@ -173,13 +190,11 @@ export default function TribePage(props: any) {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* POSTS TAB */}
             {tab === "posts" && (
               <>
-                {user && member && (
+                {canPost && (
                   <form onSubmit={publish} className="glass-card p-3 rounded-2xl">
-                    <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={2} placeholder={`Share with ${tribe.name}...`} value={content} onChange={(e) => setContent(e.target.value)} />
-                    <div className="flex items-center gap-3 mt-2">
+                    <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={2} placeholder={`Share with ${tribe.name}... links become clickable!`} value={content} onChange={(e) => setContent(e.target.value)} />                    <div className="flex items-center gap-3 mt-2">
                       <label className="text-xs font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
                       {image && <img src={image} alt="" className="h-8 w-8 object-cover rounded" />}
                       <button className="ml-auto bg-green-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold">Post (+15 pts)</button>
@@ -190,17 +205,18 @@ export default function TribePage(props: any) {
                   <div key={p.id} className="glass-card p-4 rounded-2xl">
                     <div className="flex items-center gap-2 mb-2">
                       {p.profiles?.avatar_url ? <img src={p.profiles.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" /> : <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{p.profiles?.full_name?.[0] || "?"}</div>}
-                      <p className="font-bold text-xs">{p.profiles?.full_name || "Farmer"} {p.profiles?.role === "admin" && "🛡️"} {member?.role === "master" && "🎖️"}</p>
+                      <p className="font-bold text-xs">{p.profiles?.full_name || "Farmer"} {p.profiles?.role === "admin" && "🛡️"}</p>
                       {(user?.id === p.author_id || profile?.role === "admin") && (
                         <button onClick={() => deletePost(p.id)} className="ml-auto text-red-500 text-[10px] font-bold">Delete</button>
                       )}
-                    </div>                    <p className="text-sm text-gray-800 whitespace-pre-line">{p.content}</p>
+                    </div>
+                    <p className="text-sm text-gray-800 whitespace-pre-line">{renderText(p.content)}</p>
                     {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full h-56 object-cover rounded-xl" />}
                     <button onClick={() => setReplyFor(replyFor === p.id ? "" : p.id)} className="text-xs font-bold text-green-700 mt-2">💬 Replies ({(p.replies || []).length})</button>
                     {replyFor === p.id && (
                       <div className="mt-2 space-y-2">
                         {(p.replies || []).map((r: any) => (
-                          <div key={r.id} className="bg-white/70 p-2 rounded-xl text-xs"><span className="font-bold">{r.profiles?.full_name}:</span> {r.content}</div>
+                          <div key={r.id} className="bg-white/70 p-2 rounded-xl text-xs"><span className="font-bold">{r.profiles?.full_name}:</span> {renderText(r.content)}</div>
                         ))}
                         {user && (
                           <div className="flex gap-2">
@@ -216,10 +232,9 @@ export default function TribePage(props: any) {
               </>
             )}
 
-            {/* VIDEOS TAB */}
             {tab === "videos" && (
               <>
-                {user && member && (
+                {canPost && (
                   <div>
                     <button onClick={() => setShowComposer(!showComposer)} className="w-full bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">🎬 Post YouTube Video / Reel to {tribe.name}</button>
                     {showComposer && <div className="mt-2"><VideoComposer context="tribe" tribeId={tribe.id} onDone={() => { setShowComposer(false); load(); }} /></div>}
@@ -228,8 +243,7 @@ export default function TribePage(props: any) {
                 {videos.map((v) => (
                   <div key={v.id}>
                     <VideoCard video={v} />
-                    <div className="flex gap-2 mt-1">
-                      <button onClick={() => shareToTimeline(v)} className="text-green-700 text-xs font-bold">📣 Share to Timeline</button>
+                    <div className="flex gap-2 mt-1">                      <button onClick={() => shareToTimeline(v)} className="text-green-700 text-xs font-bold">📣 Share to Timeline</button>
                       {(user?.id === v.author_id || profile?.role === "admin") && (
                         <button onClick={async () => { if (confirm("Delete?")) { const s = createClient(); await s.from("videos").delete().eq("id", v.id); load(); } }} className="text-red-500 text-xs font-bold">Delete</button>
                       )}
@@ -240,10 +254,10 @@ export default function TribePage(props: any) {
               </>
             )}
 
-            {/* TRAININGS TAB */}
             {tab === "trainings" && (
               <>
-                {canHost && !live && (                  <button onClick={startTraining} className="w-full bg-red-600 text-white py-3 rounded-xl text-sm font-bold">🔴 Start Live Training (records MP3)</button>
+                {canHost && !live && (
+                  <button onClick={startTraining} className="w-full bg-red-600 text-white py-3 rounded-xl text-sm font-bold">🔴 Start Live Training (records MP3)</button>
                 )}
                 {live && <TrainingRoom training={live} onDone={load} />}
                 <h3 className="font-bold pt-2">🎧 Training Library</h3>
