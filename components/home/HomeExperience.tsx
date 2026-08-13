@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import QuickScanWidget from "@/components/home/QuickScanWidget";
 import { currencySymbol } from "@/lib/currency";
+import SpinWheel from "@/components/home/SpinWheel";
+import EarnSim from "@/components/home/EarnSim";
+import Stories from "@/components/home/Stories";
+import HelperBubble from "@/components/home/HelperBubble";
 
 const TIPS = [
   "Give rabbits fresh water daily — a doe with kits drinks 2x more.",
@@ -44,10 +48,10 @@ export default function HomeExperience({ d }: { d: any }) {
     }, 1000);
     return () => clearInterval(t);
   }, []);
-
   useEffect(() => {
     if (demo !== "scan") return;
-    const t = setTimeout(() => setDemo("result"), 2200);    return () => clearTimeout(t);
+    const t = setTimeout(() => setDemo("result"), 2200);
+    return () => clearTimeout(t);
   }, [demo]);
 
   function pick(p: string) {
@@ -92,11 +96,11 @@ export default function HomeExperience({ d }: { d: any }) {
           </div>
         )}
         <div className="grid grid-cols-3 gap-2 text-center mt-5">
-          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.profileCount}</p><p className="text-[10px] text-forest-100">Farmers</p></div>
-          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.tribeCount}</p><p className="text-[10px] text-forest-100">Tribes</p></div>
+          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.profileCount}</p><p className="text-[10px] text-forest-100">Farmers</p></div>          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.tribeCount}</p><p className="text-[10px] text-forest-100">Tribes</p></div>
           <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.listingCount}</p><p className="text-[10px] text-forest-100">Live Listings</p></div>
         </div>
       </div>
+
       {/* LIVE ACTIVITY TICKER */}
       <div className="bg-black overflow-hidden py-2">
         <p className="ftb-marquee text-xs font-bold text-green-400 px-4">{tickerItems.join("   ···   ")}</p>
@@ -141,11 +145,11 @@ export default function HomeExperience({ d }: { d: any }) {
       </div>
 
       {/* QUICK ACTIONS */}
-      <div className="px-4 mt-2">
-        <div className="glass-card p-4 rounded-2xl shadow-lg grid grid-cols-4 gap-2 text-center">
+      <div className="px-4 mt-2">        <div className="glass-card p-4 rounded-2xl shadow-lg grid grid-cols-4 gap-2 text-center">
           <Link href="/scanner" className="bg-green-50 p-2 rounded-xl"><span className="text-2xl">🩺</span><p className="text-[10px] font-bold text-green-800">AI Doctor</p></Link>
           <Link href="/market" className="bg-amber-50 p-2 rounded-xl"><span className="text-2xl">🐄</span><p className="text-[10px] font-bold text-amber-800">Market</p></Link>
-          <Link href="/ebooks" className="bg-blue-50 p-2 rounded-xl"><span className="text-2xl">📚</span><p className="text-[10px] font-bold text-blue-800">E-books</p></Link>          <Link href="/leaderboard" className="bg-purple-50 p-2 rounded-xl"><span className="text-2xl">🏆</span><p className="text-[10px] font-bold text-purple-800">Top Farmers</p></Link>
+          <Link href="/ebooks" className="bg-blue-50 p-2 rounded-xl"><span className="text-2xl">📚</span><p className="text-[10px] font-bold text-blue-800">E-books</p></Link>
+          <Link href="/leaderboard" className="bg-purple-50 p-2 rounded-xl"><span className="text-2xl">🏆</span><p className="text-[10px] font-bold text-purple-800">Top Farmers</p></Link>
         </div>
       </div>
 
@@ -190,11 +194,11 @@ export default function HomeExperience({ d }: { d: any }) {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
           <span className="text-[10px] text-gray-500 font-semibold">🤖 smart-ranked</span>
-        </div>
-        <div className="space-y-3">
+        </div>        <div className="space-y-3">
           {hotVisible.map((p: any, i: number) => (
             <div key={p.id} className="glass-card p-3 rounded-2xl">
-              <div className="flex items-center gap-2 mb-1">                <Link href={"/farmer/" + p.author_id}>
+              <div className="flex items-center gap-2 mb-1">
+                <Link href={"/farmer/" + p.author_id}>
                   {p.author_avatar ? (
                     <img src={p.author_avatar} className="w-8 h-8 rounded-full object-cover" alt="" />
                   ) : (
@@ -239,11 +243,21 @@ export default function HomeExperience({ d }: { d: any }) {
       <div className="px-4 mt-6">
         <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">
           <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
-          <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">
-            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
+          <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
           </div>
           <p className="text-[10px] text-green-200 mt-1">left to earn points & claim your share · verified members get +10%</p>
-          <Link href="/wallet" className="inline-block bg-amber-400 text-forest-900 px-5 py-2 rounded-xl font-bold text-xs mt-2">See How It Works →</Link>        </div>
+          <Link href="/wallet" className="inline-block bg-amber-400 text-forest-900 px-5 py-2 rounded-xl font-bold text-xs mt-2">See How It Works →</Link>
+        </div>
+      </div>
+
+      {/* EARNINGS SIMULATOR */}
+      <div className="px-4 mt-6">
+        <EarnSim />
+      </div>
+
+      {/* TESTIMONIALS */}
+      <div className="px-4 mt-6">
+        <Stories />
       </div>
 
       {/* TIP OF THE DAY */}
@@ -278,8 +292,7 @@ export default function HomeExperience({ d }: { d: any }) {
       </div>
 
       {/* TRENDING TRIBES */}
-      <div className="mt-8">
-        <div className="flex items-center justify-between px-4 mb-3">
+      <div className="mt-8">        <div className="flex items-center justify-between px-4 mb-3">
           <h2 className="text-lg font-bold">🌾 Trending Tribes</h2>
           <Link href="/communities" className="text-xs font-semibold text-green-700">View all →</Link>
         </div>
@@ -292,7 +305,8 @@ export default function HomeExperience({ d }: { d: any }) {
                 <div className="w-full h-20 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">{t.icon}</div>
               )}
               <p className="font-bold text-xs line-clamp-1">{t.name}</p>
-              <p className="text-[10px] text-gray-500">👥 {t.member_count || 0}</p>            </Link>
+              <p className="text-[10px] text-gray-500">👥 {t.member_count || 0}</p>
+            </Link>
           ))}
         </div>
       </div>
@@ -327,8 +341,7 @@ export default function HomeExperience({ d }: { d: any }) {
         <div className="glass-card p-4 rounded-2xl space-y-2">
           {d.leaders.slice(0, 3).map((u: any, i: number) => (
             <Link key={i} href={"/farmer/" + u.id} className="flex items-center gap-3">
-              <span className="text-lg">{["🥇", "", ""][i]}</span>
-              <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>
+              <span className="text-lg">{["🥇", "", ""][i]}</span>              <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>
               <p className="flex-1 font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
               <span className="text-xs font-bold text-amber-600">{u.points} pts</span>
             </Link>
@@ -341,7 +354,8 @@ export default function HomeExperience({ d }: { d: any }) {
         <div className="px-4 mt-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold">📚 Learn from E-books</h2>
-            <Link href="/ebooks" className="text-xs font-semibold text-green-700">Store →</Link>          </div>
+            <Link href="/ebooks" className="text-xs font-semibold text-green-700">Store →</Link>
+          </div>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {d.ebooks.map((b: any) => (
               <Link key={b.id} href="/ebooks" className="glass-card p-3 rounded-2xl w-32 flex-shrink-0">
@@ -351,20 +365,4 @@ export default function HomeExperience({ d }: { d: any }) {
                   <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
                 )}
                 <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
-                <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number(b.price).toLocaleString()}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
-       {/* INSTALL CTA */}
-      <div className="p-4 mt-8">
-        <div className="bg-gradient-to-r from-green-600 to-forest-700 text-white p-5 rounded-2xl text-center">
-          <p className="text-lg font-bold mb-1">📲 Take us everywhere</p>
-          <p className="text-xs text-green-100 mb-3">Install Farming Tech & Business on your phone — works like a real app, even offline.</p>
-          <p className="text-[10px] text-green-200">Menu (⋮) → "Add to Home screen" / "Install app"</p>
-        </div>
-      </div>
-    </div>
-  );
-}
+                <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number
