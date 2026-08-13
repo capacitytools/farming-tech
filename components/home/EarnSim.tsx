@@ -1,79 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from "react";
 
-export default function SpinWheel({ userId }: { userId: string | null }) {
-  const [show, setShow] = useState(false);
-  const [spun, setSpun] = useState(false);
-  const [rot, setRot] = useState(0);
-  const [prize, setPrize] = useState("");
+export default function EarnSim() {
+  const [min, setMin] = useState(30);
+  const [posts, setPosts] = useState(1);
+  const [friends, setFriends] = useState(2);
+  const [verified, setVerified] = useState(true);
 
-  useEffect(() => {
-    if (!localStorage.getItem("spinSeen")) {
-      const t = setTimeout(() => setShow(true), 3000);
-      return () => clearTimeout(t);
-    }
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      if (userId && localStorage.getItem("spinPrize") && !localStorage.getItem("spinClaimed")) {
-        const supabase = createClient();
-        await supabase.from("profiles").update({ welcome_bonus: 50 }).eq("id", userId);
-        localStorage.setItem("spinClaimed", "1");
-      }
-    })();
-  }, [userId]);
-
-  function spin() {
-    setSpun(true);
-    setRot(1440 + 90);
-    setTimeout(() => {
-      setPrize("50");
-      localStorage.setItem("spinPrize", "50");
-      localStorage.setItem("spinSeen", "1");
-    }, 2600);
-  }
-
-  function close() {
-    localStorage.setItem("spinSeen", "1");
-    setShow(false);
-  }
-
-  if (!show) return null;
+  const timePts = Math.min(200, Math.floor((min * 30) / 5));
+  const postPts = Math.min(200, posts * 100);
+  const friendPts = friends * 25;
+  const base = timePts + postPts + friendPts + 60;
+  const total = verified ? Math.round(base * 1.1) : base;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center">
-        <p className="text-lg font-extrabold text-forest-800">🎁 Welcome Gift!</p>
-        <p className="text-xs text-gray-500 mb-4">Spin once — your points are waiting</p>
+    <div className="glass-card p-4 rounded-2xl border-2 border-purple-300">
+      <p className="font-bold text-sm mb-1">💰 Earnings Simulator</p>
+      <p className="text-[10px] text-gray-500 mb-3">Slide to see what YOUR month could look like:</p>
 
-        <div className="relative w-48 h-48 mx-auto mb-4">
-          <div
-            className="absolute inset-0 rounded-full border-8 border-forest-600"
-            style={{
-              background: "conic-gradient(#f59e0b 0 60deg, #166534 60deg 120deg, #f59e0b 120deg 180deg, #166534 180deg 240deg, #f59e0b 240deg 300deg, #166534 300deg 360deg)",
-              transform: `rotate(${rot}deg)`,
-              transition: spun ? "transform 2.5s cubic-bezier(.17,.67,.12,.99)" : "none",
-            }}
-          />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 text-2xl">🔻</div>
-          <div className="absolute inset-0 flex items-center justify-center text-3xl">🌾</div>
-        </div>
+      <label className="text-xs font-bold text-gray-600">⏱️ Minutes on app daily: <span className="text-purple-700">{min}</span></label>
+      <input type="range" min={5} max={240} step={5} value={min} onChange={(e) => setMin(Number(e.target.value))} className="w-full" />
 
-        {!spun ? (
-          <button onClick={spin} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold">🎡 SPIN NOW</button>
-        ) : prize ? (
-          <div>
-            <p className="text-2xl font-extrabold text-amber-600 mb-2">🎉 YOU WON {prize} POINTS!</p>
-            <Link href="/login" onClick={close} className="block w-full bg-forest-600 text-white py-3 rounded-xl font-bold">🔓 Register FREE to claim (24h only)</Link>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-500 animate-pulse">Spinning...</p>
-        )}
-        <button onClick={close} className="mt-3 text-xs text-gray-400 underline">no thanks</button>
+      <label className="text-xs font-bold text-gray-600">📝 Posts per day: <span className="text-purple-700">{posts}</span></label>
+      <input type="range" min={0} max={2} value={posts} onChange={(e) => setPosts(Number(e.target.value))} className="w-full" />
+
+      <label className="text-xs font-bold text-gray-600">🎁 Friends invited: <span className="text-purple-700">{friends}</span></label>
+      <input type="range" min={0} max={20} value={friends} onChange={(e) => setFriends(Number(e.target.value))} className="w-full" />
+
+      <label className="flex items-center gap-2 text-xs font-bold mt-2">
+        <input type="checkbox" checked={verified} onChange={(e) => setVerified(e.target.checked)} /> ✅ Verified member (+10%)
+      </label>
+
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-2xl p-4 text-center mt-3">
+        <p className="text-[10px] text-purple-200">≈ YOUR MONTH</p>
+        <p className="text-3xl font-extrabold">{total} pts</p>
+        <p className="text-[10px] text-purple-100 mt-1">= your share of the ad pool + rank climb + badges 🏅</p>
       </div>
     </div>
   );
