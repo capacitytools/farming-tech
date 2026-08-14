@@ -1,42 +1,42 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
-const ADS: any = {
-  native: { src: "https://pl30772368.effectivecpmnetwork.com/cbcab21814fa3ee82a0060ff8b06de7e/invoke.js" },
-  "banner-320": { key: "f6b4eadf878c297dddf13dca7f7c44dd", height: 50, width: 320 },
-  "banner-300": { key: "3b3b5739d33d6816bdecaf628f570678", height: 250, width: 300 },
-  "banner-468": { key: "b416467a3dadebe401b54d4b716d105e", height: 60, width: 468 },
-  "banner-728": { key: "a74fb60bf43a8b46c2c76dd4844d79ff", height: 90, width: 728 },
+// MASTER SWITCH: change false to true when you want Adsterra ads back on
+const ENABLE_ADSTERRA = false;
+
+// Optional: paste your Adsterra script codes here later if you want a fallback
+const FALLBACK_CODE: any = {
+  native: "",
+  "banner-300": "",
 };
 
 export default function AdBanner({ type }: { type: string }) {
+  const [code, setCode] = useState("");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el || el.childElementCount > 0) return;
-    const cfg = ADS[type];
-    if (!cfg) return;
-
-    if (type === "native") {
-      const container = document.createElement("div");
-      container.id = "container-cbcab21814fa3ee82a0060ff8b06de7e";
-      el.appendChild(container);
-      const s = document.createElement("script");
-      s.async = true;
-      s.setAttribute("data-cfasync", "false");
-      s.src = cfg.src;
-      el.appendChild(s);
-    } else {
-      const opt = document.createElement("script");
-      opt.text = `atOptions = { 'key': '${cfg.key}', 'format': 'iframe', 'height': ${cfg.height}, 'width': ${cfg.width}, 'params': {} };`;
-      el.appendChild(opt);
-      const s = document.createElement("script");
-      s.src = `https://www.highperformanceformat.com/${cfg.key}/invoke.js`;
-      el.appendChild(s);
-    }
+    if (!ENABLE_ADSTERRA) return;
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase.from("settings").select("value").eq("key", "adsterra_" + type).single();
+      if (data && data.value) setCode(data.value);
+      else if (FALLBACK_CODE[type]) setCode(FALLBACK_CODE[type]);
+    })();
   }, [type]);
 
-  return <div ref={ref} className="my-6 flex justify-center overflow-hidden" />;
+  useEffect(() => {
+    if (!ENABLE_ADSTERRA || !code || !ref.current) return;
+    ref.current.innerHTML = code;
+    Array.from(ref.current.querySelectorAll("script")).forEach((old) => {
+      const s = document.createElement("script");
+      Array.from(old.attributes).forEach((a) => s.setAttribute(a.name, a.value));
+      if (old.textContent) s.textContent = old.textContent;
+      ref.current?.appendChild(s);
+    });
+  }, [code]);
+
+  if (!ENABLE_ADSTERRA || !code) return null;
+  return <div ref={ref} className="my-3 flex justify-center overflow-hidden" />;
 }
