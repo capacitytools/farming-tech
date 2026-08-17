@@ -122,6 +122,20 @@ export default function FeedPage() {
     setComments(c || []);
   }
 
+  async function repost(item: any) {
+    if (!user) return alert("Log in to share.");
+    const supabase = createClient();
+    await supabase.from("feed_posts").insert({
+      author_id: user.id,
+      content: "🔁 Shared from " + (item.profiles?.full_name || "a farmer") + ":\n\n" + (item.content || ""),
+      image_url: item.image_url,
+      shared_from: item.id,
+    });
+    await supabase.from("feed_posts").update({ shares_count: (item.shares_count || 0) + 1 }).eq("id", item.id);
+    alert("✅ Shared to your timeline!");
+    load();
+  }
+
   async function deletePost(id: string) {
     if (!confirm("Delete this post?")) return;
     const supabase = createClient();
@@ -131,8 +145,7 @@ export default function FeedPage() {
 
   async function deleteVideo(id: string) {
     if (!confirm("Delete this video?")) return;
-    const supabase = createClient();
-    await supabase.from("videos").delete().eq("id", id);
+    const supabase = createClient();    await supabase.from("videos").delete().eq("id", id);
     load();
   }
 
@@ -145,8 +158,11 @@ export default function FeedPage() {
     const links: any = {
       wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
-      x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,      pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
+      x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
+      pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
     };
+    const supabase = createClient();
+    supabase.from("feed_posts").update({ shares_count: (item.shares_count || 0) + 1 }).eq("id", item.id);
     if (network === "copy") navigator.clipboard.writeText(url);
     else if (network === "status") {
       navigator.clipboard.writeText(text + " " + url);
@@ -178,8 +194,7 @@ export default function FeedPage() {
           <form onSubmit={publish} className="glass-card p-4 rounded-2xl">
             <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today? Paste links — they become clickable!" value={content} onChange={(e) => setContent(e.target.value)} />
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
-              <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
+              <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>              <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
               <button type="button" onClick={() => setVideoMode(videoMode === "video" ? "" : "video")} className={`text-sm font-semibold ${videoMode === "video" ? "text-forest-700 underline" : "text-forest-600"}`}>🎬 Video</button>
               {image && <img src={image} alt="" className="h-10 w-10 object-cover rounded-lg" />}
               <button className="ml-auto bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>Post</button>
@@ -194,6 +209,7 @@ export default function FeedPage() {
           )}
         </div>
       )}
+
       <div className="space-y-4">
         {timeline.map((item: any, idx: number) => (
           <div key={`${item.kind}-${item.id}`}>
@@ -219,7 +235,7 @@ export default function FeedPage() {
                       <Link href={`/farmer/${item.author_id}`} className="hover:underline">{item.profiles?.full_name || "Farmer"}</Link>
                       {item.profiles?.verified && <span className="ml-1 text-sky-500">✅</span>}
                     </p>
-                    <p className="text-[10px] text-gray-400">{new Date(item.created_at).toLocaleDateString()} · 👁️ {item.views_count || 0}</p>
+                    <p className="text-[10px] text-gray-400">{new Date(item.created_at).toLocaleDateString()} · 👁️ {item.views_count || 0} impressions</p>
                   </div>
                   {user?.id === item.author_id && (
                     <button onClick={() => deletePost(item.id)} className="text-red-500 text-xs font-semibold">Delete</button>
@@ -228,7 +244,6 @@ export default function FeedPage() {
 
                 <p className="text-sm text-gray-800 whitespace-pre-line">{renderText(item.content)}</p>
                 {item.image_url && <img src={item.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
-
                 {item.ad && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-amber-300">
                     <AdBar ad={item.ad} />
@@ -241,10 +256,20 @@ export default function FeedPage() {
                   const postComments = comments.filter((c) => c.post_id === item.id);
                   return (
                     <>
-                      <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600 flex-wrap">
-                        <button onClick={() => toggleLike(item.id)} className={myLike ? "text-red-600" : ""}>❤️ {postLikes.length}</button>
-                        <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="text-green-700">💬 {postComments.length}</button>                        <button onClick={() => share(item, "wa")} className="ml-auto" title="WhatsApp">📤</button>
-                        <button onClick={() => share(item, "status")} title="WhatsApp Status (copies caption)">🟢</button>
+                      {/* FACEBOOK-STYLE STATS BAR */}
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 text-[10px] text-gray-500 font-semibold">
+                        <span>❤️ {postLikes.length} likes</span>
+                        <span>💬 {postComments.length} comments · 🔁 {item.shares_count || 0} shares</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 text-xs font-bold text-gray-600 flex-wrap">
+                        <button onClick={() => toggleLike(item.id)} className={`flex-1 py-1.5 rounded-lg ${myLike ? "text-red-600 bg-red-50" : "active:bg-gray-100"}`}>❤️ Like</button>
+                        <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-green-700">💬 Comment</button>
+                        <button onClick={() => repost(item)} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-amber-700">🔁 Share Now</button>
+                      </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
+                        <span className="text-[9px] text-gray-400">Share via:</span>
+                        <button onClick={() => share(item, "wa")} title="WhatsApp">📤</button>
+                        <button onClick={() => share(item, "status")} title="WhatsApp Status">🟢</button>
                         <button onClick={() => share(item, "fb")} title="Facebook">f</button>
                         <button onClick={() => share(item, "x")} title="X / Twitter">𝕏</button>
                         <button onClick={() => share(item, "pin")} title="Pinterest">📌</button>
@@ -255,7 +280,7 @@ export default function FeedPage() {
                           <AdBanner slot="post_comments" />
                           {postComments.map((c) => (
                             <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
-                              <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {renderText(c.content)}
+                              <Link href={`/farmer/${c.user_id}`} className="font-bold hover:underline">{c.profiles?.full_name || "Farmer"}</Link>: {renderText(c.content)}
                             </div>
                           ))}
                           {user && (
@@ -267,8 +292,7 @@ export default function FeedPage() {
                         </div>
                       )}
                     </>
-                  );
-                })()}
+                  );                })()}
               </div>
             )}
 
