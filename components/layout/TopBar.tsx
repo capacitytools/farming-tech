@@ -56,6 +56,34 @@ export default function TopBar() {
     document.documentElement.classList.toggle('dark', t);
   }, []);
 
+  // SITE-WIDE ADSTERRA (Popunder + Social Bar) — obeys the /admin/ads switches
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.from('settings').select('key, value').in('key', ['adsterra_popunder', 'adsterra_socialbar']);
+        (data || []).forEach((r: any) => {
+          let cfg: any = null;
+          try { cfg = JSON.parse(r.value); } catch {}
+          if (!cfg || !cfg.on || !cfg.code) return;
+          const flag = 'ftb_' + r.key;
+          if ((window as any)[flag]) return;
+          (window as any)[flag] = true;
+          const holder = document.createElement('div');
+          holder.style.display = 'none';
+          document.body.appendChild(holder);
+          holder.innerHTML = cfg.code;
+          Array.from(holder.querySelectorAll('script')).forEach((old) => {
+            const s = document.createElement('script');
+            Array.from(old.attributes).forEach((a) => s.setAttribute(a.name, a.value));
+            if (old.textContent) s.textContent = old.textContent;
+            document.body.appendChild(s);
+          });
+        });
+      } catch {}
+    })();
+  }, []);
+
   function toggleTheme() {
     const t = !dark;
     setDark(t);
@@ -68,8 +96,7 @@ export default function TopBar() {
       try {
         const supabase = createClient();
         const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';
-        const { count } = await supabase
-          .from('notifications')
+        const { count } = await supabase          .from('notifications')
           .select('*', { count: 'exact', head: true })
           .gt('created_at', seen);
         setNotifCount(count || 0);
@@ -96,7 +123,8 @@ export default function TopBar() {
             <div className="w-9 h-9 rounded-xl bg-forest-600 flex items-center justify-center">
               <Sprout className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
-            <div className="leading-tight">              <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>
+            <div className="leading-tight">
+              <p className="text-sm font-extrabold text-forest-900 dark:text-white">Farming Tech</p>
               <p className="text-[10px] font-semibold text-forest-500 -mt-0.5">& Business</p>
             </div>
           </Link>
@@ -117,8 +145,7 @@ export default function TopBar() {
               href="/inbox"
               aria-label="Inbox"
               className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
-            >
-              <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+            >              <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
               {msgCount > 0 && (
                 <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
                   {msgCount}
@@ -145,7 +172,8 @@ export default function TopBar() {
             </button>
             <button
               aria-label="Open menu"
-              onClick={() => setOpen(true)}              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
+              onClick={() => setOpen(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
             >
               <Menu className="w-6 h-6 text-forest-700 dark:text-forest-200" />
             </button>
@@ -166,8 +194,7 @@ export default function TopBar() {
             <motion.div
               initial={{ y: '-100%' }}
               animate={{ y: 0 }}
-              exit={{ y: '-100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              exit={{ y: '-100%' }}              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="fixed top-0 left-0 right-0 z-50 max-w-md mx-auto bg-white dark:bg-forest-900 rounded-b-3xl shadow-glass max-h-[85vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -194,7 +221,8 @@ export default function TopBar() {
                           <Link
                             key={item.href}
                             href={item.href}
-                            onClick={() => setOpen(false)}                            className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"
+                            onClick={() => setOpen(false)}
+                            className="flex items-center justify-between px-3 py-3 rounded-2xl active:bg-forest-50 dark:active:bg-forest-800"
                           >
                             <span className="flex items-center gap-3">
                               <span className="w-9 h-9 rounded-xl bg-forest-50 dark:forest-800 flex items-center justify-center">
@@ -215,8 +243,7 @@ export default function TopBar() {
                 <div className="pt-2 border-t border-forest-100 dark:border-forest-800">
                   <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">
                     Follow Us
-                  </p>
-                  <div className="flex gap-2 px-1">
+                  </p>                  <div className="flex gap-2 px-1">
                     {[
                       { icon: Facebook, href: 'https://www.facebook.com/share/1DLbDWeBd3/' },
                       { icon: Instagram, href: 'https://www.instagram.com/myfarmtech' },
