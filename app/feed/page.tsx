@@ -252,7 +252,7 @@ export default function FeedPage() {
                       </div>
                       {openC === item.id && (
                         <div className="mt-3 space-y-2">
-                          <AdBanner type="native" />
+                          <AdBanner slot="post_comments" />
                           {postComments.map((c) => (
                             <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
                               <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {renderText(c.content)}
@@ -274,7 +274,7 @@ export default function FeedPage() {
 
             {(idx + 1) % 3 === 0 && (
               <div className="mt-4">
-                <AdBanner type="native" />
+                <AdBanner slot="timeline" />
               </div>
             )}
           </div>
