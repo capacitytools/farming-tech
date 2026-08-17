@@ -32,28 +32,46 @@ export default function FarmerPage(props: any) {
 
   async function load() {
     const supabase = createClient();
-    const [{ data: f }, { data: u }, { data: p }, { data: r }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", id).single(),
-      supabase.auth.getUser(),
-      supabase.rpc("user_points", { uid: id }),
-      supabase.rpc("user_rank", { uid: id }),
-    ]);
-    setFarmer(f);
+    const { data: u } = await supabase.auth.getUser();
     setUser(u?.user || null);
+
+    // Resolve by UUID first, then by short referral code
+    let f: any = null;
+    const isUuid = /^[0-9a-fA-F-]{36}$/.test(id);
+    if (isUuid) {
+      const r = await supabase.from("profiles").select("*").eq("id", id).single();
+      f = r.data;
+    }
+    if (!f) {
+      const r = await supabase.from("profiles").select("*").eq("referral_code", id).single();
+      f = r.data;
+    }
+    setFarmer(f);
+    if (!f) { setLoaded(true); return; }
+    // Capture referral: anyone visiting this profile gets the farmer's code for signup
+    if (f.referral_code && u?.user?.id !== f.id) {
+      localStorage.setItem("refCode", f.referral_code);
+    }
+
+    const [{ data: p }, { data: r }] = await Promise.all([
+      supabase.rpc("user_points", { uid: f.id }),
+      supabase.rpc("user_rank", { uid: f.id }),
+    ]);
     setPts(p || 0);
     setRank(r || "Beginner Star");
     const [{ count: fc }, { count: gc }, { data: mine }] = await Promise.all([
-      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", id),
-      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", id),
-      u?.user ? supabase.from("follows").select("id").eq("follower_id", u.user.id).eq("following_id", id).single() : { data: null },
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", f.id),
+      supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", f.id),
+      u?.user ? supabase.from("follows").select("id").eq("follower_id", u.user.id).eq("following_id", f.id).single() : { data: null },
     ]);
-    setFollowers(fc || 0);    setFollowingCount(gc || 0);
+    setFollowers(fc || 0);
+    setFollowingCount(gc || 0);
     setIFollow(!!mine);
     const [{ data: po }, { data: vi }, { data: li }, { data: re }] = await Promise.all([
-      supabase.from("feed_posts").select("*, ad:ad_campaigns(*)").eq("author_id", id).order("created_at", { ascending: false }).limit(20),
-      supabase.from("videos").select("*").eq("author_id", id).order("created_at", { ascending: false }).limit(12),
-      supabase.from("livestock_listings").select("*").eq("seller_id", id).eq("status", "active").limit(6),
-      supabase.from("listing_reviews").select("*, profiles(full_name), listings(title)").eq("listings.seller_id", id).limit(10),
+      supabase.from("feed_posts").select("*, ad:ad_campaigns(*)").eq("author_id", f.id).order("created_at", { ascending: false }).limit(20),
+      supabase.from("videos").select("*").eq("author_id", f.id).order("created_at", { ascending: false }).limit(12),
+      supabase.from("livestock_listings").select("*").eq("seller_id", f.id).eq("status", "active").limit(6),
+      supabase.from("listing_reviews").select("*, profiles(full_name), listings(title)").eq("listings.seller_id", f.id).limit(10),
     ]);
     setPosts(po || []);
     setVideos(vi || []);
@@ -68,18 +86,17 @@ export default function FarmerPage(props: any) {
     if (!user) return alert("Log in to follow farmers.");
     const supabase = createClient();
     if (iFollow) {
-      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
+      await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", farmer.id);
       setFollowers(followers - 1);
       setIFollow(false);
     } else {
-      await supabase.from("follows").insert({ follower_id: user.id, following_id: id });
+      await supabase.from("follows").insert({ follower_id: user.id, following_id: farmer.id });
       setFollowers(followers + 1);
       setIFollow(true);
     }
   }
 
-  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
-  if (!farmer) return <p className="text-center text-gray-500 py-10">Farmer not found.</p>;
+  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;  if (!farmer) return <p className="text-center text-gray-500 py-10">Farmer not found.</p>;
 
   const media = posts.filter((p) => p.image_url);
   const reels = videos.filter((v) => v.aspect === "portrait");
@@ -89,7 +106,6 @@ export default function FarmerPage(props: any) {
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
-      {/* COVER */}
       <div className="h-40">
         {farmer.cover_url ? (
           <img src={farmer.cover_url} alt="" className="w-full h-full object-cover" />
@@ -97,6 +113,7 @@ export default function FarmerPage(props: any) {
           <div className="w-full h-full bg-gradient-to-r from-forest-600 via-green-500 to-amber-400" />
         )}
       </div>
+
       <div className="px-4">
         <div className="flex items-end justify-between -mt-10">
           {farmer.avatar_url ? (
@@ -105,7 +122,7 @@ export default function FarmerPage(props: any) {
             <div className="w-24 h-24 rounded-full bg-green-200 border-4 border-white shadow-lg flex items-center justify-center text-4xl font-bold text-green-800">{(farmer.full_name || "?")[0]}</div>
           )}
           <div className="flex gap-2 pb-1">
-            {user?.id !== id && (
+            {user?.id !== farmer.id && (
               <button onClick={toggleFollow} className={`px-4 py-2 rounded-full text-sm font-bold ${iFollow ? "bg-gray-200 text-gray-700" : "bg-green-600 text-white"}`}>
                 {iFollow ? "Following ✓" : "+ Follow"}
               </button>
@@ -128,8 +145,7 @@ export default function FarmerPage(props: any) {
           <span><b>{followingCount}</b> <span className="text-gray-500">Following</span></span>
           <span><b>{followers}</b> <span className="text-gray-500">Followers</span></span>
           <span><b className="text-amber-600">{pts}</b> <span className="text-gray-500">Points</span></span>
-          <span className="text-amber-600 font-bold">{RANK_ICONS[rank]}</span>
-        </div>
+          <span className="text-amber-600 font-bold">{RANK_ICONS[rank]}</span>        </div>
 
         <div className="mt-3">
           <ProfileShare id={farmer.id} code={farmer.referral_code || ""} name={farmer.full_name || "this farmer"} />
@@ -145,7 +161,8 @@ export default function FarmerPage(props: any) {
 
       <div className="p-4 space-y-4">
         {tab === "posts" && (
-          <>            {posts.map((p) => (
+          <>
+            {posts.map((p) => (
               <div key={p.id} className="glass-card p-4 rounded-2xl">
                 <p className="text-sm text-gray-800 whitespace-pre-line">{p.content}</p>
                 {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
@@ -177,8 +194,7 @@ export default function FarmerPage(props: any) {
           </div>
         )}
 
-        {tab === "about" && (
-          <>
+        {tab === "about" && (          <>
             <h2 className="font-bold">🐄 Active Listings</h2>
             <div className="grid grid-cols-2 gap-3">
               {listings.map((l) => (
@@ -194,7 +210,8 @@ export default function FarmerPage(props: any) {
               ))}
               {listings.length === 0 && <p className="text-sm text-gray-500 col-span-2">No active listings.</p>}
             </div>
-            <h2 className="font-bold pt-2">⭐ Reviews</h2>            <div className="space-y-2">
+            <h2 className="font-bold pt-2">⭐ Reviews</h2>
+            <div className="space-y-2">
               {reviews.map((r) => (
                 <div key={r.id} className="glass-card p-3 rounded-2xl">
                   <div className="flex items-center justify-between">
