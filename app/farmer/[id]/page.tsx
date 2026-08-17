@@ -62,9 +62,7 @@ export default function FarmerPage(props: any) {
     setLoaded(true);
   }
 
-  useEffect(() => {
-    load();
-  }, [id]);
+  useEffect(() => { load(); }, [id]);
 
   async function toggleFollow() {
     if (!user) return alert("Log in to follow farmers.");
@@ -86,22 +84,25 @@ export default function FarmerPage(props: any) {
   const media = posts.filter((p) => p.image_url);
   const reels = videos.filter((v) => v.aspect === "portrait");
   const tabBtn = (t: string, label: string) => (
-    <button onClick={() => setTab(t)} className={`flex-1 py-3 text-sm font-bold border-b-2 ${tab === t ? "border-green-600 text-green-700" : "border-transparent text-gray-500"}`}>
-      {label}
-    </button>
+    <button onClick={() => setTab(t)} className={`flex-1 py-3 text-sm font-bold border-b-2 ${tab === t ? "border-green-600 text-green-700" : "border-transparent text-gray-500"}`}>{label}</button>
   );
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
-      {/* TWITTER-STYLE HEADER */}
-      <div className="h-28 bg-gradient-to-r from-forest-600 via-green-500 to-amber-400" />
+      {/* COVER */}
+      <div className="h-40">
+        {farmer.cover_url ? (
+          <img src={farmer.cover_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-forest-600 via-green-500 to-amber-400" />
+        )}
+      </div>
       <div className="px-4">
-        <div className="flex items-end justify-between -mt-10">          {farmer.avatar_url ? (
-            <img src={farmer.avatar_url} alt={farmer.full_name} className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg" />
+        <div className="flex items-end justify-between -mt-10">
+          {farmer.avatar_url ? (
+            <img src={farmer.avatar_url} alt={farmer.full_name} className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg" />
           ) : (
-            <div className="w-20 h-20 rounded-full bg-green-200 border-4 border-white shadow-lg flex items-center justify-center text-3xl font-bold text-green-800">
-              {(farmer.full_name || "?")[0]}
-            </div>
+            <div className="w-24 h-24 rounded-full bg-green-200 border-4 border-white shadow-lg flex items-center justify-center text-4xl font-bold text-green-800">{(farmer.full_name || "?")[0]}</div>
           )}
           <div className="flex gap-2 pb-1">
             {user?.id !== id && (
@@ -109,7 +110,10 @@ export default function FarmerPage(props: any) {
                 {iFollow ? "Following ✓" : "+ Follow"}
               </button>
             )}
-            <Link href={`/inbox?user=${farmer.id}`} className="px-4 py-2 rounded-full text-sm font-bold bg-forest-100 text-forest-700">💬</Link>
+            {farmer.whatsapp && (
+              <a href={`https://wa.me/${farmer.whatsapp}`} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-full text-sm font-bold bg-green-100 text-green-700">💬 WhatsApp</a>
+            )}
+            <Link href={`/inbox?user=${farmer.id}`} className="px-4 py-2 rounded-full text-sm font-bold bg-forest-100 text-forest-700">✉️</Link>
           </div>
         </div>
 
@@ -117,9 +121,10 @@ export default function FarmerPage(props: any) {
           {farmer.full_name || "Farmer"} {farmer.verified && <span className="text-sky-500">✅</span>}
         </h1>
         <p className="text-xs text-gray-500">@{(farmer.referral_code || farmer.id).slice(0, 8).toLowerCase()} · 📍 {farmer.location || "Nigeria"} · joined {new Date(farmer.created_at).toLocaleDateString("en-NG", { month: "short", year: "numeric" })}</p>
+        {farmer.bio && <p className="text-sm text-gray-700 mt-1">{farmer.bio}</p>}
         {farmer.verified && <p className="text-[10px] font-bold text-sky-600 mt-1">✅ VERIFIED MEMBER — trusted by Farming Tech & Business</p>}
 
-        <div className="flex gap-4 mt-3 text-sm">
+        <div className="flex gap-4 mt-3 text-sm flex-wrap">
           <span><b>{followingCount}</b> <span className="text-gray-500">Following</span></span>
           <span><b>{followers}</b> <span className="text-gray-500">Followers</span></span>
           <span><b className="text-amber-600">{pts}</b> <span className="text-gray-500">Points</span></span>
@@ -131,7 +136,6 @@ export default function FarmerPage(props: any) {
         </div>
       </div>
 
-      {/* TABS */}
       <div className="flex mt-4 border-b border-gray-200 px-2 bg-white/60 sticky top-14 z-30">
         {tabBtn("posts", "Posts")}
         {tabBtn("media", "Media")}
@@ -141,11 +145,11 @@ export default function FarmerPage(props: any) {
 
       <div className="p-4 space-y-4">
         {tab === "posts" && (
-          <>
-            {posts.map((p) => (
+          <>            {posts.map((p) => (
               <div key={p.id} className="glass-card p-4 rounded-2xl">
                 <p className="text-sm text-gray-800 whitespace-pre-line">{p.content}</p>
-                {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}                <p className="text-[10px] text-gray-400 mt-2">{new Date(p.created_at).toLocaleDateString()} · 👁️ {p.views_count || 0}</p>
+                {p.image_url && <img src={p.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
+                <p className="text-[10px] text-gray-400 mt-2">{new Date(p.created_at).toLocaleDateString()} · 👁️ {p.views_count || 0} · 🔁 {p.shares_count || 0}</p>
               </div>
             ))}
             {posts.length === 0 && <p className="text-sm text-gray-500 text-center py-6">No posts yet.</p>}
@@ -190,11 +194,11 @@ export default function FarmerPage(props: any) {
               ))}
               {listings.length === 0 && <p className="text-sm text-gray-500 col-span-2">No active listings.</p>}
             </div>
-            <h2 className="font-bold pt-2">⭐ Reviews</h2>
-            <div className="space-y-2">
+            <h2 className="font-bold pt-2">⭐ Reviews</h2>            <div className="space-y-2">
               {reviews.map((r) => (
                 <div key={r.id} className="glass-card p-3 rounded-2xl">
-                  <div className="flex items-center justify-between">                    <p className="text-sm font-semibold">{r.profiles?.full_name || "Buyer"}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">{r.profiles?.full_name || "Buyer"}</p>
                     <span className="text-xs text-amber-500">{"⭐".repeat(Number(r.rating))}</span>
                   </div>
                   {r.comment && <p className="text-xs text-gray-700 mt-1">{r.comment}</p>}
