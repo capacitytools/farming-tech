@@ -7,7 +7,7 @@ import AdBar from "@/components/AdBar";
 import AdBanner from "@/components/AdBanner";
 
 function renderText(text: string) {
-  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  const parts = (text || "").split(/(https?:\/\/[^\s]+)/g);
   return parts.map((p, i) =>
     p.match(/^https?:\/\//) ? (
       <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{p}</a>
@@ -161,7 +161,7 @@ export default function VideoCard({ video }: { video: any }) {
 
         {openC && (
           <div className="mt-3 space-y-2">
-            <AdBanner type="native" />
+            <AdBanner slot="video_comments" />
             {vComments.map((c) => (
               <div key={c.id} className="bg-white/80 p-2 rounded-xl text-xs">
                 <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span>{" "}
