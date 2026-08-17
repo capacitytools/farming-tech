@@ -132,6 +132,7 @@ export default function TribePage(props: any) {
       start_sec: v.start_sec, end_sec: v.end_sec, aspect: v.aspect,
       author_id: user.id, context: "feed",
     });
+    await supabase.from("videos").update({ shares_count: (v.shares_count || 0) + 1 }).eq("id", v.id);
     alert("✅ Shared to the Farmer Timeline — every user can now see & reshare it!");
   }
 
@@ -193,8 +194,8 @@ export default function TribePage(props: any) {
             {tab === "posts" && (
               <>
                 {canPost && (
-                  <form onSubmit={publish} className="glass-card p-3 rounded-2xl">
-                    <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={2} placeholder={`Share with ${tribe.name}... links become clickable!`} value={content} onChange={(e) => setContent(e.target.value)} />                    <div className="flex items-center gap-3 mt-2">
+                  <form onSubmit={publish} className="glass-card p-3 rounded-2xl">                    <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={2} placeholder={`Share with ${tribe.name}... links become clickable!`} value={content} onChange={(e) => setContent(e.target.value)} />
+                    <div className="flex items-center gap-3 mt-2">
                       <label className="text-xs font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
                       {image && <img src={image} alt="" className="h-8 w-8 object-cover rounded" />}
                       <button className="ml-auto bg-green-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold">Post (+15 pts)</button>
@@ -204,8 +205,12 @@ export default function TribePage(props: any) {
                 {posts.map((p) => (
                   <div key={p.id} className="glass-card p-4 rounded-2xl">
                     <div className="flex items-center gap-2 mb-2">
-                      {p.profiles?.avatar_url ? <img src={p.profiles.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" /> : <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{p.profiles?.full_name?.[0] || "?"}</div>}
-                      <p className="font-bold text-xs">{p.profiles?.full_name || "Farmer"} {p.profiles?.role === "admin" && "🛡️"}</p>
+                      <Link href={`/farmer/${p.author_id}`}>
+                        {p.profiles?.avatar_url ? <img src={p.profiles.avatar_url} className="w-8 h-8 rounded-full object-cover" alt="" /> : <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{p.profiles?.full_name?.[0] || "?"}</div>}
+                      </Link>
+                      <p className="font-bold text-xs">
+                        <Link href={`/farmer/${p.author_id}`} className="hover:underline">{p.profiles?.full_name || "Farmer"}</Link> {p.profiles?.role === "admin" && "🛡️"}
+                      </p>
                       {(user?.id === p.author_id || profile?.role === "admin") && (
                         <button onClick={() => deletePost(p.id)} className="ml-auto text-red-500 text-[10px] font-bold">Delete</button>
                       )}
@@ -216,7 +221,9 @@ export default function TribePage(props: any) {
                     {replyFor === p.id && (
                       <div className="mt-2 space-y-2">
                         {(p.replies || []).map((r: any) => (
-                          <div key={r.id} className="bg-white/70 p-2 rounded-xl text-xs"><span className="font-bold">{r.profiles?.full_name}:</span> {renderText(r.content)}</div>
+                          <div key={r.id} className="bg-white/70 p-2 rounded-xl text-xs">
+                            <Link href={`/farmer/${r.author_id}`} className="font-bold hover:underline">{r.profiles?.full_name || "Farmer"}</Link>: {renderText(r.content)}
+                          </div>
                         ))}
                         {user && (
                           <div className="flex gap-2">
@@ -236,14 +243,14 @@ export default function TribePage(props: any) {
               <>
                 {canPost && (
                   <div>
-                    <button onClick={() => setShowComposer(!showComposer)} className="w-full bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">🎬 Post YouTube Video / Reel to {tribe.name}</button>
-                    {showComposer && <div className="mt-2"><VideoComposer context="tribe" tribeId={tribe.id} onDone={() => { setShowComposer(false); load(); }} /></div>}
+                    <button onClick={() => setShowComposer(!showComposer)} className="w-full bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">🎬 Post YouTube Video / Reel to {tribe.name}</button>                    {showComposer && <div className="mt-2"><VideoComposer context="tribe" tribeId={tribe.id} onDone={() => { setShowComposer(false); load(); }} /></div>}
                   </div>
                 )}
                 {videos.map((v) => (
                   <div key={v.id}>
                     <VideoCard video={v} />
-                    <div className="flex gap-2 mt-1">                      <button onClick={() => shareToTimeline(v)} className="text-green-700 text-xs font-bold">📣 Share to Timeline</button>
+                    <div className="flex gap-2 mt-1">
+                      <button onClick={() => shareToTimeline(v)} className="text-green-700 text-xs font-bold">📣 Share to Timeline</button>
                       {(user?.id === v.author_id || profile?.role === "admin") && (
                         <button onClick={async () => { if (confirm("Delete?")) { const s = createClient(); await s.from("videos").delete().eq("id", v.id); load(); } }} className="text-red-500 text-xs font-bold">Delete</button>
                       )}
