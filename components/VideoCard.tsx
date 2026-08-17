@@ -69,6 +69,21 @@ export default function VideoCard({ video }: { video: any }) {
     setVComments(data || []);
   }
 
+  async function shareToTimeline() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Log in to share.");
+    await supabase.from("videos").insert({
+      youtube_id: video.youtube_id,
+      title: (video.title || "Video") + " 🔁 shared by " + (user.email || "a farmer"),
+      description: video.description, tags: video.tags, category: video.category,
+      start_sec: video.start_sec, end_sec: video.end_sec, aspect: video.aspect,
+      author_id: user.id, context: "feed",
+    });
+    await supabase.from("videos").update({ shares_count: (video.shares_count || 0) + 1 }).eq("id", video.id);
+    alert("✅ Shared to the Farmer Timeline!");
+  }
+
   const s = Number(video.start_sec || 0);
   const e = Number(video.end_sec || 0);
   let src = `https://www.youtube.com/embed/${video.youtube_id}`;
@@ -81,12 +96,13 @@ export default function VideoCard({ video }: { video: any }) {
     const text = `🎬 ${video.title || "Watch this"} — ${video.profiles?.full_name || "a farmer"} on Farming Tech & Business. 🌾 Join, Learn, Grow, Connect & Earn!`;
     const en = encodeURIComponent;
     const media = `https://i.ytimg.com/vi/${video.youtube_id}/hqdefault.jpg`;
-    const links: any = {
-      wa: `https://wa.me/?text=${en(text + " " + url)}`,
+    const links: any = {      wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
       x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
       pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
     };
+    const supabase = createClient();
+    supabase.from("videos").update({ shares_count: (video.shares_count || 0) + 1 }).eq("id", video.id);
     if (net === "copy") navigator.clipboard.writeText(url);
     else if (net === "status") {
       navigator.clipboard.writeText(text + " " + url);
@@ -96,7 +112,8 @@ export default function VideoCard({ video }: { video: any }) {
 
   return (
     <div className="rounded-2xl overflow-hidden border-2 border-forest-600 shadow-lg bg-white">
-      <div className="bg-forest-700 text-white px-3 py-2 flex items-center gap-2">        <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-sm">🌾</span>
+      <div className="bg-forest-700 text-white px-3 py-2 flex items-center gap-2">
+        <span className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-sm">🌾</span>
         <p className="text-xs font-extrabold tracking-wide">FARMING TECH & BUSINESS</p>
         <span className="ml-auto text-[9px] bg-amber-400 text-forest-900 px-2 py-0.5 rounded-full font-bold uppercase">{portrait ? "📱 REEL" : video.category || "Video"}</span>
       </div>
@@ -128,8 +145,7 @@ export default function VideoCard({ video }: { video: any }) {
       <div className="p-3 bg-forest-50">
         <div className="flex items-center gap-2 mb-1">
           <Link href={`/farmer/${video.author_id}`}>
-            {video.profiles?.avatar_url ? (
-              <img src={video.profiles.avatar_url} className="w-6 h-6 rounded-full object-cover" alt="" />
+            {video.profiles?.avatar_url ? (              <img src={video.profiles.avatar_url} className="w-6 h-6 rounded-full object-cover" alt="" />
             ) : (
               <div className="w-6 h-6 rounded-full bg-green-200 flex items-center justify-center text-[10px] font-bold text-green-800">{video.profiles?.full_name?.[0] || "?"}</div>
             )}
@@ -145,12 +161,22 @@ export default function VideoCard({ video }: { video: any }) {
             {video.tags.split(",").map((t: string, i: number) => (
               <span key={i} className="text-[9px] font-bold text-forest-700 bg-forest-100 px-2 py-0.5 rounded-full">#{t.trim()}</span>
             ))}
-          </div>        )}
+          </div>
+        )}
 
-        <div className="flex items-center gap-3 mt-3 pt-2 border-t border-forest-100 text-xs font-bold text-gray-600">
-          <button onClick={toggleVLike} className={myVLike ? "text-red-600" : ""}>❤️ {vLikes}</button>
-          <button onClick={() => setOpenC(!openC)} className="text-green-700">💬 {vComments.length}</button>
-          <span className="ml-auto text-[9px] text-gray-400">Share:</span>
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-forest-100 text-[10px] text-gray-500 font-semibold">
+          <span>❤️ {vLikes} likes</span>
+          <span>💬 {vComments.length} comments · 🔁 {video.shares_count || 0} shares</span>
+        </div>
+
+        <div className="flex items-center gap-2 mt-2 text-xs font-bold text-gray-600">
+          <button onClick={toggleVLike} className={`flex-1 py-1.5 rounded-lg ${myVLike ? "text-red-600 bg-red-50" : "active:bg-gray-100"}`}>❤️ Like</button>
+          <button onClick={() => setOpenC(!openC)} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-green-700">💬 Comment</button>
+          <button onClick={shareToTimeline} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-amber-700">🔁 Share Now</button>
+        </div>
+
+        <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
+          <span className="text-[9px] text-gray-400">Share via:</span>
           <button onClick={() => shareTo("wa")} title="WhatsApp">📤</button>
           <button onClick={() => shareTo("status")} title="WhatsApp Status">🟢</button>
           <button onClick={() => shareTo("fb")} title="Facebook">f</button>
@@ -164,13 +190,11 @@ export default function VideoCard({ video }: { video: any }) {
             <AdBanner slot="video_comments" />
             {vComments.map((c) => (
               <div key={c.id} className="bg-white/80 p-2 rounded-xl text-xs">
-                <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span>{" "}
-                {renderText(c.content)}
+                <Link href={`/farmer/${c.user_id}`} className="font-bold hover:underline">{c.profiles?.full_name || "Farmer"}</Link>: {renderText(c.content)}
               </div>
             ))}
             {vComments.length === 0 && <p className="text-[10px] text-gray-400 text-center">No comments yet — start the discussion!</p>}
-            <div className="flex gap-2">
-              <input
+            <div className="flex gap-2">              <input
                 className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs"
                 placeholder="Share your opinion or paste a link (+3 pts)..."
                 value={cText}
