@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Menu, X, Bell, Search, Mail, Trophy, Megaphone, Sprout, BookOpen, Stethoscope, ShoppingBag,
   GraduationCap, Info, Phone, Facebook, Instagram, Youtube,
-  ChevronRight, Newspaper, User, Wallet, Award, Moon, Sun, Film,
+  ChevronRight, Newspaper, User, Wallet, Award, Moon, Sun, Film, Video,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import TimeTracker from '@/components/TimeTracker';
@@ -26,6 +26,7 @@ const MENU_SECTIONS = [
       { href: '/market', label: 'Marketplace', icon: ShoppingBag },
       { href: '/experts', label: 'Expert Directory', icon: GraduationCap },
       { href: '/ebooks', label: 'E-book Store', icon: BookOpen },
+      { href: '/ebooks/drive', label: 'Ebook Video Drive', icon: Video },
     ],
   },
   {
@@ -46,8 +47,8 @@ const MENU_SECTIONS = [
   },
 ];
 
-export default function TopBar() {
-  const [open, setOpen] = useState(false);  const [notifCount, setNotifCount] = useState(0);
+export default function TopBar() {  const [open, setOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
   const [dark, setDark] = useState(false);
 
@@ -95,8 +96,8 @@ export default function TopBar() {
   useEffect(() => {
     (async () => {
       try {
-        const supabase = createClient();
-        const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';        const { count } = await supabase
+        const supabase = createClient();        const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';
+        const { count } = await supabase
           .from('notifications')
           .select('*', { count: 'exact', head: true })
           .gt('created_at', seen);
@@ -144,8 +145,8 @@ export default function TopBar() {
               )}
             </Link>
             <Link
-              href="/inbox"
-              aria-label="Inbox"              className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
+              href="/inbox"              aria-label="Inbox"
+              className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
             >
               <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
               {msgCount > 0 && (
@@ -193,8 +194,8 @@ export default function TopBar() {
               onClick={() => setOpen(false)}
               className="fixed inset-0 z-50 bg-forest-900/50 backdrop-blur-sm"
             />
-            <motion.div
-              initial={{ y: '-100%' }}              animate={{ y: 0 }}
+            <motion.div              initial={{ y: '-100%' }}
+              animate={{ y: 0 }}
               exit={{ y: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="fixed top-0 left-0 right-0 z-50 max-w-md mx-auto bg-white dark:bg-forest-900 rounded-b-3xl shadow-glass max-h-[85vh] overflow-y-auto"
@@ -242,8 +243,8 @@ export default function TopBar() {
                   </div>
                 ))}
 
-                <div className="pt-2 border-t border-forest-100 dark:border-forest-800">
-                  <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">                    Follow Us
+                <div className="pt-2 border-t border-forest-100 dark:border-forest-800">                  <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">
+                    Follow Us
                   </p>
                   <div className="flex gap-2 px-1">
                     {[
