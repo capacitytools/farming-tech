@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import TimeTracker from '@/components/TimeTracker';
+import DailyCheckin from '@/components/DailyCheckin';
 
 const MENU_SECTIONS = [
   {
@@ -46,8 +47,8 @@ const MENU_SECTIONS = [
 ];
 
 export default function TopBar() {
-  const [open, setOpen] = useState(false);
-  const [notifCount, setNotifCount] = useState(0);  const [msgCount, setMsgCount] = useState(0);
+  const [open, setOpen] = useState(false);  const [notifCount, setNotifCount] = useState(0);
+  const [msgCount, setMsgCount] = useState(0);
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -95,8 +96,8 @@ export default function TopBar() {
     (async () => {
       try {
         const supabase = createClient();
-        const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';
-        const { count } = await supabase          .from('notifications')
+        const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';        const { count } = await supabase
+          .from('notifications')
           .select('*', { count: 'exact', head: true })
           .gt('created_at', seen);
         setNotifCount(count || 0);
@@ -117,6 +118,7 @@ export default function TopBar() {
   return (
     <>
       <TimeTracker />
+      <DailyCheckin />
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
@@ -143,9 +145,9 @@ export default function TopBar() {
             </Link>
             <Link
               href="/inbox"
-              aria-label="Inbox"
-              className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
-            >              <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+              aria-label="Inbox"              className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
+            >
+              <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
               {msgCount > 0 && (
                 <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center">
                   {msgCount}
@@ -192,9 +194,9 @@ export default function TopBar() {
               className="fixed inset-0 z-50 bg-forest-900/50 backdrop-blur-sm"
             />
             <motion.div
-              initial={{ y: '-100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '-100%' }}              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              initial={{ y: '-100%' }}              animate={{ y: 0 }}
+              exit={{ y: '-100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
               className="fixed top-0 left-0 right-0 z-50 max-w-md mx-auto bg-white dark:bg-forest-900 rounded-b-3xl shadow-glass max-h-[85vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -241,9 +243,9 @@ export default function TopBar() {
                 ))}
 
                 <div className="pt-2 border-t border-forest-100 dark:border-forest-800">
-                  <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">
-                    Follow Us
-                  </p>                  <div className="flex gap-2 px-1">
+                  <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">                    Follow Us
+                  </p>
+                  <div className="flex gap-2 px-1">
                     {[
                       { icon: Facebook, href: 'https://www.facebook.com/share/1DLbDWeBd3/' },
                       { icon: Instagram, href: 'https://www.instagram.com/myfarmtech' },
