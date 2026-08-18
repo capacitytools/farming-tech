@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import QuickScanWidget from "@/components/home/QuickScanWidget";
 import { currencySymbol } from "@/lib/currency";
 import SpinWheel from "@/components/home/SpinWheel";
@@ -29,6 +30,10 @@ export default function HomeExperience({ d }: { d: any }) {
   const [persona, setPersona] = useState<string | null>(null);
   const [demo, setDemo] = useState<"" | "scan" | "result">("");
   const [left, setLeft] = useState({ d: 0, h: 0, m: 0, s: 0 });
+  const [homeOpenC, setHomeOpenC] = useState("");
+  const [homeComments, setHomeComments] = useState<any>({});
+  const [homeCText, setHomeCText] = useState("");
+  const [homeLikes, setHomeLikes] = useState<any>({});
 
   useEffect(() => {
     setPersona(localStorage.getItem("persona"));
@@ -42,12 +47,12 @@ export default function HomeExperience({ d }: { d: any }) {
       setLeft({
         d: Math.floor(diff / 86400000),
         h: Math.floor(diff / 3600000) % 24,
-        m: Math.floor(diff / 60000) % 60,
-        s: Math.floor(diff / 1000) % 60,
+        m: Math.floor(diff / 60000) % 60,        s: Math.floor(diff / 1000) % 60,
       });
     }, 1000);
     return () => clearInterval(t);
   }, []);
+
   useEffect(() => {
     if (demo !== "scan") return;
     const t = setTimeout(() => setDemo("result"), 2200);
@@ -59,9 +64,38 @@ export default function HomeExperience({ d }: { d: any }) {
     setPersona(p);
   }
 
+  async function toggleHomeComments(id: string) {
+    if (homeOpenC === id) { setHomeOpenC(""); return; }
+    setHomeOpenC(id);
+    const supabase = createClient();
+    const { data } = await supabase.from("feed_comments").select("*, profiles(full_name)").eq("post_id", id).order("created_at", { ascending: true });
+    setHomeComments({ ...homeComments, [id]: data || [] });
+  }
+
+  async function addHomeComment(id: string) {
+    if (!homeCText.trim()) return alert("Write a comment first.");
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Log in to comment.");
+    await supabase.from("feed_comments").insert({ post_id: id, user_id: user.id, content: homeCText.trim() });
+    setHomeCText("");
+    const { data } = await supabase.from("feed_comments").select("*, profiles(full_name)").eq("post_id", id).order("created_at", { ascending: true });
+    setHomeComments({ ...homeComments, [id]: data || [] });
+  }
+
+  async function homeLike(id: string) {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Log in to like posts.");
+    const { data: mine } = await supabase.from("feed_likes").select("id").eq("post_id", id).eq("user_id", user.id).single();
+    if (mine) await supabase.from("feed_likes").delete().eq("id", mine.id);
+    else await supabase.from("feed_likes").insert({ post_id: id, user_id: user.id, reaction: "like" });
+    const { count } = await supabase.from("feed_likes").select("*", { count: "exact", head: true }).eq("post_id", id);
+    setHomeLikes({ ...homeLikes, [id]: count || 0 });
+  }
+
   const P = persona ? PERSONAS[persona] : null;
   const TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
-
   const tickerItems = [
     ...d.tickerPosts.map((n: string) => "📣 " + n + " just posted on the Timeline"),
     ...d.tickerSales.map((s: any) => "💰 " + s.name + " SOLD: " + s.title),
@@ -96,7 +130,8 @@ export default function HomeExperience({ d }: { d: any }) {
           </div>
         )}
         <div className="grid grid-cols-3 gap-2 text-center mt-5">
-          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.profileCount}</p><p className="text-[10px] text-forest-100">Farmers</p></div>          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.tribeCount}</p><p className="text-[10px] text-forest-100">Tribes</p></div>
+          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.profileCount}</p><p className="text-[10px] text-forest-100">Farmers</p></div>
+          <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.tribeCount}</p><p className="text-[10px] text-forest-100">Tribes</p></div>
           <div className="bg-white/10 rounded-xl p-2"><p className="text-lg font-bold">{d.listingCount}</p><p className="text-[10px] text-forest-100">Live Listings</p></div>
         </div>
       </div>
@@ -110,8 +145,7 @@ export default function HomeExperience({ d }: { d: any }) {
       <div className="p-4">
         <button onClick={() => setDemo("scan")} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg active:scale-[0.98]">
           🩺 See the magic — watch a real diagnosis in 3 seconds (no signup)
-        </button>
-      </div>
+        </button>      </div>
 
       {demo !== "" && (
         <div className="fixed inset-0 z-50 bg-forest-900/95 p-4 overflow-y-auto">
@@ -145,7 +179,8 @@ export default function HomeExperience({ d }: { d: any }) {
       </div>
 
       {/* QUICK ACTIONS */}
-      <div className="px-4 mt-2">        <div className="glass-card p-4 rounded-2xl shadow-lg grid grid-cols-4 gap-2 text-center">
+      <div className="px-4 mt-2">
+        <div className="glass-card p-4 rounded-2xl shadow-lg grid grid-cols-4 gap-2 text-center">
           <Link href="/scanner" className="bg-green-50 p-2 rounded-xl"><span className="text-2xl">🩺</span><p className="text-[10px] font-bold text-green-800">AI Doctor</p></Link>
           <Link href="/market" className="bg-amber-50 p-2 rounded-xl"><span className="text-2xl">🐄</span><p className="text-[10px] font-bold text-amber-800">Market</p></Link>
           <Link href="/ebooks" className="bg-blue-50 p-2 rounded-xl"><span className="text-2xl">📚</span><p className="text-[10px] font-bold text-blue-800">E-books</p></Link>
@@ -159,8 +194,7 @@ export default function HomeExperience({ d }: { d: any }) {
           <div className="glass-card p-4 rounded-2xl border-2 border-green-300">
             <div className="flex items-center justify-between mb-2">
               <p className="font-bold text-sm">🚀 Get Started</p>
-              <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>
-            </div>
+              <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>            </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
               <div className="bg-green-600 h-2 rounded-full" style={{ width: (d.onboarding.doneCount / d.onboarding.steps.length) * 100 + "%" }} />
             </div>
@@ -189,12 +223,13 @@ export default function HomeExperience({ d }: { d: any }) {
         </Link>
       </div>
 
-      {/* FOR YOU with LOCK */}
+      {/* FOR YOU with LOCK + WORKING LIKE/COMMENTS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
           <span className="text-[10px] text-gray-500 font-semibold">🤖 smart-ranked</span>
-        </div>        <div className="space-y-3">
+        </div>
+        <div className="space-y-3">
           {hotVisible.map((p: any, i: number) => (
             <div key={p.id} className="glass-card p-3 rounded-2xl">
               <div className="flex items-center gap-2 mb-1">
@@ -208,12 +243,28 @@ export default function HomeExperience({ d }: { d: any }) {
                 <Link href={"/farmer/" + p.author_id} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
                 {p.author_verified && <span className="text-sky-500 text-xs">✅</span>}
                 <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>
-              </div>
-              <Link href="/feed" className="block text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{p.content}</Link>
+              </div>              <Link href="/feed" className="block text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{p.content}</Link>
               {p.image_url && (
                 <Link href="/feed"><img src={p.image_url} alt="" className="mt-2 w-full h-40 object-cover rounded-xl" /></Link>
               )}
-              <p className="text-[10px] text-gray-500 mt-2">❤️ {p.likes} · 💬 {p.comments} · 👁️ {p.views_count}</p>
+              <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600">
+                <button onClick={() => homeLike(p.id)} className="active:scale-90">❤️ {homeLikes[p.id] ?? p.likes ?? 0}</button>
+                <button onClick={() => toggleHomeComments(p.id)} className="text-green-700 active:scale-90">💬 Comment</button>
+                <Link href="/feed" className="ml-auto text-[10px] text-gray-400">Open in Timeline →</Link>
+              </div>
+              {homeOpenC === p.id && (
+                <div className="mt-2 space-y-2">
+                  {(homeComments[p.id] || []).map((c: any) => (
+                    <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
+                      <span className="font-bold">{c.profiles?.full_name || "Farmer"}:</span> {c.content}
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Write a comment..." value={homeCText} onChange={(e) => setHomeCText(e.target.value)} />
+                    <button onClick={() => addHomeComment(p.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 
@@ -241,9 +292,9 @@ export default function HomeExperience({ d }: { d: any }) {
 
       {/* CREATOR POOL COUNTDOWN */}
       <div className="px-4 mt-6">
-        <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">
-          <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
-          <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
+        <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">          <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
+          <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">
+            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
           </div>
           <p className="text-[10px] text-green-200 mt-1">left to earn points & claim your share · verified members get +10%</p>
           <Link href="/wallet" className="inline-block bg-amber-400 text-forest-900 px-5 py-2 rounded-xl font-bold text-xs mt-2">See How It Works →</Link>
@@ -290,9 +341,9 @@ export default function HomeExperience({ d }: { d: any }) {
           ))}
         </div>
       </div>
-
       {/* TRENDING TRIBES */}
-      <div className="mt-8">        <div className="flex items-center justify-between px-4 mb-3">
+      <div className="mt-8">
+        <div className="flex items-center justify-between px-4 mb-3">
           <h2 className="text-lg font-bold">🌾 Trending Tribes</h2>
           <Link href="/communities" className="text-xs font-semibold text-green-700">View all →</Link>
         </div>
@@ -339,9 +390,9 @@ export default function HomeExperience({ d }: { d: any }) {
           <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
         </div>
         <div className="glass-card p-4 rounded-2xl space-y-2">
-          {d.leaders.slice(0, 3).map((u: any, i: number) => (
-            <Link key={i} href={"/farmer/" + u.id} className="flex items-center gap-3">
-              <span className="text-lg">{["🥇", "", ""][i]}</span>              <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>
+          {d.leaders.slice(0, 3).map((u: any, i: number) => (            <Link key={i} href={"/farmer/" + u.id} className="flex items-center gap-3">
+              <span className="text-lg">{["🥇", "", ""][i]}</span>
+              <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>
               <p className="flex-1 font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
               <span className="text-xs font-bold text-amber-600">{u.points} pts</span>
             </Link>
@@ -362,7 +413,7 @@ export default function HomeExperience({ d }: { d: any }) {
                 {b.cover_url ? (
                   <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
                 ) : (
-                <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
+                  <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
                 )}
                 <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
                 <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number(b.price).toLocaleString()}</p>
