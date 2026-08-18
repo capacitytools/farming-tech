@@ -8,6 +8,9 @@ import VideoComposer from "@/components/VideoComposer";
 import AdBar from "@/components/AdBar";
 import AdBanner from "@/components/AdBanner";
 
+// Paste your Paystack PUBLIC key here (from Paystack Dashboard → Settings → API Keys)
+const PAYSTACK_PUBLIC_KEY = "pk_test_PASTE_YOUR_KEY_HERE";
+
 function renderText(text: string) {
   const parts = (text || "").split(/(https?:\/\/[^\s]+)/g);
   return parts.map((p, i) =>
@@ -17,6 +20,17 @@ function renderText(text: string) {
       <span key={i}>{p}</span>
     )
   );
+}
+
+function loadScript(src: string) {
+  return new Promise((res, rej) => {
+    if ((window as any).PaystackPop) return res(true);
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = res;
+    s.onerror = rej;
+    document.body.appendChild(s);
+  });
 }
 
 export default function FeedPage() {
@@ -34,7 +48,6 @@ export default function FeedPage() {
   const [cText, setCText] = useState("");
   const [videoMode, setVideoMode] = useState<"" | "reel" | "video">("");
   const [loaded, setLoaded] = useState(false);
-
   async function load() {
     const supabase = createClient();
     const { data: { user: u } } = await supabase.auth.getUser();
@@ -47,7 +60,8 @@ export default function FeedPage() {
       setFollowingIds(fIds);
     }
 
-    const [ranked, l, c, v] = await Promise.all([      supabase.rpc("ranked_feed", { uid: u?.id || null }),
+    const [ranked, l, c, v] = await Promise.all([
+      supabase.rpc("ranked_feed", { uid: u?.id || null }),
       supabase.from("feed_likes").select("post_id, user_id"),
       supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true }),
       supabase.from("videos").select("*, profiles(full_name, avatar_url, verified, role, referral_code)").eq("context", "feed").order("created_at", { ascending: false }).limit(10),
@@ -82,8 +96,7 @@ export default function FeedPage() {
     load();
   }, [tab]);
 
-  async function uploadImage(e: any) {
-    const file = e.target.files?.[0];
+  async function uploadImage(e: any) {    const file = e.target.files?.[0];
     if (!file) return;
     const supabase = createClient();
     const ext = file.name.split(".").pop() || "jpg";
@@ -96,17 +109,43 @@ export default function FeedPage() {
     e.preventDefault();
     if (!content.trim() || !user) return;
     setBusy(true);
-    const supabase = createClient();    await supabase.from("feed_posts").insert({ author_id: user.id, content: content.trim(), image_url: image || null });
+    const supabase = createClient();
+    await supabase.from("feed_posts").insert({ author_id: user.id, content: content.trim(), image_url: image || null });
     setContent("");
     setImage("");
     await load();
     setBusy(false);
   }
 
+  async function boost(item: any) {
+    if (!user) return alert("Log in first.");
+    if (PAYSTACK_PUBLIC_KEY.includes("PASTE")) return alert("Admin: add your Paystack public key at the top of app/feed/page.tsx");
+    try {
+      await loadScript("https://js.paystack.co/v1/inline.js");
+      (window as any).PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: user.email,
+        amount: 20000,
+        ref: "boost-" + Date.now(),
+        callback: async (resp: any) => {
+          const supabase = createClient();
+          await supabase.from("feed_posts").update({
+            boosted_until: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            boost_ref: resp.reference,
+          }).eq("id", item.id);
+          alert("🚀 Boosted! Your post sits on top of For You for 24 hours.");
+          load();
+        },
+      });
+      (window as any).PaystackPop.openIframe();
+    } catch {
+      alert("Payment could not start. Check your connection.");
+    }
+  }
+
   async function toggleLike(postId: string) {
     if (!user) return;
-    const supabase = createClient();
-    const mine = likes.find((l) => l.post_id === postId && l.user_id === user.id);
+    const supabase = createClient();    const mine = likes.find((l) => l.post_id === postId && l.user_id === user.id);
     if (mine) await supabase.from("feed_likes").delete().eq("id", mine.id);
     else await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id });
     const { data: l } = await supabase.from("feed_likes").select("post_id, user_id");
@@ -145,7 +184,8 @@ export default function FeedPage() {
 
   async function deleteVideo(id: string) {
     if (!confirm("Delete this video?")) return;
-    const supabase = createClient();    await supabase.from("videos").delete().eq("id", id);
+    const supabase = createClient();
+    await supabase.from("videos").delete().eq("id", id);
     load();
   }
 
@@ -154,8 +194,7 @@ export default function FeedPage() {
     const url = `${window.location.origin}/post/${item.id}?ref=${ref}`;
     const text = `${(item.content || item.title || "").slice(0, 120)} 🌾 Join, Learn, Grow, Connect & Earn on Farming Tech & Business!`;
     const en = encodeURIComponent;
-    const media = item.image_url || "";
-    const links: any = {
+    const media = item.image_url || "";    const links: any = {
       wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
       x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
@@ -194,7 +233,8 @@ export default function FeedPage() {
           <form onSubmit={publish} className="glass-card p-4 rounded-2xl">
             <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today? Paste links — they become clickable!" value={content} onChange={(e) => setContent(e.target.value)} />
             <div className="flex items-center gap-3 mt-2 flex-wrap">
-              <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>              <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
+              <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
+              <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
               <button type="button" onClick={() => setVideoMode(videoMode === "video" ? "" : "video")} className={`text-sm font-semibold ${videoMode === "video" ? "text-forest-700 underline" : "text-forest-600"}`}>🎬 Video</button>
               {image && <img src={image} alt="" className="h-10 w-10 object-cover rounded-lg" />}
               <button className="ml-auto bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>Post</button>
@@ -203,8 +243,7 @@ export default function FeedPage() {
           {videoMode && (
             <VideoComposer
               context="feed"
-              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
-              onDone={() => { setVideoMode(""); load(); }}
+              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}              onDone={() => { setVideoMode(""); load(); }}
             />
           )}
         </div>
@@ -221,7 +260,7 @@ export default function FeedPage() {
                 )}
               </div>
             ) : (
-              <div className="glass-card p-4 rounded-2xl">
+              <div className={`glass-card p-4 rounded-2xl ${item.boosted_until && new Date(item.boosted_until) > new Date() ? "border-2 border-amber-400" : ""}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Link href={`/farmer/${item.author_id}`}>
                     {item.profiles?.avatar_url ? (
@@ -234,6 +273,7 @@ export default function FeedPage() {
                     <p className="font-bold text-sm">
                       <Link href={`/farmer/${item.author_id}`} className="hover:underline">{item.profiles?.full_name || "Farmer"}</Link>
                       {item.profiles?.verified && <span className="ml-1 text-sky-500">✅</span>}
+                      {item.boosted_until && new Date(item.boosted_until) > new Date() && <span className="ml-1 text-[9px] bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full font-extrabold">🚀 BOOSTED</span>}
                     </p>
                     <p className="text-[10px] text-gray-400">{new Date(item.created_at).toLocaleDateString()} · 👁️ {item.views_count || 0} impressions</p>
                   </div>
@@ -244,6 +284,7 @@ export default function FeedPage() {
 
                 <p className="text-sm text-gray-800 whitespace-pre-line">{renderText(item.content)}</p>
                 {item.image_url && <img src={item.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
+
                 {item.ad && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-amber-300">
                     <AdBar ad={item.ad} />
@@ -251,12 +292,11 @@ export default function FeedPage() {
                 )}
 
                 {(() => {
-                  const postLikes = likes.filter((l) => l.post_id === item.id);
-                  const myLike = user && postLikes.find((l) => l.user_id === user.id);
+                  const postLikes = likes.filter((l) => l.post_id === item.id);                  const myLike = user && postLikes.find((l) => l.user_id === user.id);
                   const postComments = comments.filter((c) => c.post_id === item.id);
+                  const isBoosted = item.boosted_until && new Date(item.boosted_until) > new Date();
                   return (
                     <>
-                      {/* FACEBOOK-STYLE STATS BAR */}
                       <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 text-[10px] text-gray-500 font-semibold">
                         <span>❤️ {postLikes.length} likes</span>
                         <span>💬 {postComments.length} comments · 🔁 {item.shares_count || 0} shares</span>
@@ -264,7 +304,10 @@ export default function FeedPage() {
                       <div className="flex items-center gap-2 mt-2 text-xs font-bold text-gray-600 flex-wrap">
                         <button onClick={() => toggleLike(item.id)} className={`flex-1 py-1.5 rounded-lg ${myLike ? "text-red-600 bg-red-50" : "active:bg-gray-100"}`}>❤️ Like</button>
                         <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-green-700">💬 Comment</button>
-                        <button onClick={() => repost(item)} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-amber-700">🔁 Share Now</button>
+                        <button onClick={() => repost(item)} className="flex-1 py-1.5 rounded-lg active:bg-gray-100 text-amber-700">🔁 Share</button>
+                        {user?.id === item.author_id && !isBoosted && (
+                          <button onClick={() => boost(item)} className="flex-1 py-1.5 rounded-lg bg-amber-100 text-amber-800 font-extrabold">🚀 Boost ₦200</button>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
                         <span className="text-[9px] text-gray-400">Share via:</span>
@@ -292,13 +335,13 @@ export default function FeedPage() {
                         </div>
                       )}
                     </>
-                  );                })()}
+                  );
+                })()}
               </div>
             )}
 
             {(idx + 1) % 3 === 0 && (
-              <div className="mt-4">
-                <AdBanner slot="timeline" />
+              <div className="mt-4">                <AdBanner slot="timeline" />
               </div>
             )}
           </div>
