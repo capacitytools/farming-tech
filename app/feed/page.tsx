@@ -8,7 +8,7 @@ import VideoComposer from "@/components/VideoComposer";
 import AdBar from "@/components/AdBar";
 import AdBanner from "@/components/AdBanner";
 
-const PAYSTACK_PUBLIC_KEY = "pk_test_PASTE_YOUR_KEY_HERE";
+const PAYSTACK_PUBLIC_KEY = "pk_live_00573ba36a45a7fa73d358fee60ae30f5ce1dd49";
 
 const REACTIONS = [
   { key: "like", e: "👍", label: "Like" },
