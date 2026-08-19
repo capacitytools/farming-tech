@@ -31,8 +31,13 @@ export default function EbookDetailClient({ id }: { id: string }) {
     const supabase = createClient();
     const { data: { user: u } } = await supabase.auth.getUser();
     setUser(u);
-    const { data: b } = await supabase.from("ebooks").select("*, profiles(full_name, avatar_url, verified, referral_code)").eq("id", id).single();
-    setBook(b);
+
+    const { data: b } = await supabase.from("ebooks").select("*").eq("id", id).single();
+    if (!b) { setLoaded(true); return; }
+    const { data: pr } = await supabase.from("profiles").select("full_name, avatar_url, verified, referral_code").eq("id", b.author_id).single();
+    const withProf = { ...b, profiles: pr || null };
+    setBook(withProf);
+
     if (u) {
       const [{ data: p }, { data: pu }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", u.id).single(),
@@ -41,13 +46,12 @@ export default function EbookDetailClient({ id }: { id: string }) {
       setProfile(p);
       setPurchases(pu || []);
     }
-    // Capture promoter ref for signup points
     const refParam = new URLSearchParams(window.location.search).get("ref");
-    if (refParam && refParam !== b?.profiles?.referral_code) {
-      localStorage.setItem("refCode", refParam);
+    if (refParam && refParam !== withProf.profiles?.referral_code) {      localStorage.setItem("refCode", refParam);
     }
     setLoaded(true);
   }
+
   useEffect(() => { load(); }, [id]);
 
   function myLink() {
@@ -92,11 +96,11 @@ export default function EbookDetailClient({ id }: { id: string }) {
         amount: book.price * 100,
         ref: "ebook-" + Date.now(),
         callback: function () {
-          (async () => {
-            const supabase = createClient();
+          (async () => {            const supabase = createClient();
             await supabase.from("ebook_purchases").insert({
               ebook_id: book.id,
-              user_id: user.id,              status: "paid",
+              user_id: user.id,
+              status: "paid",
               affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,
             });
             alert("🎉 Payment successful! Your ebook is unlocked.");
@@ -141,10 +145,10 @@ export default function EbookDetailClient({ id }: { id: string }) {
         </p>
         <p className="text-2xl font-extrabold text-green-700 mt-2">{currencySymbol(book.currency || "NGN")}{Number(book.price).toLocaleString()}</p>
 
-        <div className="glass-card p-4 rounded-2xl mt-4">
-          <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1">📖 What's inside</p>
+        <div className="glass-card p-4 rounded-2xl mt-4">          <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1">📖 What's inside</p>
           <p className="text-sm text-gray-800 whitespace-pre-line">{book.description || "The author has not added details yet."}</p>
         </div>
+
         {msg && <p className="text-xs font-bold text-green-700 mt-3">{msg}</p>}
 
         <div className="mt-4 space-y-2">
@@ -164,7 +168,6 @@ export default function EbookDetailClient({ id }: { id: string }) {
             <button onClick={() => share("x")} className="px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700">𝕏</button>
             <button onClick={() => share("copy")} className="px-3 py-2 rounded-xl text-xs font-bold bg-forest-600 text-white">🔗 Copy My Link</button>
           </div>
-          <p className="text-[9px] font-mono text-gray-400 mt-2 truncate">{typeof window !== "undefined" ? window.location.origin : ""}/ebooks/{book.id}{profile?.referral_code ? `?ref=${profile.referral_code}` : ""}</p>
         </div>
 
         <p className="text-[9px] text-gray-400 mt-4 text-center">Secured by Paystack · access unlocked immediately after payment</p>
