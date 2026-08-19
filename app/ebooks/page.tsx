@@ -10,9 +10,10 @@ function loadScript(src: string) {
   return new Promise((res, rej) => {
     if ((window as any).PaystackPop) return res(true);
     const s = document.createElement("script");
+    const t = setTimeout(() => rej(new Error("Paystack script timed out")), 10000);
     s.src = src;
-    s.onload = res;
-    s.onerror = rej;
+    s.onload = () => { clearTimeout(t); res(true); };
+    s.onerror = () => { clearTimeout(t); rej(new Error("Paystack script blocked or failed to load")) };
     document.body.appendChild(s);
   });
 }
@@ -46,8 +47,8 @@ export default function EbooksPage() {
     let withAuthors: any[] = b || [];
     if (b && b.length) {
       const ids = Array.from(new Set(b.map((x: any) => x.author_id)));
-      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);
-      const map: any = {};      (pr || []).forEach((p: any) => { map[p.id] = p; });
+      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);      const map: any = {};
+      (pr || []).forEach((p: any) => { map[p.id] = p; });
       withAuthors = b.map((x: any) => ({ ...x, profiles: map[x.author_id] || null }));
     }
     setBooks(withAuthors);
@@ -95,8 +96,8 @@ export default function EbooksPage() {
       access_link: form.mode === "link" ? form.link.trim() : null,
     });
     setMsg("✅ Ebook published! You keep 70% of every sale.");
-    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });
-    setCover(""); setFileUrl("");    setShowForm(false);
+    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });    setCover(""); setFileUrl("");
+    setShowForm(false);
     setTimeout(() => setMsg(""), 2500);
     await load();
     setBusy(false);
@@ -106,8 +107,9 @@ export default function EbooksPage() {
     if (!user) return alert("Log in to buy ebooks.");
     try {
       await loadScript("https://js.paystack.co/v1/inline.js");
-      const refParam = new URLSearchParams(window.location.search).get("ref") || localStorage.getItem("refCode") || null;
-      (window as any).PaystackPop.setup({
+      const pop = (window as any).PaystackPop;
+      if (!pop || !pop.setup) throw new Error("PaystackPop not available on this browser");
+      const handler = pop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: user.email,
         amount: book.price * 100,
@@ -118,15 +120,14 @@ export default function EbooksPage() {
             ebook_id: book.id,
             user_id: user.id,
             status: "paid",
-            affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,
           });
           alert("🎉 Payment successful! Your ebook is unlocked below.");
           load();
         },
       });
-      (window as any).PaystackPop.openIframe();
-    } catch {
-      alert("Payment could not start. Check your connection.");
+      handler.openIframe();
+    } catch (err: any) {
+      alert("Payment error: " + (err && err.message ? err.message : "unknown error — screenshot this and send to admin"));
     }
   }
 
@@ -144,8 +145,8 @@ export default function EbooksPage() {
     const code = profile?.referral_code || "";
     const url = `${window.location.origin}/ebooks?ref=${code}`;
     navigator.clipboard.writeText(url);
-    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");
-    setTimeout(() => setMsg(""), 2500);  }
+    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");    setTimeout(() => setMsg(""), 2500);
+  }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
 
@@ -193,8 +194,8 @@ export default function EbooksPage() {
       <div className="grid grid-cols-2 gap-3">
         {books.map((b) => (
           <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
-            {b.cover_url ? (
-              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />            ) : (
+            {b.cover_url ? (              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
+            ) : (
               <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
             )}
             <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
