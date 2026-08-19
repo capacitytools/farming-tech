@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { currencySymbol } from "@/lib/currency";
 
-// PASTE YOUR PAYSTACK LIVE PUBLIC KEY HERE
 const PAYSTACK_PUBLIC_KEY = "pk_live_00573ba36a45a7fa73d358fee60ae30f5ce1dd49";
 
 function loadScript(src: string) {
@@ -47,8 +46,8 @@ export default function EbooksPage() {
     let withAuthors: any[] = b || [];
     if (b && b.length) {
       const ids = Array.from(new Set(b.map((x: any) => x.author_id)));
-      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);      const map: any = {};
-      (pr || []).forEach((p: any) => { map[p.id] = p; });
+      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);
+      const map: any = {};      (pr || []).forEach((p: any) => { map[p.id] = p; });
       withAuthors = b.map((x: any) => ({ ...x, profiles: map[x.author_id] || null }));
     }
     setBooks(withAuthors);
@@ -96,8 +95,8 @@ export default function EbooksPage() {
       access_link: form.mode === "link" ? form.link.trim() : null,
     });
     setMsg("✅ Ebook published! You keep 70% of every sale.");
-    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });    setCover(""); setFileUrl("");
-    setShowForm(false);
+    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });
+    setCover(""); setFileUrl("");    setShowForm(false);
     setTimeout(() => setMsg(""), 2500);
     await load();
     setBusy(false);
@@ -145,8 +144,8 @@ export default function EbooksPage() {
     const code = profile?.referral_code || "";
     const url = `${window.location.origin}/ebooks?ref=${code}`;
     navigator.clipboard.writeText(url);
-    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");    setTimeout(() => setMsg(""), 2500);
-  }
+    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");
+    setTimeout(() => setMsg(""), 2500);  }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
 
@@ -194,8 +193,8 @@ export default function EbooksPage() {
       <div className="grid grid-cols-2 gap-3">
         {books.map((b) => (
           <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
-            {b.cover_url ? (              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
-            ) : (
+            {b.cover_url ? (
+              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />            ) : (
               <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
             )}
             <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
