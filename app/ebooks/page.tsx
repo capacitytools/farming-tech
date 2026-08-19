@@ -13,7 +13,7 @@ function loadScript(src: string) {
     const t = setTimeout(() => rej(new Error("Paystack script timed out")), 10000);
     s.src = src;
     s.onload = () => { clearTimeout(t); res(true); };
-    s.onerror = () => { clearTimeout(t); rej(new Error("Paystack script blocked or failed to load")) };
+    s.onerror = () => { clearTimeout(t); rej(new Error("Paystack script blocked or failed to load")); };
     document.body.appendChild(s);
   });
 }
@@ -114,15 +114,17 @@ export default function EbooksPage() {
         email: user.email,
         amount: book.price * 100,
         ref: "ebook-" + Date.now(),
-        callback: async () => {
-          const supabase = createClient();
-          await supabase.from("ebook_purchases").insert({
-            ebook_id: book.id,
-            user_id: user.id,
-            status: "paid",
-          });
-          alert("🎉 Payment successful! Your ebook is unlocked below.");
-          load();
+        callback: function () {
+          (async () => {
+            const supabase = createClient();
+            await supabase.from("ebook_purchases").insert({
+              ebook_id: book.id,
+              user_id: user.id,
+              status: "paid",
+            });
+            alert("🎉 Payment successful! Your ebook is unlocked below.");
+            load();
+          })();
         },
       });
       handler.openIframe();
@@ -143,9 +145,9 @@ export default function EbooksPage() {
 
   function affiliateLink() {
     const code = profile?.referral_code || "";
-    const url = `${window.location.origin}/ebooks?ref=${code}`;
-    navigator.clipboard.writeText(url);
-    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");    setTimeout(() => setMsg(""), 2500);
+    const url = `${window.location.origin}/ebooks?ref=${code}`;    navigator.clipboard.writeText(url);
+    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");
+    setTimeout(() => setMsg(""), 2500);
   }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
@@ -192,9 +194,9 @@ export default function EbooksPage() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        {books.map((b) => (
-          <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
-            {b.cover_url ? (              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
+        {books.map((b) => (          <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
+            {b.cover_url ? (
+              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
             ) : (
               <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
             )}
