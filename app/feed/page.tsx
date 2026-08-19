@@ -159,7 +159,6 @@ export default function FeedPage() {
 
   async function boost(item: any) {
     if (!user) return alert("Log in first.");
-    if (PAYSTACK_PUBLIC_KEY.includes("PASTE")) return alert("Admin: add your Paystack public key at the top of app/feed/page.tsx");
     try {
       await loadScript("https://js.paystack.co/v1/inline.js");
       (window as any).PaystackPop.setup({
@@ -194,8 +193,8 @@ export default function FeedPage() {
 
   async function addComment(postId: string) {
     if (!cText.trim() || !user) return;
-    const supabase = createClient();    await supabase.from("feed_comments").insert({ post_id: postId, user_id: user.id, content: cText.trim() });
-    setCText("");
+    const supabase = createClient();
+    await supabase.from("feed_comments").insert({ post_id: postId, user_id: user.id, content: cText.trim() });    setCText("");
     const { data: c } = await supabase.from("feed_comments").select("*, profiles(full_name)").order("created_at", { ascending: true });
     setComments(c || []);
   }
@@ -243,8 +242,8 @@ export default function FeedPage() {
     const supabase = createClient();
     supabase.from("feed_posts").update({ shares_count: (item.shares_count || 0) + 1 }).eq("id", item.id);
     if (network === "copy") navigator.clipboard.writeText(url);
-    else if (network === "status") {      navigator.clipboard.writeText(text + " " + url);
-      window.open("https://wa.me/", "_blank");
+    else if (network === "status") {
+      navigator.clipboard.writeText(text + " " + url);      window.open("https://wa.me/", "_blank");
     } else window.open(links[network], "_blank");
   }
 
@@ -292,8 +291,8 @@ export default function FeedPage() {
       )}
 
       <div className="space-y-4">
-        {timeline.map((item: any, idx: number) => (          <div key={`${item.kind}-${item.id}`}>
-            {item.kind === "video" ? (
+        {timeline.map((item: any, idx: number) => (
+          <div key={`${item.kind}-${item.id}`}>            {item.kind === "video" ? (
               <div>
                 <VideoCard video={item} />
                 {(user?.id === item.author_id || user?.role === "admin") && (
@@ -341,10 +340,9 @@ export default function FeedPage() {
                   const counts: any = {};
                   postLikes.forEach((l) => { counts[l.reaction] = (counts[l.reaction] || 0) + 1; });
                   const summary = REACTIONS.filter((r) => counts[r.key]).map((r) => r.e).join("");
-                  const postComments = comments.filter((c) => c.post_id === item.id);                  const isBoosted = item.boosted_until && new Date(item.boosted_until) > new Date();
-                  return (
+                  const postComments = comments.filter((c) => c.post_id === item.id);
+                  const isBoosted = item.boosted_until && new Date(item.boosted_until) > new Date();                  return (
                     <>
-                      {/* REACTION SUMMARY — click to see WHO reacted */}
                       <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100 text-[10px] text-gray-500 font-semibold">
                         <button onClick={() => openReactors(item)} className="flex items-center gap-1">
                           {summary && <span className="text-sm">{summary}</span>} {postLikes.length} reactions
@@ -352,7 +350,6 @@ export default function FeedPage() {
                         <button onClick={() => setOpenC(openC === item.id ? "" : item.id)} className="text-gray-500">💬 {postComments.length} comments · 🔁 {item.shares_count || 0} shares</button>
                       </div>
 
-                      {/* REACTION PICKER (appears on hold) */}
                       {pickerFor === item.id && (
                         <div className="flex gap-1 bg-white rounded-full shadow-xl p-1.5 mt-2 w-max border border-gray-200">
                           {REACTIONS.map((r) => (
@@ -378,7 +375,6 @@ export default function FeedPage() {
                         )}
                       </div>
 
-                      {/* ENGAGEMENT RADAR — only the poster sees it */}
                       {user?.id === item.author_id && (
                         <button onClick={() => openReactors(item)} className="w-full mt-2 bg-forest-50 rounded-xl p-2 text-[10px] font-bold text-forest-700 flex justify-around">
                           <span>📊 ENGAGEMENT</span>
@@ -390,11 +386,11 @@ export default function FeedPage() {
                       )}
 
                       <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
-                        <span className="text-[9px] text-gray-400">Share via:</span>                        <button onClick={() => share(item, "wa")} title="WhatsApp">📤</button>
+                        <span className="text-[9px] text-gray-400">Share via:</span>
+                        <button onClick={() => share(item, "wa")} title="WhatsApp">📤</button>
                         <button onClick={() => share(item, "status")} title="WhatsApp Status">🟢</button>
                         <button onClick={() => share(item, "fb")} title="Facebook">f</button>
-                        <button onClick={() => share(item, "x")} title="X / Twitter">𝕏</button>
-                        <button onClick={() => share(item, "pin")} title="Pinterest">📌</button>
+                        <button onClick={() => share(item, "x")} title="X / Twitter">𝕏</button>                        <button onClick={() => share(item, "pin")} title="Pinterest">📌</button>
                         <button onClick={() => share(item, "copy")} title="Copy link">🔗</button>
                       </div>
                       {openC === item.id && (
@@ -433,18 +429,17 @@ export default function FeedPage() {
         )}
       </div>
 
-      {/* REACTORS MODAL — who liked/loved/etc + full stats */}
       {reactorsFor && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setReactorsFor("")}>
           <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-4 max-h-[75vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <p className="font-extrabold">📊 Post Engagement</p>
-              <button onClick={() => setReactorsFor("")} className="text-gray-400 font-bold">✕</button>            </div>
+              <button onClick={() => setReactorsFor("")} className="text-gray-400 font-bold">✕</button>
+            </div>
             {reactorItem && (
               <div className="grid grid-cols-4 gap-2 text-center mb-4">
                 <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{reactorItem.views_count || 0}</p><p className="text-[9px] text-gray-500">👁️ Views</p></div>
-                <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{reactors.length}</p><p className="text-[9px] text-gray-500">🎭 Reactions</p></div>
-                <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{comments.filter((c) => c.post_id === reactorsFor).length}</p><p className="text-[9px] text-gray-500">💬 Comments</p></div>
+                <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{reactors.length}</p><p className="text-[9px] text-gray-500">🎭 Reactions</p></div>                <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{comments.filter((c) => c.post_id === reactorsFor).length}</p><p className="text-[9px] text-gray-500">💬 Comments</p></div>
                 <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{reactorItem.shares_count || 0}</p><p className="text-[9px] text-gray-500">🔁 Shares</p></div>
               </div>
             )}
