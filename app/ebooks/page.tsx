@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { currencySymbol } from "@/lib/currency";
 
@@ -24,7 +25,6 @@ export default function EbooksPage() {
   const [books, setBooks] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [selected, setSelected] = useState<any>(null);
   const [form, setForm] = useState({ title: "", desc: "", price: "", mode: "file", link: "" });
   const [cover, setCover] = useState("");
   const [fileUrl, setFileUrl] = useState("");
@@ -110,6 +110,7 @@ export default function EbooksPage() {
       await loadScript("https://js.paystack.co/v1/inline.js");
       const pop = (window as any).PaystackPop;
       if (!pop || !pop.setup) throw new Error("PaystackPop not available on this browser");
+      const refParam = new URLSearchParams(window.location.search).get("ref") || localStorage.getItem("refCode") || null;
       const handler = pop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: user.email,
@@ -122,16 +123,16 @@ export default function EbooksPage() {
               ebook_id: book.id,
               user_id: user.id,
               status: "paid",
+              affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,
             });
-            alert("🎉 Payment successful! Your ebook is unlocked below.");
-            setSelected(null);
+            alert("🎉 Payment successful! Your ebook is unlocked.");
             load();
           })();
         },
       });
       handler.openIframe();
     } catch (err: any) {
-      alert("Payment error: " + (err && err.message ? err.message : "unknown error — screenshot this and send to admin"));
+      alert("Payment error: " + (err && err.message ? err.message : "unknown error"));
     }
   }
 
@@ -144,11 +145,13 @@ export default function EbooksPage() {
     else if (book.file_url) window.open(book.file_url, "_blank");
     else alert("The author has not attached content yet.");
   }
-
-  function affiliateLink() {    const code = profile?.referral_code || "";
-    const url = `${window.location.origin}/ebooks?ref=${code}`;
-    navigator.clipboard.writeText(url);
-    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");
+  function copyMyLink(book: any, e: any) {
+    e.preventDefault();
+    e.stopPropagation();
+    const base = `${window.location.origin}/ebooks/${book.id}`;
+    const code = profile?.referral_code || "";
+    navigator.clipboard.writeText(code ? `${base}?ref=${code}` : base);
+    setMsg("✅ Your personal link for this ebook copied — share & earn!");
     setTimeout(() => setMsg(""), 2500);
   }
 
@@ -160,14 +163,14 @@ export default function EbooksPage() {
         <h1 className="text-2xl font-extrabold">📚 E-book Store</h1>
         <button onClick={() => setShowForm(!showForm)} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ Publish Ebook</button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">Tap any ebook to read its full details before buying. Authors keep 70%, affiliates earn 10%.</p>
+      <p className="text-xs text-gray-500 mb-4">Tap any ebook for full details. Share its link with your code and earn 10% + signup points.</p>
       {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
 
       {showForm && (
         <form onSubmit={publish} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
           <p className="text-sm font-bold text-forest-700">📖 Publish your ebook</p>
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (e.g. Rabbit Farming Masterclass)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? List everything inside (this is what buyers see before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
+          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? List everything inside (buyers see this before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" type="number" placeholder="Price in Naira (e.g. 1500)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image (optional)
             <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
@@ -191,62 +194,34 @@ export default function EbooksPage() {
           )}
           {form.mode === "file" && fileUrl && <p className="text-[10px] text-green-700 font-bold">✅ File attached</p>}
 
-          <button className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>🚀 Publish (you keep 70%)</button>
-        </form>
+          <button className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>🚀 Publish (you keep 70%)</button>        </form>
       )}
+
       <div className="grid grid-cols-2 gap-3">
         {books.map((b) => (
-          <div key={b.id} onClick={() => setSelected(b)} className="glass-card p-3 rounded-2xl flex flex-col cursor-pointer active:scale-[0.98]">
-            {b.cover_url ? (
-              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
-            ) : (
-              <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
-            )}
-            <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
-            <p className="text-[10px] text-gray-500 mt-1">by {b.profiles?.full_name || "Farmer"}</p>
-            <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(b.currency || "NGN")}{Number(b.price).toLocaleString()}</p>
-            <p className="text-[9px] text-gray-400 mt-1">👁️ Tap for full details</p>
+          <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
+            <Link href={`/ebooks/${b.id}`} className="active:scale-[0.98]">
+              {b.cover_url ? (
+                <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
+              ) : (
+                <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
+              )}
+              <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
+              <p className="text-[10px] text-gray-500 mt-1">by {b.profiles?.full_name || "Farmer"}</p>
+              <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(b.currency || "NGN")}{Number(b.price).toLocaleString()}</p>
+            </Link>
+            <div className="mt-2 space-y-1">
+              {owned(b) ? (
+                <button onClick={() => openBook(b)} className="w-full bg-forest-600 text-white py-2 rounded-xl text-xs font-bold">📖 Read / Download</button>
+              ) : (
+                <button onClick={() => buy(b)} className="w-full bg-green-600 text-white py-2 rounded-xl text-xs font-bold">💳 Buy Now</button>
+              )}
+              {user && <button onClick={(e) => copyMyLink(b, e)} className="w-full bg-amber-100 text-amber-700 py-1.5 rounded-xl text-[10px] font-bold">🔗 Copy My Share Link & earn 10%</button>}
+            </div>
           </div>
         ))}
       </div>
       {books.length === 0 && <p className="text-sm text-gray-500 text-center py-10">No ebooks yet. Publish the first one and keep 70% of every sale!</p>}
-
-      {/* DETAIL VIEW — everything a buyer needs before paying */}
-      {selected && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setSelected(null)}>
-          <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="relative">
-              {selected.cover_url ? (
-                <img src={selected.cover_url} alt={selected.title} className="w-full h-56 object-cover" />
-              ) : (
-                <div className="w-full h-40 bg-forest-100 flex items-center justify-center text-5xl">📚</div>
-              )}
-              <button onClick={() => setSelected(null)} className="absolute top-3 right-3 w-9 h-9 bg-black/60 text-white rounded-full font-bold">✕</button>
-            </div>
-            <div className="p-5">
-              <h2 className="text-lg font-extrabold text-forest-900">{selected.title}</h2>
-              <p className="text-xs text-gray-500 mt-1">by {selected.profiles?.full_name || "Farmer"} {selected.profiles?.verified && "✅"}</p>
-              <p className="text-xl font-extrabold text-green-700 mt-2">{currencySymbol(selected.currency || "NGN")}{Number(selected.price).toLocaleString()}</p>
-
-              <div className="mt-4">
-                <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1">📖 What's inside</p>
-                <p className="text-sm text-gray-800 whitespace-pre-line">{selected.description || "The author has not added details yet."}</p>
-              </div>
-
-              <div className="mt-5 space-y-2">
-                {owned(selected) ? (
-                  <button onClick={() => openBook(selected)} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold">📖 Read / Download Now</button>
-                ) : (
-                  <button onClick={() => buy(selected)} className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold">💳 Buy Now — instant access</button>
-                )}
-                {user && (
-                  <button onClick={affiliateLink} className="w-full bg-amber-100 text-amber-700 py-2 rounded-xl text-xs font-bold">🔗 Promote & earn 10% of every sale</button>
-                )}
-                <p className="text-[9px] text-gray-400 text-center">Secured by Paystack · access unlocked immediately after payment</p>
-              </div>            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
