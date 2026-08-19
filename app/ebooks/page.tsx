@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { currencySymbol } from "@/lib/currency";
 
 // PASTE YOUR PAYSTACK LIVE PUBLIC KEY HERE
-const PAYSTACK_PUBLIC_KEY = "pk_live_PASTE_YOUR_LIVE_KEY_HERE";
+const PAYSTACK_PUBLIC_KEY = "pk_live_00573ba36a45a7fa73d358fee60ae30f5ce1dd49";
 
 function loadScript(src: string) {
   return new Promise((res, rej) => {
