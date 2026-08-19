@@ -9,6 +9,7 @@ import SpinWheel from "@/components/home/SpinWheel";
 import EarnSim from "@/components/home/EarnSim";
 import Stories from "@/components/home/Stories";
 import HelperBubble from "@/components/home/HelperBubble";
+import EbookBanner from "@/components/home/EbookBanner";
 
 const TIPS = [
   "Give rabbits fresh water daily — a doe with kits drinks 2x more.",
@@ -20,7 +21,7 @@ const TIPS = [
 ];
 
 const PERSONAS: any = {
-  farmer: { emoji: "👨‍", label: "I'm a Farmer", tag: "Diagnose diseases with your camera, sell at your price & get paid to learn.", cta: { href: "/scanner", text: "🩺 Try the AI Doctor now" } },
+  farmer: { emoji: "👨🌾", label: "I'm a Farmer", tag: "Diagnose diseases with your camera, sell at your price & get paid to learn.", cta: { href: "/scanner", text: "🩺 Try the AI Doctor now" } },
   buyer: { emoji: "🛒", label: "I Want to Buy", tag: "Trusted farmers, verified sellers, real reviews — shop farm-fresh with confidence.", cta: { href: "/market", text: "🐄 Browse the Market" } },
   business: { emoji: "💼", label: "I'm a Business", tag: "Put your brand under every video & post — thousands of farmers see you daily.", cta: { href: "/ads/submit", text: "📢 Advertise Here" } },
   creator: { emoji: "🎬", label: "I'm a Creator", tag: "Post videos, publish e-books, keep 70% of sales & earn from the ad pool monthly.", cta: { href: "/ebooks", text: "💰 Start Earning" } },
@@ -46,8 +47,8 @@ export default function HomeExperience({ d }: { d: any }) {
       const diff = Math.max(0, end.getTime() - now.getTime());
       setLeft({
         d: Math.floor(diff / 86400000),
-        h: Math.floor(diff / 3600000) % 24,
-        m: Math.floor(diff / 60000) % 60,        s: Math.floor(diff / 1000) % 60,
+        h: Math.floor(diff / 3600000) % 24,        m: Math.floor(diff / 60000) % 60,
+        s: Math.floor(diff / 1000) % 60,
       });
     }, 1000);
     return () => clearInterval(t);
@@ -144,8 +145,8 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* MAGIC DEMO */}
       <div className="p-4">
         <button onClick={() => setDemo("scan")} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg active:scale-[0.98]">
-          🩺 See the magic — watch a real diagnosis in 3 seconds (no signup)
-        </button>      </div>
+          🩺 See the magic — watch a real diagnosis in 3 seconds (no signup)        </button>
+      </div>
 
       {demo !== "" && (
         <div className="fixed inset-0 z-50 bg-forest-900/95 p-4 overflow-y-auto">
@@ -193,8 +194,8 @@ export default function HomeExperience({ d }: { d: any }) {
         <div className="px-4 mt-4">
           <div className="glass-card p-4 rounded-2xl border-2 border-green-300">
             <div className="flex items-center justify-between mb-2">
-              <p className="font-bold text-sm">🚀 Get Started</p>
-              <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>            </div>
+              <p className="font-bold text-sm">🚀 Get Started</p>              <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>
+            </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
               <div className="bg-green-600 h-2 rounded-full" style={{ width: (d.onboarding.doneCount / d.onboarding.steps.length) * 100 + "%" }} />
             </div>
@@ -223,6 +224,9 @@ export default function HomeExperience({ d }: { d: any }) {
         </Link>
       </div>
 
+      {/* SHINING EBOOK BANNER */}
+      <EbookBanner count={d.ebooks.length} />
+
       {/* FOR YOU with LOCK + WORKING LIKE/COMMENTS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
@@ -239,11 +243,11 @@ export default function HomeExperience({ d }: { d: any }) {
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{(p.author_name || "?")[0]}</div>
                   )}
-                </Link>
-                <Link href={"/farmer/" + p.author_id} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
+                </Link>                <Link href={"/farmer/" + p.author_name ? "/farmer/" + p.author_id : "/feed"} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
                 {p.author_verified && <span className="text-sky-500 text-xs">✅</span>}
                 <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>
-              </div>              <Link href="/feed" className="block text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{p.content}</Link>
+              </div>
+              <Link href="/feed" className="block text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{p.content}</Link>
               {p.image_url && (
                 <Link href="/feed"><img src={p.image_url} alt="" className="mt-2 w-full h-40 object-cover rounded-xl" /></Link>
               )}
@@ -289,10 +293,10 @@ export default function HomeExperience({ d }: { d: any }) {
           {d.hot.length === 0 && <p className="text-sm text-gray-500">No posts yet — be the first on the For You board!</p>}
         </div>
       </div>
-
       {/* CREATOR POOL COUNTDOWN */}
       <div className="px-4 mt-6">
-        <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">          <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
+        <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">
+          <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
           <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">
             <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
           </div>
@@ -337,10 +341,10 @@ export default function HomeExperience({ d }: { d: any }) {
                 <p className="font-semibold text-sm line-clamp-2">{b.title}</p>
                 <p className="text-[10px] text-gray-500 mt-1">{b.category} · 👁️ {b.views_count || 0}</p>
               </div>
-            </Link>
-          ))}
+            </Link>          ))}
         </div>
       </div>
+
       {/* TRENDING TRIBES */}
       <div className="mt-8">
         <div className="flex items-center justify-between px-4 mb-3">
@@ -386,12 +390,12 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* TOP FARMERS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">🏆 Top Farmers</h2>
-          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
+          <h2 className="text-lg font-bold">🏆 Top Farmers</h2>          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
         </div>
         <div className="glass-card p-4 rounded-2xl space-y-2">
-          {d.leaders.slice(0, 3).map((u: any, i: number) => (            <Link key={i} href={"/farmer/" + u.id} className="flex items-center gap-3">
-              <span className="text-lg">{["🥇", "", ""][i]}</span>
+          {d.leaders.slice(0, 3).map((u: any, i: number) => (
+            <Link key={i} href={"/farmer/" + u.id} className="flex items-center gap-3">
+              <span className="text-lg">{["🥇", "🥈", "🥉"][i]}</span>
               <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>
               <p className="flex-1 font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
               <span className="text-xs font-bold text-amber-600">{u.points} pts</span>
@@ -416,7 +420,7 @@ export default function HomeExperience({ d }: { d: any }) {
                   <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
                 )}
                 <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
-                <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number(b.price).toLocaleString()}</p>
+                <p className="text-xs font-bold text-green-700 mt-1">{currencySymbol(b.currency || "NGN")}{Number(b.price).toLocaleString()}</p>
               </Link>
             ))}
           </div>
@@ -435,5 +439,4 @@ export default function HomeExperience({ d }: { d: any }) {
       <SpinWheel userId={d.user ? d.user.id : null} />
       <HelperBubble />
     </div>
-  );
-}
+  );}
