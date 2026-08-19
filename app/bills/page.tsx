@@ -21,9 +21,10 @@ function loadScript(src: string) {
   return new Promise((res, rej) => {
     if ((window as any).PaystackPop) return res(true);
     const s = document.createElement("script");
+    const t = setTimeout(() => rej(new Error("Paystack script timed out")), 10000);
     s.src = src;
-    s.onload = res;
-    s.onerror = rej;
+    s.onload = () => { clearTimeout(t); res(true); };
+    s.onerror = () => { clearTimeout(t); rej(new Error("Paystack script blocked or failed to load")); };
     document.body.appendChild(s);
   });
 }
@@ -46,8 +47,8 @@ export default function BillsPage() {
     if (u) {
       const { data: o } = await supabase.from("bill_orders").select("*").eq("user_id", u.id).order("created_at", { ascending: false }).limit(10);
       setOrders(o || []);
-    }
-  }
+    }  }
+
   useEffect(() => { load(); }, []);
 
   const services = Array.from(new Set(plans.map((p) => p.service)));
@@ -60,43 +61,47 @@ export default function BillsPage() {
     if (phone.replace(/\D/g, "").length < 11) return alert("Enter a valid phone number.");
     try {
       await loadScript("https://js.paystack.co/v1/inline.js");
-      (window as any).PaystackPop.setup({
+      const pop = (window as any).PaystackPop;
+      if (!pop || !pop.setup) throw new Error("PaystackPop not available on this browser");
+      const handler = pop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: user.email,
         amount: chosen.price * 100,
         ref: "bills-" + Date.now(),
-        callback: async (resp: any) => {
-          const supabase = createClient();
-          await supabase.from("bill_orders").insert({
-            user_id: user.id,
-            customer_phone: phone,
-            service: chosen.service,
-            plan: chosen.plan,
-            amount: chosen.price,
-            cost: chosen.cost,
-            ref: resp.reference,
-            status: "pending",
-          });
-          setMsg("✅ Payment received! Your " + chosen.plan + " " + chosen.service + " will be delivered to " + phone + " within minutes.");
-          setPlanId("");
-          load();
+        callback: function (resp: any) {
+          (async () => {
+            const supabase = createClient();
+            await supabase.from("bill_orders").insert({
+              user_id: user.id,
+              customer_phone: phone,
+              service: chosen.service,
+              plan: chosen.plan,
+              amount: chosen.price,
+              cost: chosen.cost,
+              ref: resp.reference,
+              status: "pending",
+            });
+            setMsg("✅ Payment received! Your " + chosen.plan + " " + chosen.service + " will be delivered to " + phone + " within minutes.");
+            setPlanId("");
+            load();
+          })();
         },
       });
-      (window as any).PaystackPop.openIframe();
-    } catch {
-      alert("Payment could not start. Check your connection.");
+      handler.openIframe();
+    } catch (err: any) {
+      alert("Payment error: " + (err && err.message ? err.message : "unknown error — screenshot this and send to admin"));
     }
   }
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <h1 className="text-2xl font-extrabold mb-1">📶 Bills & Data — cheaper than the market</h1>
-      <p className="text-xs text-gray-500 mb-4">Buy data, airtime, cable TV & more at farmer-friendly prices. Pay with card/transfer/USSD, delivered to any number.</p>
-      {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
+      <p className="text-xs text-gray-500 mb-4">Buy data, airtime, cable TV & more at farmer-friendly prices. Pay with card/transfer/USSD, delivered to any number.</p>      {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
 
       <div className="glass-card p-4 rounded-2xl space-y-3">
         <div>
-          <p className="text-xs font-bold text-gray-600 mb-1">1. Choose network / service</p>          <div className="flex gap-2 flex-wrap">
+          <p className="text-xs font-bold text-gray-600 mb-1">1. Choose network / service</p>
+          <div className="flex gap-2 flex-wrap">
             {services.map((s) => (
               <button key={s} onClick={() => { setService(s); setPlanId(""); }} className={`px-3 py-2 rounded-xl text-xs font-bold ${service === s ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}>{s}</button>
             ))}
@@ -140,8 +145,7 @@ export default function BillsPage() {
                 </span>
               </div>
             ))}
-          </div>
-        </div>
+          </div>        </div>
       )}
     </div>
   );
