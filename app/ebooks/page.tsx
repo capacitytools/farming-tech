@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { currencySymbol } from "@/lib/currency";
 
@@ -44,10 +43,18 @@ export default function EbooksPage() {
       setProfile(p);
       setPurchases(pu || []);
     }
-    const { data: b } = await supabase.from("ebooks").select("*, profiles(full_name, avatar_url, referral_code)").order("created_at", { ascending: false });
-    setBooks(b || []);
+    const { data: b } = await supabase.from("ebooks").select("*").order("created_at", { ascending: false });
+    let withAuthors: any[] = b || [];
+    if (b && b.length) {
+      const ids = Array.from(new Set(b.map((x: any) => x.author_id)));
+      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);      const map: any = {};
+      (pr || []).forEach((p: any) => { map[p.id] = p; });
+      withAuthors = b.map((x: any) => ({ ...x, profiles: map[x.author_id] || null }));
+    }
+    setBooks(withAuthors);
     setLoaded(true);
   }
+
   useEffect(() => { load(); }, []);
 
   async function uploadCover(e: any) {
@@ -89,13 +96,13 @@ export default function EbooksPage() {
       access_link: form.mode === "link" ? form.link.trim() : null,
     });
     setMsg("✅ Ebook published! You keep 70% of every sale.");
-    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });
-    setCover(""); setFileUrl("");
+    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });    setCover(""); setFileUrl("");
     setShowForm(false);
     setTimeout(() => setMsg(""), 2500);
     await load();
     setBusy(false);
   }
+
   async function buy(book: any) {
     if (!user) return alert("Log in to buy ebooks.");
     try {
@@ -106,14 +113,13 @@ export default function EbooksPage() {
         email: user.email,
         amount: book.price * 100,
         ref: "ebook-" + Date.now(),
-        callback: async (resp: any) => {
+        callback: async () => {
           const supabase = createClient();
           await supabase.from("ebook_purchases").insert({
             ebook_id: book.id,
             user_id: user.id,
             status: "paid",
-            ref: resp.reference,
-            affiliate_code: book.profiles?.referral_code && refParam === book.profiles.referral_code ? null : refParam,
+            affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,
           });
           alert("🎉 Payment successful! Your ebook is unlocked below.");
           load();
@@ -135,17 +141,17 @@ export default function EbooksPage() {
     else alert("The author has not attached content yet.");
   }
 
-  function affiliateLink(book: any) {
+  function affiliateLink() {
     const code = profile?.referral_code || "";
     const url = `${window.location.origin}/ebooks?ref=${code}`;
     navigator.clipboard.writeText(url);
-    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");
-    setTimeout(() => setMsg(""), 2500);
+    setMsg("✅ Affiliate link copied — share it and earn 10% of every sale!");    setTimeout(() => setMsg(""), 2500);
   }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
 
-  return (    <div className="p-4 pb-24 max-w-2xl mx-auto">
+  return (
+    <div className="p-4 pb-24 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-extrabold">📚 E-book Store</h1>
         <button onClick={() => setShowForm(!showForm)} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ Publish Ebook</button>
@@ -188,20 +194,20 @@ export default function EbooksPage() {
       <div className="grid grid-cols-2 gap-3">
         {books.map((b) => (
           <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
-            {b.cover_url ? (
-              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
+            {b.cover_url ? (              <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
             ) : (
               <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
             )}
             <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
-            <p className="text-[10px] text-gray-500 mt-1">by {b.profiles?.full_name || "Farmer"}</p>            <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(b.currency)}{Number(b.price).toLocaleString()}</p>
+            <p className="text-[10px] text-gray-500 mt-1">by {b.profiles?.full_name || "Farmer"}</p>
+            <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(b.currency || "NGN")}{Number(b.price).toLocaleString()}</p>
             <div className="mt-2 space-y-1">
               {owned(b) ? (
                 <button onClick={() => openBook(b)} className="w-full bg-forest-600 text-white py-2 rounded-xl text-xs font-bold">📖 Read / Download</button>
               ) : (
                 <button onClick={() => buy(b)} className="w-full bg-green-600 text-white py-2 rounded-xl text-xs font-bold">💳 Buy Now</button>
               )}
-              {user && <button onClick={() => affiliateLink(b)} className="w-full bg-amber-100 text-amber-700 py-1.5 rounded-xl text-[10px] font-bold">🔗 Promote & earn 10%</button>}
+              {user && <button onClick={affiliateLink} className="w-full bg-amber-100 text-amber-700 py-1.5 rounded-xl text-[10px] font-bold">🔗 Promote & earn 10%</button>}
             </div>
           </div>
         ))}
