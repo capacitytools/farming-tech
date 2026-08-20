@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-function countBy(list: any[], key: (x: any) => string) {
-  const m: any = {};
+function countBy(list: any[], key: (x: any) => string): [string, number][] {
+  const m: Record<string, number> = {};
   list.forEach((x) => {
     const k = key(x) || "unknown";
     m[k] = (m[k] || 0) + 1;
   });
-  return Object.entries(m).sort((a, b) => b[1] - a[1]);
+  return Object.keys(m).map((k) => [k, m[k]] as [string, number]).sort((a, b) => b[1] - a[1]);
 }
 
 export default function AdminTrafficPage() {
