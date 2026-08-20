@@ -22,7 +22,7 @@ export default function AdminAnalyticsPage() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const week = new Date(Date.now() - 7 * 86400000);
 
-    const [users, usersToday, posts, postsWeek, listings, activeListings, verified, videos, scans, comments, tribes, visitsData] = await Promise.all([
+    const [users, usersToday, posts, postsWeek, listings, activeListings, verified, videos, scans, comments, tribes, visitsRes] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("profiles").select("*", { count: "exact", head: true }).gte("created_at", today.toISOString()),
       supabase.from("feed_posts").select("*", { count: "exact", head: true }),
@@ -37,7 +37,7 @@ export default function AdminAnalyticsPage() {
       supabase.from("visits").select("*, profiles(full_name)").order("created_at", { ascending: false }).limit(300),
     ]);
 
-    const v = visitsData || [];
+    const v = (visitsRes as any).data || [];
     setVisits(v);
 
     const { data: all } = await supabase.from("profiles").select("created_at");
@@ -128,7 +128,7 @@ export default function AdminAnalyticsPage() {
             </div>
           ))}
         </div>
-        <p className="text-[9px] text-gray-400 mt-2">🟩 visits · 🟨 signups</p>
+        <p className="text-[9px] text-gray-400 mt-2">🟩 visits ·  signups</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mt-4">
