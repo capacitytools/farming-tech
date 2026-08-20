@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/client';
 import TimeTracker from '@/components/TimeTracker';
 import DailyCheckin from '@/components/DailyCheckin';
 import AdsterraController from '@/components/AdsterraController';
+import VisitorTracker from '@/components/VisitorTracker';
 
 const MENU_SECTIONS = [
   {
@@ -46,8 +47,8 @@ const MENU_SECTIONS = [
       { href: '/about', label: 'About Us', icon: Info },
       { href: '/contact', label: 'Contact Admin', icon: Phone },
     ],
-  },
-];
+  },];
+
 export default function TopBar() {
   const [open, setOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
@@ -95,8 +96,9 @@ export default function TopBar() {
     <>
       <TimeTracker />
       <DailyCheckin />
-      <AdsterraController />
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">        <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
+      <AdsterraController />      <VisitorTracker />
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">
+        <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-forest-600 flex items-center justify-center">
               <Sprout className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -143,9 +145,9 @@ export default function TopBar() {
               onClick={toggleTheme}
               className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
             >
-              {dark ? (
-                <Sun className="w-5 h-5 text-amber-400" />
-              ) : (                <Moon className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+              {dark ? (                <Sun className="w-5 h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-5 h-5 text-forest-700 dark:text-forest-200" />
               )}
             </button>
             <button
@@ -192,9 +194,9 @@ export default function TopBar() {
                   <div key={section.title}>
                     <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-2 px-1">
                       {section.title}
-                    </p>
-                    <div className="space-y-1">
-                      {section.items.map((item) => {                        const Icon = item.icon;
+                    </p>                    <div className="space-y-1">
+                      {section.items.map((item) => {
+                        const Icon = item.icon;
                         return (
                           <Link
                             key={item.href}
@@ -241,9 +243,9 @@ export default function TopBar() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}      </AnimatePresence>
+            </motion.div>          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }
