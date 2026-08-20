@@ -11,6 +11,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import TimeTracker from '@/components/TimeTracker';
 import DailyCheckin from '@/components/DailyCheckin';
+import AdsterraController from '@/components/AdsterraController';
 
 const MENU_SECTIONS = [
   {
@@ -27,6 +28,7 @@ const MENU_SECTIONS = [
       { href: '/experts', label: 'Expert Directory', icon: GraduationCap },
       { href: '/ebooks', label: 'E-book Store', icon: BookOpen },
       { href: '/ebooks/drive', label: 'Ebook Video Drive', icon: Video },
+      { href: '/bills', label: 'Bills & Data', icon: ShoppingBag },
     ],
   },
   {
@@ -46,8 +48,8 @@ const MENU_SECTIONS = [
     ],
   },
 ];
-
-export default function TopBar() {  const [open, setOpen] = useState(false);
+export default function TopBar() {
+  const [open, setOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
   const [dark, setDark] = useState(false);
@@ -56,34 +58,6 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
     const t = localStorage.getItem('theme') === 'dark';
     setDark(t);
     document.documentElement.classList.toggle('dark', t);
-  }, []);
-
-  // SITE-WIDE ADSTERRA (Popunder + Social Bar) — obeys the /admin/ads switches
-  useEffect(() => {
-    (async () => {
-      try {
-        const supabase = createClient();
-        const { data } = await supabase.from('settings').select('key, value').in('key', ['adsterra_popunder', 'adsterra_socialbar']);
-        (data || []).forEach((r: any) => {
-          let cfg: any = null;
-          try { cfg = JSON.parse(r.value); } catch {}
-          if (!cfg || !cfg.on || !cfg.code) return;
-          const flag = 'ftb_' + r.key;
-          if ((window as any)[flag]) return;
-          (window as any)[flag] = true;
-          const holder = document.createElement('div');
-          holder.style.display = 'none';
-          document.body.appendChild(holder);
-          holder.innerHTML = cfg.code;
-          Array.from(holder.querySelectorAll('script')).forEach((old) => {
-            const s = document.createElement('script');
-            Array.from(old.attributes).forEach((a) => s.setAttribute(a.name, a.value));
-            if (old.textContent) s.textContent = old.textContent;
-            document.body.appendChild(s);
-          });
-        });
-      } catch {}
-    })();
   }, []);
 
   function toggleTheme() {
@@ -96,7 +70,8 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
   useEffect(() => {
     (async () => {
       try {
-        const supabase = createClient();        const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';
+        const supabase = createClient();
+        const seen = localStorage.getItem('notifSeen') || '1970-01-01T00:00:00Z';
         const { count } = await supabase
           .from('notifications')
           .select('*', { count: 'exact', head: true })
@@ -120,8 +95,8 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
     <>
       <TimeTracker />
       <DailyCheckin />
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">
-        <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
+      <AdsterraController />
+      <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">        <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-forest-600 flex items-center justify-center">
               <Sprout className="w-5 h-5 text-white" strokeWidth={2.5} />
@@ -145,7 +120,8 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
               )}
             </Link>
             <Link
-              href="/inbox"              aria-label="Inbox"
+              href="/inbox"
+              aria-label="Inbox"
               className="relative w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
             >
               <Mail className="w-5 h-5 text-forest-700 dark:text-forest-200" />
@@ -169,8 +145,7 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
             >
               {dark ? (
                 <Sun className="w-5 h-5 text-amber-400" />
-              ) : (
-                <Moon className="w-5 h-5 text-forest-700 dark:text-forest-200" />
+              ) : (                <Moon className="w-5 h-5 text-forest-700 dark:text-forest-200" />
               )}
             </button>
             <button
@@ -194,7 +169,8 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
               onClick={() => setOpen(false)}
               className="fixed inset-0 z-50 bg-forest-900/50 backdrop-blur-sm"
             />
-            <motion.div              initial={{ y: '-100%' }}
+            <motion.div
+              initial={{ y: '-100%' }}
               animate={{ y: 0 }}
               exit={{ y: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
@@ -218,8 +194,7 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
                       {section.title}
                     </p>
                     <div className="space-y-1">
-                      {section.items.map((item) => {
-                        const Icon = item.icon;
+                      {section.items.map((item) => {                        const Icon = item.icon;
                         return (
                           <Link
                             key={item.href}
@@ -243,7 +218,8 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
                   </div>
                 ))}
 
-                <div className="pt-2 border-t border-forest-100 dark:border-forest-800">                  <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">
+                <div className="pt-2 border-t border-forest-100 dark:border-forest-800">
+                  <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-3 px-1">
                     Follow Us
                   </p>
                   <div className="flex gap-2 px-1">
@@ -267,8 +243,7 @@ export default function TopBar() {  const [open, setOpen] = useState(false);
               </div>
             </motion.div>
           </>
-        )}
-      </AnimatePresence>
+        )}      </AnimatePresence>
     </>
   );
 }
