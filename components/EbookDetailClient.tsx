@@ -62,7 +62,8 @@ export default function EbookDetailClient({ id }: { id: string }) {
 
   function share(net: string) {
     const url = myLink();
-    const text = `📚 ${book.title} by ${book.profiles?.full_name || "a farmer"} — only ${currencySymbol(book.currency || "NGN")}${Number(book.price).toLocaleString()} on Farming Tech & Business. Read it now 👇`;
+    const priceText = Number(book.price) > 0 ? `only ${currencySymbol(book.currency || "NGN")}${Number(book.price).toLocaleString()}` : "100% FREE";
+    const text = `📚 ${book.title} by ${book.profiles?.full_name || "a farmer"} — ${priceText} on Farming Tech & Business. Get it now 👇`;
     const en = encodeURIComponent;
     const links: any = {
       wa: `https://wa.me/?text=${en(text + "\n" + url)}`,
@@ -84,7 +85,20 @@ export default function EbookDetailClient({ id }: { id: string }) {
   }
 
   async function buy() {
-    if (!user) return alert("Log in to buy ebooks.");
+    if (!user) return alert("Log in to get ebooks.");
+    const supabase = createClient();
+
+    // FREE BOOK — skip Paystack, unlock instantly
+    if (Number(book.price) <= 0) {
+      const already = purchases.some((p) => p.ebook_id === book.id);
+      if (!already) {
+        await supabase.from("ebook_purchases").insert({ ebook_id: book.id, user_id: user.id, status: "paid" });
+      }
+      setMsg("🎉 Free ebook unlocked!");
+      load();
+      openBook();      return;
+    }
+
     try {
       await loadScript("https://js.paystack.co/v1/inline.js");
       const pop = (window as any).PaystackPop;
@@ -96,8 +110,9 @@ export default function EbookDetailClient({ id }: { id: string }) {
         amount: book.price * 100,
         ref: "ebook-" + Date.now(),
         callback: function () {
-          (async () => {            const supabase = createClient();
-            await supabase.from("ebook_purchases").insert({
+          (async () => {
+            const supabase2 = createClient();
+            await supabase2.from("ebook_purchases").insert({
               ebook_id: book.id,
               user_id: user.id,
               status: "paid",
@@ -127,15 +142,17 @@ export default function EbookDetailClient({ id }: { id: string }) {
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   if (!book) return <p className="text-center text-gray-500 py-10">Ebook not found.</p>;
 
+  const isFree = Number(book.price) <= 0;
+
   return (
-    <div className="pb-24 max-w-2xl mx-auto">
-      <div className="relative">
+    <div className="pb-24 max-w-2xl mx-auto">      <div className="relative">
         {book.cover_url ? (
           <img src={book.cover_url} alt={book.title} className="w-full h-64 object-cover" />
         ) : (
           <div className="w-full h-48 bg-forest-100 flex items-center justify-center text-6xl">📚</div>
         )}
         <Link href="/ebooks" className="absolute top-3 left-3 bg-black/60 text-white text-xs font-bold px-3 py-2 rounded-full">← Store</Link>
+        {isFree && <span className="absolute top-3 right-3 bg-green-600 text-white text-xs font-extrabold px-3 py-2 rounded-full">🎁 FREE</span>}
       </div>
 
       <div className="p-4">
@@ -143,9 +160,10 @@ export default function EbookDetailClient({ id }: { id: string }) {
         <p className="text-xs text-gray-500 mt-1">
           by <Link href={`/farmer/${book.author_id}`} className="font-bold text-forest-700 hover:underline">{book.profiles?.full_name || "Farmer"}</Link> {book.profiles?.verified && "✅"}
         </p>
-        <p className="text-2xl font-extrabold text-green-700 mt-2">{currencySymbol(book.currency || "NGN")}{Number(book.price).toLocaleString()}</p>
+        <p className="text-2xl font-extrabold mt-2">{isFree ? <span className="text-green-700">FREE</span> : <span className="text-green-700">{currencySymbol(book.currency || "NGN")}{Number(book.price).toLocaleString()}</span>}</p>
 
-        <div className="glass-card p-4 rounded-2xl mt-4">          <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1">📖 What's inside</p>
+        <div className="glass-card p-4 rounded-2xl mt-4">
+          <p className="text-xs font-extrabold text-gray-500 uppercase tracking-wide mb-1">📖 What's inside</p>
           <p className="text-sm text-gray-800 whitespace-pre-line">{book.description || "The author has not added details yet."}</p>
         </div>
 
@@ -155,7 +173,9 @@ export default function EbookDetailClient({ id }: { id: string }) {
           {owned() ? (
             <button onClick={openBook} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold">📖 Read / Download Now</button>
           ) : (
-            <button onClick={buy} className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold">💳 Buy Now — instant access</button>
+            <button onClick={buy} className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold">
+              {isFree ? "🎁 Get Free — instant access" : "💳 Buy Now — instant access"}
+            </button>
           )}
         </div>
 
@@ -170,7 +190,7 @@ export default function EbookDetailClient({ id }: { id: string }) {
           </div>
         </div>
 
-        <p className="text-[9px] text-gray-400 mt-4 text-center">Secured by Paystack · access unlocked immediately after payment</p>
+        <p className="text-[9px] text-gray-400 mt-4 text-center">{isFree ? "Free gift from the author — no payment needed" : "Secured by Paystack · access unlocked immediately after payment"}</p>
       </div>
     </div>
   );
