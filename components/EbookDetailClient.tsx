@@ -88,6 +88,14 @@ export default function EbookDetailClient({ id }: { id: string }) {
     if (!user) return alert("Log in to get ebooks.");
     const supabase = createClient();
 
+    // Collect WhatsApp once for the customer sheet
+    if (!profile?.whatsapp) {
+      const wa = prompt("Add your WhatsApp number so we can deliver your purchases (e.g. 08012345678):");
+      if (wa && wa.replace(/\D/g, "").length >= 10) {
+        await supabase.from("profiles").update({ whatsapp: wa.trim() }).eq("id", user.id);
+        setProfile({ ...profile, whatsapp: wa.trim() });
+      }
+    }
     // FREE BOOK — skip Paystack, unlock instantly
     if (Number(book.price) <= 0) {
       const already = purchases.some((p) => p.ebook_id === book.id);
@@ -96,7 +104,8 @@ export default function EbookDetailClient({ id }: { id: string }) {
       }
       setMsg("🎉 Free ebook unlocked!");
       load();
-      openBook();      return;
+      openBook();
+      return;
     }
 
     try {
@@ -136,8 +145,7 @@ export default function EbookDetailClient({ id }: { id: string }) {
   function openBook() {
     if (book.access_link) window.open(book.access_link, "_blank");
     else if (book.file_url) window.open(book.file_url, "_blank");
-    else alert("The author has not attached content yet.");
-  }
+    else alert("The author has not attached content yet.");  }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   if (!book) return <p className="text-center text-gray-500 py-10">Ebook not found.</p>;
@@ -145,7 +153,8 @@ export default function EbookDetailClient({ id }: { id: string }) {
   const isFree = Number(book.price) <= 0;
 
   return (
-    <div className="pb-24 max-w-2xl mx-auto">      <div className="relative">
+    <div className="pb-24 max-w-2xl mx-auto">
+      <div className="relative">
         {book.cover_url ? (
           <img src={book.cover_url} alt={book.title} className="w-full h-64 object-cover" />
         ) : (
@@ -185,8 +194,7 @@ export default function EbookDetailClient({ id }: { id: string }) {
             <button onClick={() => share("wa")} className="px-3 py-2 rounded-xl text-xs font-bold bg-green-100 text-green-700">📤 WhatsApp</button>
             <button onClick={() => share("status")} className="px-3 py-2 rounded-xl text-xs font-bold bg-green-100 text-green-700">🟢 Status</button>
             <button onClick={() => share("fb")} className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-100 text-blue-700">f Facebook</button>
-            <button onClick={() => share("x")} className="px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700">𝕏</button>
-            <button onClick={() => share("copy")} className="px-3 py-2 rounded-xl text-xs font-bold bg-forest-600 text-white">🔗 Copy My Link</button>
+            <button onClick={() => share("x")} className="px-3 py-2 rounded-xl text-xs font-bold bg-gray-100 text-gray-700">𝕏</button>            <button onClick={() => share("copy")} className="px-3 py-2 rounded-xl text-xs font-bold bg-forest-600 text-white">🔗 Copy My Link</button>
           </div>
         </div>
 
