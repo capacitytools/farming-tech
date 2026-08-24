@@ -108,6 +108,15 @@ export default function EbooksPage() {
     if (!user) return alert("Log in to get ebooks.");
     const supabase = createClient();
 
+    // Collect WhatsApp once for the customer sheet
+    if (!profile?.whatsapp) {
+      const wa = prompt("Add your WhatsApp number so we can deliver your purchases (e.g. 08012345678):");
+      if (wa && wa.replace(/\D/g, "").length >= 10) {
+        await supabase.from("profiles").update({ whatsapp: wa.trim() }).eq("id", user.id);
+        setProfile({ ...profile, whatsapp: wa.trim() });
+      }
+    }
+
     // FREE BOOK — no Paystack
     if (Number(book.price) <= 0) {
       const already = purchases.some((p) => p.ebook_id === book.id);
@@ -136,8 +145,7 @@ export default function EbooksPage() {
               ebook_id: book.id,
               user_id: user.id,
               status: "paid",
-              affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,
-            });
+              affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,            });
             alert("🎉 Payment successful! Your ebook is unlocked.");
             load();
           })();
@@ -145,7 +153,8 @@ export default function EbooksPage() {
       });
       handler.openIframe();
     } catch (err: any) {
-      alert("Payment error: " + (err && err.message ? err.message : "unknown error"));    }
+      alert("Payment error: " + (err && err.message ? err.message : "unknown error"));
+    }
   }
 
   function owned(book: any) {
@@ -185,8 +194,7 @@ export default function EbooksPage() {
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (e.g. Rabbit Farming Masterclass)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? (buyers see this before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" type="number" placeholder="Price in Naira — put 0 to make it FREE" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-          <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image (optional)
-            <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
+          <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image (optional)            <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
           </label>
           {cover && <img src={cover} alt="" className="h-16 w-12 object-cover rounded-lg" />}
 
@@ -194,6 +202,7 @@ export default function EbooksPage() {
             <button type="button" onClick={() => setForm({ ...form, mode: "file" })} className={`flex-1 py-2 rounded-xl text-xs font-bold ${form.mode === "file" ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-600"}`}>📄 Upload PDF</button>
             <button type="button" onClick={() => setForm({ ...form, mode: "link" })} className={`flex-1 py-2 rounded-xl text-xs font-bold ${form.mode === "link" ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-600"}`}>🔗 Google Drive Link</button>
           </div>
+
           {form.mode === "file" ? (
             <label className="block text-xs font-semibold text-green-700 cursor-pointer">📄 Upload your PDF
               <input type="file" accept=".pdf,.epub" className="hidden" onChange={uploadFile} />
@@ -234,8 +243,7 @@ export default function EbooksPage() {
             </div>
           </div>
         ))}
-      </div>
-      {books.length === 0 && <p className="text-sm text-gray-500 text-center py-10">No ebooks yet. Publish the first one and keep 70% of every sale!</p>}
+      </div>      {books.length === 0 && <p className="text-sm text-gray-500 text-center py-10">No ebooks yet. Publish the first one and keep 70% of every sale!</p>}
     </div>
   );
 }
