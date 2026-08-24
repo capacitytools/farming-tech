@@ -81,7 +81,7 @@ export default function EbooksPage() {
   async function publish(e: any) {
     e.preventDefault();
     if (!user) return alert("Log in to publish.");
-    if (!form.title.trim() || !form.price) return alert("Add a title and price.");
+    if (!form.title.trim() || form.price === "") return alert("Add a title and price (use 0 for free).");
     if (form.mode === "file" && !fileUrl) return alert("Upload your PDF file.");
     if (form.mode === "link" && !form.link.trim()) return alert("Paste your Google Drive link.");
     setBusy(true);
@@ -105,7 +105,20 @@ export default function EbooksPage() {
   }
 
   async function buy(book: any) {
-    if (!user) return alert("Log in to buy ebooks.");
+    if (!user) return alert("Log in to get ebooks.");
+    const supabase = createClient();
+
+    // FREE BOOK — no Paystack
+    if (Number(book.price) <= 0) {
+      const already = purchases.some((p) => p.ebook_id === book.id);
+      if (!already) {
+        await supabase.from("ebook_purchases").insert({ ebook_id: book.id, user_id: user.id, status: "paid" });
+      }
+      openBook(book);
+      load();
+      return;
+    }
+
     try {
       await loadScript("https://js.paystack.co/v1/inline.js");
       const pop = (window as any).PaystackPop;
@@ -118,8 +131,8 @@ export default function EbooksPage() {
         ref: "ebook-" + Date.now(),
         callback: function () {
           (async () => {
-            const supabase = createClient();
-            await supabase.from("ebook_purchases").insert({
+            const supabase2 = createClient();
+            await supabase2.from("ebook_purchases").insert({
               ebook_id: book.id,
               user_id: user.id,
               status: "paid",
@@ -132,8 +145,7 @@ export default function EbooksPage() {
       });
       handler.openIframe();
     } catch (err: any) {
-      alert("Payment error: " + (err && err.message ? err.message : "unknown error"));
-    }
+      alert("Payment error: " + (err && err.message ? err.message : "unknown error"));    }
   }
 
   function owned(book: any) {
@@ -145,6 +157,7 @@ export default function EbooksPage() {
     else if (book.file_url) window.open(book.file_url, "_blank");
     else alert("The author has not attached content yet.");
   }
+
   function copyMyLink(book: any, e: any) {
     e.preventDefault();
     e.stopPropagation();
@@ -163,15 +176,15 @@ export default function EbooksPage() {
         <h1 className="text-2xl font-extrabold">📚 E-book Store</h1>
         <button onClick={() => setShowForm(!showForm)} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ Publish Ebook</button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">Tap any ebook for full details. Share its link with your code and earn 10% + signup points.</p>
+      <p className="text-xs text-gray-500 mb-4">Tap any ebook for full details. Price 0 = free gift. Share links with your code and earn.</p>
       {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
 
       {showForm && (
         <form onSubmit={publish} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
           <p className="text-sm font-bold text-forest-700">📖 Publish your ebook</p>
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (e.g. Rabbit Farming Masterclass)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? List everything inside (buyers see this before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
-          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" type="number" placeholder="Price in Naira (e.g. 1500)" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
+          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? (buyers see this before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" type="number" placeholder="Price in Naira — put 0 to make it FREE" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
           <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image (optional)
             <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
           </label>
@@ -181,7 +194,6 @@ export default function EbooksPage() {
             <button type="button" onClick={() => setForm({ ...form, mode: "file" })} className={`flex-1 py-2 rounded-xl text-xs font-bold ${form.mode === "file" ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-600"}`}>📄 Upload PDF</button>
             <button type="button" onClick={() => setForm({ ...form, mode: "link" })} className={`flex-1 py-2 rounded-xl text-xs font-bold ${form.mode === "link" ? "bg-forest-600 text-white" : "bg-gray-100 text-gray-600"}`}>🔗 Google Drive Link</button>
           </div>
-
           {form.mode === "file" ? (
             <label className="block text-xs font-semibold text-green-700 cursor-pointer">📄 Upload your PDF
               <input type="file" accept=".pdf,.epub" className="hidden" onChange={uploadFile} />
@@ -189,17 +201,19 @@ export default function EbooksPage() {
           ) : (
             <div>
               <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Paste Google Drive link (set sharing to: Anyone with the link)" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} />
-              <p className="text-[9px] text-gray-400 mt-1">Only buyers who pay will ever see this link inside the app.</p>
+              <p className="text-[9px] text-gray-400 mt-1">Only buyers who pay (or claim free) will ever see this link inside the app.</p>
             </div>
           )}
           {form.mode === "file" && fileUrl && <p className="text-[10px] text-green-700 font-bold">✅ File attached</p>}
 
-          <button className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>🚀 Publish (you keep 70%)</button>        </form>
+          <button className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>🚀 Publish (you keep 70%)</button>
+        </form>
       )}
 
       <div className="grid grid-cols-2 gap-3">
         {books.map((b) => (
-          <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col">
+          <div key={b.id} className="glass-card p-3 rounded-2xl flex flex-col relative">
+            {Number(b.price) <= 0 && <span className="absolute top-2 right-2 bg-green-600 text-white text-[9px] font-extrabold px-2 py-1 rounded-full z-10">🎁 FREE</span>}
             <Link href={`/ebooks/${b.id}`} className="active:scale-[0.98]">
               {b.cover_url ? (
                 <img src={b.cover_url} alt={b.title} className="w-full h-36 object-cover rounded-xl mb-2" />
@@ -208,15 +222,15 @@ export default function EbooksPage() {
               )}
               <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
               <p className="text-[10px] text-gray-500 mt-1">by {b.profiles?.full_name || "Farmer"}</p>
-              <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(b.currency || "NGN")}{Number(b.price).toLocaleString()}</p>
+              <p className="text-sm font-bold text-green-700 mt-1">{Number(b.price) <= 0 ? "FREE" : `${currencySymbol(b.currency || "NGN")}${Number(b.price).toLocaleString()}`}</p>
             </Link>
             <div className="mt-2 space-y-1">
               {owned(b) ? (
                 <button onClick={() => openBook(b)} className="w-full bg-forest-600 text-white py-2 rounded-xl text-xs font-bold">📖 Read / Download</button>
               ) : (
-                <button onClick={() => buy(b)} className="w-full bg-green-600 text-white py-2 rounded-xl text-xs font-bold">💳 Buy Now</button>
+                <button onClick={() => buy(b)} className="w-full bg-green-600 text-white py-2 rounded-xl text-xs font-bold">{Number(b.price) <= 0 ? "🎁 Get Free" : "💳 Buy Now"}</button>
               )}
-              {user && <button onClick={(e) => copyMyLink(b, e)} className="w-full bg-amber-100 text-amber-700 py-1.5 rounded-xl text-[10px] font-bold">🔗 Copy My Share Link & earn 10%</button>}
+              {user && <button onClick={(e) => copyMyLink(b, e)} className="w-full bg-amber-100 text-amber-700 py-1.5 rounded-xl text-[10px] font-bold">🔗 Copy My Share Link & earn</button>}
             </div>
           </div>
         ))}
