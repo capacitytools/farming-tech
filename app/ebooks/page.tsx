@@ -230,7 +230,7 @@ export default function EbooksPage() {
                 <div className="w-full h-36 bg-forest-100 rounded-xl flex items-center justify-center text-3xl mb-2">📚</div>
               )}
               <p className="font-semibold text-xs line-clamp-2">{b.title}</p>
-              <p className="text-[10px] text-gray-500 mt-1">by {b.profiles?.full_name || "Farmer"}</p>
+              <p className="text-[10px] text-gray-500 mt-1">by <Link href={"/farmer/" + b.author_id} className="font-bold text-forest-700 hover:underline">{b.profiles?.full_name || "Farmer"}</Link></p>
               <p className="text-sm font-bold text-green-700 mt-1">{Number(b.price) <= 0 ? "FREE" : `${currencySymbol(b.currency || "NGN")}${Number(b.price).toLocaleString()}`}</p>
             </Link>
             <div className="mt-2 space-y-1">
