@@ -3,10 +3,14 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const AD_DOMAINS = ["effectivecpmnetwork", "adsterra", "propellerads", "onclickads", "pushadvert", "cloudfront.net/ads"];
+
 export default function AdsterraController() {
   const [cfg, setCfg] = useState<any>({ popunder: null, socialbar: null });
+  const [onBlog, setOnBlog] = useState(false);
 
   useEffect(() => {
+    setOnBlog(window.location.pathname.startsWith("/blog"));
     (async () => {
       const supabase = createClient();
       const { data } = await supabase.from("settings").select("key, value").in("key", ["adsterra_popunder", "adsterra_socialbar"]);
@@ -18,8 +22,9 @@ export default function AdsterraController() {
     })();
   }, []);
 
-  // WHEN ON: inject the scripts site-wide (once per visit)
+  // WHEN ON BLOG + SWITCH ON: inject
   useEffect(() => {
+    if (!onBlog) return;
     ["popunder", "socialbar"].forEach((k) => {
       const c = cfg[k];
       if (!c || !c.on || !c.code) return;
@@ -37,26 +42,28 @@ export default function AdsterraController() {
         document.body.appendChild(s);
       });
     });
-  }, [cfg]);
+  }, [cfg, onBlog]);
 
-  // WHEN OFF: hunt and destroy every adsterra trace on the page, forever
+  // EVERYWHERE ELSE (or when OFF): hunt and destroy all ad traces forever
   useEffect(() => {
-    const allOff = !cfg.popunder?.on && !cfg.socialbar?.on;
-    if (!allOff) return;
+    const allowed = onBlog && (cfg.popunder?.on || cfg.socialbar?.on);
+    if (allowed) return;
     const kill = () => {
-      document.querySelectorAll(
-        "script[src*='effectivecpmnetwork'], script[src*='adsterra'], iframe[src*='effectivecpmnetwork'], iframe[src*='adsterra'], div[id^='container-'], div[class*='social-bar'], div[id*='popunder'], div[id*='push-notification']"
-      ).forEach((el) => el.remove());
+      document.querySelectorAll("script, iframe, link, img").forEach((el) => {
+        const src = ((el as any).src || (el as any).href || "") + "";
+        if (AD_DOMAINS.some((d) => src.includes(d))) el.remove();
+      });
+      document.querySelectorAll("div[id^='container-'], div[class*='social-bar'], div[id*='popunder'], div[id*='push-wrap'], div[id*='adsterra']").forEach((el) => el.remove());
     };
     kill();
-    const t = setInterval(kill, 3000);
+    const t = setInterval(kill, 1500);
     let obs: MutationObserver | null = null;
     if (document.body) {
       obs = new MutationObserver(kill);
       obs.observe(document.body, { childList: true, subtree: true });
     }
     return () => { clearInterval(t); if (obs) obs.disconnect(); };
-  }, [cfg]);
+  }, [cfg, onBlog]);
 
   return null;
 }
