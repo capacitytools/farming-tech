@@ -13,6 +13,7 @@ import TimeTracker from '@/components/TimeTracker';
 import DailyCheckin from '@/components/DailyCheckin';
 import AdsterraController from '@/components/AdsterraController';
 import VisitorTracker from '@/components/VisitorTracker';
+import AuthModal from '@/components/AuthModal';
 
 const MENU_SECTIONS = [
   {
@@ -46,14 +47,25 @@ const MENU_SECTIONS = [
     items: [
       { href: '/about', label: 'About Us', icon: Info },
       { href: '/contact', label: 'Contact Admin', icon: Phone },
-    ],
-  },];
+    ],  },
+];
 
 export default function TopBar() {
   const [open, setOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [msgCount, setMsgCount] = useState(0);
   const [dark, setDark] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+
+  // If anyone lands on a missing auth route, show the auth screen instead of any error
+  useEffect(() => {
+    const p = window.location.pathname;
+    if (p === '/login' || p === '/register' || p === '/signup' || p === '/sign-up' || p === '/join') {
+      setAuthMode(p === '/login' ? 'login' : 'register');
+      setAuthOpen(true);
+    }
+  }, []);
 
   useEffect(() => {
     const t = localStorage.getItem('theme') === 'dark';
@@ -84,8 +96,7 @@ export default function TopBar() {
           const { count: mc } = await supabase
             .from('direct_messages')
             .select('*', { count: 'exact', head: true })
-            .eq('receiver_id', user.id)
-            .eq('read', false);
+            .eq('receiver_id', user.id)            .eq('read', false);
           setMsgCount(mc || 0);
         }
       } catch {}
@@ -96,7 +107,9 @@ export default function TopBar() {
     <>
       <TimeTracker />
       <DailyCheckin />
-      <AdsterraController />      <VisitorTracker />
+      <AdsterraController />
+      <VisitorTracker />
+      <AuthModal open={authOpen} mode={authMode} onClose={() => setAuthOpen(false)} onSwitch={(m) => setAuthMode(m)} />
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-forest-900/80 backdrop-blur-xl border-b border-white/40 dark:border-forest-700/40">
         <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
@@ -132,8 +145,7 @@ export default function TopBar() {
                   {msgCount}
                 </span>
               )}
-            </Link>
-            <Link
+            </Link>            <Link
               href="/search"
               aria-label="Search"
               className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
@@ -145,7 +157,8 @@ export default function TopBar() {
               onClick={toggleTheme}
               className="w-10 h-10 flex items-center justify-center rounded-full active:bg-forest-100 dark:active:bg-forest-800"
             >
-              {dark ? (                <Sun className="w-5 h-5 text-amber-400" />
+              {dark ? (
+                <Sun className="w-5 h-5 text-amber-400" />
               ) : (
                 <Moon className="w-5 h-5 text-forest-700 dark:text-forest-200" />
               )}
@@ -181,8 +194,7 @@ export default function TopBar() {
               <div className="flex items-center justify-between px-5 pt-5 pb-3">
                 <p className="app-heading">Menu</p>
                 <button
-                  onClick={() => setOpen(false)}
-                  aria-label="Close menu"
+                  onClick={() => setOpen(false)}                  aria-label="Close menu"
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-forest-100 dark:bg-forest-800"
                 >
                   <X className="w-5 h-5 text-forest-700 dark:text-forest-200" />
@@ -194,7 +206,8 @@ export default function TopBar() {
                   <div key={section.title}>
                     <p className="text-xs font-bold uppercase tracking-wider text-forest-400 mb-2 px-1">
                       {section.title}
-                    </p>                    <div className="space-y-1">
+                    </p>
+                    <div className="space-y-1">
                       {section.items.map((item) => {
                         const Icon = item.icon;
                         return (
@@ -230,8 +243,7 @@ export default function TopBar() {
                       { icon: Instagram, href: 'https://www.instagram.com/myfarmtech' },
                       { icon: Youtube, href: 'https://youtube.com/@animalstipss' },
                     ].map((s, i) => (
-                      <a
-                        key={i}
+                      <a                        key={i}
                         href={s.href}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -243,7 +255,8 @@ export default function TopBar() {
                   </div>
                 </div>
               </div>
-            </motion.div>          </>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>
