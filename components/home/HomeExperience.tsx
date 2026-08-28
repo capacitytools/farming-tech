@@ -21,7 +21,7 @@ const TIPS = [
 ];
 
 const PERSONAS: any = {
-  farmer: { emoji: "👨🌾", label: "I'm a Farmer", tag: "Diagnose diseases with your camera, sell at your price & get paid to learn.", cta: { href: "/scanner", text: "🩺 Try the AI Doctor now" } },
+  farmer: { emoji: "👨", label: "I'm a Farmer", tag: "Diagnose diseases with your camera, sell at your price & get paid to learn.", cta: { href: "/scanner", text: "🩺 Try the AI Doctor now" } },
   buyer: { emoji: "🛒", label: "I Want to Buy", tag: "Trusted farmers, verified sellers, real reviews — shop farm-fresh with confidence.", cta: { href: "/market", text: "🐄 Browse the Market" } },
   business: { emoji: "💼", label: "I'm a Business", tag: "Put your brand under every video & post — thousands of farmers see you daily.", cta: { href: "/ads/submit", text: "📢 Advertise Here" } },
   creator: { emoji: "🎬", label: "I'm a Creator", tag: "Post videos, publish e-books, keep 70% of sales & earn from the ad pool monthly.", cta: { href: "/ebooks", text: "💰 Start Earning" } },
@@ -95,8 +95,42 @@ export default function HomeExperience({ d }: { d: any }) {
     setHomeLikes({ ...homeLikes, [id]: count || 0 });
   }
 
+  // SHARE TO PLATFORM TIMELINE (repost)
+  async function homeRepost(p: any) {    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return alert("Log in to share to your timeline.");
+    await supabase.from("feed_posts").insert({
+      author_id: user.id,
+      content: "🔁 Shared from " + (p.author_name || "a farmer") + ":\n\n" + (p.content || ""),
+      image_url: p.image_url,
+      shared_from: p.id,
+    });
+    await supabase.from("feed_posts").update({ shares_count: (p.shares_count || 0) + 1 }).eq("id", p.id);
+    alert("✅ Shared to your Farmer Timeline!");
+  }
+
+  // SHARE TO EXTERNAL SOCIAL MEDIA
+  function homeShare(p: any, net: string) {
+    const url = `${window.location.origin}/post/${p.id}`;
+    const text = `${(p.content || "").slice(0, 120)} 🌾 Join, Learn, Grow, Connect & Earn on Farming Tech & Business!`;
+    const en = encodeURIComponent;
+    const media = p.image_url || "";
+    const links: any = {
+      wa: `https://wa.me/?text=${en(text + " " + url)}`,
+      fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
+      x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
+      pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
+    };
+    if (net === "copy") navigator.clipboard.writeText(url);
+    else if (net === "status") {
+      navigator.clipboard.writeText(text + " " + url);
+      window.open("https://wa.me/", "_blank");
+    } else window.open(links[net], "_blank");
+  }
+
   const P = persona ? PERSONAS[persona] : null;
   const TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
+
   const tickerItems = [
     ...d.tickerPosts.map((n: string) => "📣 " + n + " just posted on the Timeline"),
     ...d.tickerSales.map((s: any) => "💰 " + s.name + " SOLD: " + s.title),
@@ -111,8 +145,7 @@ export default function HomeExperience({ d }: { d: any }) {
     <div className="pb-24">
       {/* HERO */}
       <div className="bg-gradient-to-b from-forest-600 to-forest-800 text-white p-6 pb-10 rounded-b-3xl">
-        {!P ? (
-          <div>
+        {!P ? (          <div>
             <h1 className="text-2xl font-extrabold leading-tight mb-3">Welcome! Who are you? 👇</h1>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(PERSONAS).map(([k, v]: any) => (
@@ -145,7 +178,8 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* MAGIC DEMO */}
       <div className="p-4">
         <button onClick={() => setDemo("scan")} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg active:scale-[0.98]">
-          🩺 See the magic — watch a real diagnosis in 3 seconds (no signup)        </button>
+          🩺 See the magic — watch a real diagnosis in 3 seconds (no signup)
+        </button>
       </div>
 
       {demo !== "" && (
@@ -160,8 +194,7 @@ export default function HomeExperience({ d }: { d: any }) {
             ) : (
               <div className="space-y-3">
                 <p className="text-white font-extrabold text-center text-lg mb-4">🩺 AI Agri-Doctor Report</p>
-                <div className="rounded-xl border-l-4 border-red-400 bg-red-50 p-3"><p className="text-xs font-bold text-red-700">DIAGNOSIS</p><p className="text-sm">Coccidiosis (early stage) — likely in your flock.</p></div>
-                <div className="rounded-xl border-l-4 border-amber-400 bg-amber-50 p-3"><p className="text-xs font-bold text-amber-700">SEVERITY</p><p className="text-sm">Medium — act within 48 hours.</p></div>
+                <div className="rounded-xl border-l-4 border-red-400 bg-red-50 p-3"><p className="text-xs font-bold text-red-700">DIAGNOSIS</p><p className="text-sm">Coccidiosis (early stage) — likely in your flock.</p></div>                <div className="rounded-xl border-l-4 border-amber-400 bg-amber-50 p-3"><p className="text-xs font-bold text-amber-700">SEVERITY</p><p className="text-sm">Medium — act within 48 hours.</p></div>
                 <div className="rounded-xl border-l-4 border-green-500 bg-green-50 p-3"><p className="text-xs font-bold text-green-700">TREATMENT</p><p className="text-sm">Amprolium in water for 5 days. Clean & dry the pen today. Isolate badly affected birds.</p></div>
                 <p className="text-center text-forest-200 text-xs">This is a SAMPLE. Register FREE to scan YOUR own photos! 🌾</p>
                 <div className="flex gap-2">
@@ -194,7 +227,8 @@ export default function HomeExperience({ d }: { d: any }) {
         <div className="px-4 mt-4">
           <div className="glass-card p-4 rounded-2xl border-2 border-green-300">
             <div className="flex items-center justify-between mb-2">
-              <p className="font-bold text-sm">🚀 Get Started</p>              <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>
+              <p className="font-bold text-sm">🚀 Get Started</p>
+              <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
               <div className="bg-green-600 h-2 rounded-full" style={{ width: (d.onboarding.doneCount / d.onboarding.steps.length) * 100 + "%" }} />
@@ -209,7 +243,6 @@ export default function HomeExperience({ d }: { d: any }) {
           </div>
         </div>
       )}
-
       {/* TIMELINE BANNER */}
       <div className="px-4 mt-4">
         <Link href="/feed" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform">
@@ -227,7 +260,7 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* SHINING EBOOK BANNER */}
       <EbookBanner count={d.ebooks.length} />
 
-      {/* FOR YOU with LOCK + WORKING LIKE/COMMENTS */}
+      {/* FOR YOU with FULL SHARE BUTTONS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
@@ -243,7 +276,8 @@ export default function HomeExperience({ d }: { d: any }) {
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{(p.author_name || "?")[0]}</div>
                   )}
-                </Link>                <Link href={"/farmer/" + p.author_name ? "/farmer/" + p.author_id : "/feed"} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
+                </Link>
+                <Link href={"/farmer/" + p.author_id} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
                 {p.author_verified && <span className="text-sky-500 text-xs">✅</span>}
                 <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>
               </div>
@@ -254,7 +288,15 @@ export default function HomeExperience({ d }: { d: any }) {
               <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600">
                 <button onClick={() => homeLike(p.id)} className="active:scale-90">❤️ {homeLikes[p.id] ?? p.likes ?? 0}</button>
                 <button onClick={() => toggleHomeComments(p.id)} className="text-green-700 active:scale-90">💬 Comment</button>
-                <Link href="/feed" className="ml-auto text-[10px] text-gray-400">Open in Timeline →</Link>
+                <button onClick={() => homeRepost(p)} className="text-amber-700 active:scale-90">🔁 Share</button>
+              </div>
+              <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
+                <span className="text-[9px] text-gray-400">Share via:</span>
+                <button onClick={() => homeShare(p, "wa")} title="WhatsApp">📤</button>                <button onClick={() => homeShare(p, "status")} title="WhatsApp Status">🟢</button>
+                <button onClick={() => homeShare(p, "fb")} title="Facebook">f</button>
+                <button onClick={() => homeShare(p, "x")} title="X / Twitter">𝕏</button>
+                <button onClick={() => homeShare(p, "pin")} title="Pinterest">📌</button>
+                <button onClick={() => homeShare(p, "copy")} title="Copy link">🔗</button>
               </div>
               {homeOpenC === p.id && (
                 <div className="mt-2 space-y-2">
@@ -293,13 +335,13 @@ export default function HomeExperience({ d }: { d: any }) {
           {d.hot.length === 0 && <p className="text-sm text-gray-500">No posts yet — be the first on the For You board!</p>}
         </div>
       </div>
+
       {/* CREATOR POOL COUNTDOWN */}
       <div className="px-4 mt-6">
         <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">
           <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
           <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">
-            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
-          </div>
+            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>          </div>
           <p className="text-[10px] text-green-200 mt-1">left to earn points & claim your share · verified members get +10%</p>
           <Link href="/wallet" className="inline-block bg-amber-400 text-forest-900 px-5 py-2 rounded-xl font-bold text-xs mt-2">See How It Works →</Link>
         </div>
@@ -341,14 +383,14 @@ export default function HomeExperience({ d }: { d: any }) {
                 <p className="font-semibold text-sm line-clamp-2">{b.title}</p>
                 <p className="text-[10px] text-gray-500 mt-1">{b.category} · 👁️ {b.views_count || 0}</p>
               </div>
-            </Link>          ))}
+            </Link>
+          ))}
         </div>
       </div>
 
       {/* TRENDING TRIBES */}
       <div className="mt-8">
-        <div className="flex items-center justify-between px-4 mb-3">
-          <h2 className="text-lg font-bold">🌾 Trending Tribes</h2>
+        <div className="flex items-center justify-between px-4 mb-3">          <h2 className="text-lg font-bold">🌾 Trending Tribes</h2>
           <Link href="/communities" className="text-xs font-semibold text-green-700">View all →</Link>
         </div>
         <div className="flex gap-3 overflow-x-auto px-4 pb-2">
@@ -390,14 +432,14 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* TOP FARMERS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">🏆 Top Farmers</h2>          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
+          <h2 className="text-lg font-bold">🏆 Top Farmers</h2>
+          <Link href="/leaderboard" className="text-xs font-semibold text-green-700">Full board →</Link>
         </div>
         <div className="glass-card p-4 rounded-2xl space-y-2">
           {d.leaders.slice(0, 3).map((u: any, i: number) => (
             <Link key={i} href={"/farmer/" + u.id} className="flex items-center gap-3">
-              <span className="text-lg">{["🥇", "🥈", "🥉"][i]}</span>
-              <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>
-              <p className="flex-1 font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
+              <span className="text-lg">{["🥇", "", "🥉"][i]}</span>
+              <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{(u.full_name || "?")[0]}</div>              <p className="flex-1 font-semibold text-sm truncate">{u.full_name || "Farmer"}</p>
               <span className="text-xs font-bold text-amber-600">{u.points} pts</span>
             </Link>
           ))}
@@ -439,4 +481,5 @@ export default function HomeExperience({ d }: { d: any }) {
       <SpinWheel userId={d.user ? d.user.id : null} />
       <HelperBubble />
     </div>
-  );}
+  );
+}
