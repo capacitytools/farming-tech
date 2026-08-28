@@ -20,14 +20,19 @@ const REACTIONS = [
 ];
 
 function renderText(text: string) {
-  const parts = (text || "").split(/(https?:\/\/[^\s]+)/g);
-  return parts.map((p, i) =>
-    p.match(/^https?:\/\//) ? (
-      <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{p}</a>
-    ) : (
-      <span key={i}>{p}</span>
-    )
-  );
+  const parts = (text || "").split(/(https?:\/\/[^\s]+|#[\w-]+|@[\w-]+)/g);
+  return parts.map((p, i) => {
+    if (p.match(/^https?:\/\//)) {
+      return <a key={i} href={p} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{p}</a>;
+    }
+    if (p.startsWith("#")) {
+      return <a key={i} href={"/search?q=" + encodeURIComponent(p)} className="text-green-700 font-bold hover:underline">{p}</a>;
+    }
+    if (p.startsWith("@")) {
+      return <a key={i} href={"/search?q=" + encodeURIComponent(p.slice(1))} className="text-forest-700 font-bold hover:underline">{p}</a>;
+    }
+    return <span key={i}>{p}</span>;
+  });
 }
 
 function loadScript(src: string) {
@@ -42,12 +47,12 @@ function loadScript(src: string) {
   });
 }
 
-export default function FeedPage() {
-  const [user, setUser] = useState<any>(null);
+export default function FeedPage() {  const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState("foryou");
   const [posts, setPosts] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
-  const [likes, setLikes] = useState<any[]>([]);  const [comments, setComments] = useState<any[]>([]);
+  const [likes, setLikes] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [content, setContent] = useState("");
   const [image, setImage] = useState("");
@@ -91,12 +96,12 @@ export default function FeedPage() {
 
     let mapped = (ranked.data || []).map((r: any) => ({
       ...r,
-      kind: "post",
-      profiles: { full_name: r.author_name, avatar_url: r.author_avatar, verified: r.author_verified },
+      kind: "post",      profiles: { full_name: r.author_name, avatar_url: r.author_avatar, verified: r.author_verified },
     }));
 
     if (tab === "following" && u) {
-      mapped = mapped.filter((p: any) => fIds.includes(p.author_id) || p.author_id === u.id);    }
+      mapped = mapped.filter((p: any) => fIds.includes(p.author_id) || p.author_id === u.id);
+    }
 
     setPosts(mapped);
     setLikes(l.data || []);
@@ -140,12 +145,12 @@ export default function FeedPage() {
       else await supabase.from("feed_likes").update({ reaction }).eq("id", mine.id);
     } else {
       await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id, reaction });
-    }
-    const { data: l } = await supabase.from("feed_likes").select("id, post_id, user_id, reaction");
+    }    const { data: l } = await supabase.from("feed_likes").select("id, post_id, user_id, reaction");
     setLikes(l || []);
   }
 
-  function startHold(id: string) {    holdTimer = setTimeout(() => setPickerFor(id), 450);
+  function startHold(id: string) {
+    holdTimer = setTimeout(() => setPickerFor(id), 450);
   }
   function cancelHold() {
     if (holdTimer) clearTimeout(holdTimer);
@@ -189,12 +194,12 @@ export default function FeedPage() {
 
   async function reportPost(postId: string) {
     if (!user) return alert("Log in to report.");
-    const reason = prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");
-    if (!reason) return;
+    const reason = prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");    if (!reason) return;
     const supabase = createClient();
     await supabase.from("reports").insert({ reporter_id: user.id, target_type: "post", target_id: postId, reason });
     alert("Reported. Our admin team will review it.");
   }
+
   async function addComment(postId: string) {
     if (!cText.trim() || !user) return;
     const supabase = createClient();
@@ -238,12 +243,12 @@ export default function FeedPage() {
     const text = `${(item.content || item.title || "").slice(0, 120)} 🌾 Join, Learn, Grow, Connect & Earn on Farming Tech & Business!`;
     const en = encodeURIComponent;
     const media = item.image_url || "";
-    const links: any = {
-      wa: `https://wa.me/?text=${en(text + " " + url)}`,
+    const links: any = {      wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
       x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
       pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
-    };    const supabase = createClient();
+    };
+    const supabase = createClient();
     supabase.from("feed_posts").update({ shares_count: (item.shares_count || 0) + 1 }).eq("id", item.id);
     if (network === "copy") navigator.clipboard.writeText(url);
     else if (network === "status") {
@@ -276,7 +281,7 @@ export default function FeedPage() {
       {user && (
         <div className="mb-5 space-y-3">
           <form onSubmit={publish} className="glass-card p-4 rounded-2xl">
-            <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today? Paste links — they become clickable!" value={content} onChange={(e) => setContent(e.target.value)} />
+            <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today? Links & #hashtags become clickable!" value={content} onChange={(e) => setContent(e.target.value)} />
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
               <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
@@ -287,12 +292,12 @@ export default function FeedPage() {
           </form>
           {videoMode && (
             <VideoComposer
-              context="feed"
-              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
+              context="feed"              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
               onDone={() => { setVideoMode(""); load(); }}
             />
           )}
-        </div>      )}
+        </div>
+      )}
 
       <div className="space-y-4">
         {timeline.map((item: any, idx: number) => (
@@ -337,11 +342,11 @@ export default function FeedPage() {
                     <AdBar ad={item.ad} />
                   </div>
                 )}
-
                 {(() => {
                   const postLikes = likes.filter((l) => l.post_id === item.id);
                   const mine = user && postLikes.find((l) => l.user_id === user.id);
-                  const myEmoji = mine ? REACTIONS.find((r) => r.key === mine.reaction)?.e || "👍" : null;                  const counts: any = {};
+                  const myEmoji = mine ? REACTIONS.find((r) => r.key === mine.reaction)?.e || "👍" : null;
+                  const counts: any = {};
                   postLikes.forEach((l) => { counts[l.reaction] = (counts[l.reaction] || 0) + 1; });
                   const summary = REACTIONS.filter((r) => counts[r.key]).map((r) => r.e).join("");
                   const postComments = comments.filter((c) => c.post_id === item.id);
@@ -385,12 +390,12 @@ export default function FeedPage() {
                           <span>📊 ENGAGEMENT</span>
                           <span>👁️ {item.views_count || 0}</span>
                           <span>🎭 {postLikes.length}</span>
-                          <span>💬 {postComments.length}</span>
-                          <span>🔁 {item.shares_count || 0}</span>
+                          <span>💬 {postComments.length}</span>                          <span>🔁 {item.shares_count || 0}</span>
                         </button>
                       )}
 
-                      <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">                        <span className="text-[9px] text-gray-400">Share via:</span>
+                      <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
+                        <span className="text-[9px] text-gray-400">Share via:</span>
                         <button onClick={() => share(item, "wa")} title="WhatsApp">📤</button>
                         <button onClick={() => share(item, "status")} title="WhatsApp Status">🟢</button>
                         <button onClick={() => share(item, "fb")} title="Facebook">f</button>
@@ -434,12 +439,12 @@ export default function FeedPage() {
         )}
       </div>
 
-      {reactorsFor && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setReactorsFor("")}>
+      {reactorsFor && (        <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setReactorsFor("")}>
           <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-4 max-h-[75vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <p className="font-extrabold">📊 Post Engagement</p>
-              <button onClick={() => setReactorsFor("")} className="text-gray-400 font-bold">✕</button>            </div>
+              <button onClick={() => setReactorsFor("")} className="text-gray-400 font-bold">✕</button>
+            </div>
             {reactorItem && (
               <div className="grid grid-cols-4 gap-2 text-center mb-4">
                 <div className="bg-gray-50 rounded-xl p-2"><p className="font-extrabold">{reactorItem.views_count || 0}</p><p className="text-[9px] text-gray-500">👁️ Views</p></div>
