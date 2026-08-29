@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { compressAndUploadImage } from "@/lib/media";
 import { Send, Image as ImageIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import imageCompression from "browser-image-compression";
 
 type Message = {
   id: string;
@@ -20,6 +20,8 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -27,13 +29,13 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
   // 1. Fetch initial messages
   useEffect(() => {
     const fetchMessages = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("messages")
         .select("id, chat_id, user_id, text, media_url, created_at")
         .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
 
-      if (!error && data) {
+      if (data) {
         const formatted = data.map((msg) => ({ ...msg, status: "delivered" as const }));
         setMessages(formatted);
       }
@@ -45,12 +47,11 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
   useEffect(() => {
     const channel = supabase
       .channel(`chat:${chatId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },        (payload) => {
+      .on(        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages", filter: `chat_id=eq.${chatId}` },
+        (payload) => {
           const newMsg = { ...(payload.new as any), status: "delivered" as const };
           setMessages((prev) => {
-            // Prevent duplicates from optimistic UI
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
@@ -68,9 +69,20 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 4. Send Message Handler
-  const handleSend = async (file?: File) => {
-    if (!text.trim() && !file) return;
+  // 4. Handle Image Selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create a temporary local URL to show a preview before sending
+      const localUrl = URL.createObjectURL(file);
+      setSelectedImage(localUrl);
+    }
+  };
+
+  // 5. Send Message (Text + Image)
+  const handleSend = async () => {
+    if (!text.trim() && !selectedFile) return;
 
     const tempId = `temp-${Date.now()}`;
     const optimisticMsg: Message = {
@@ -78,56 +90,62 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
       chat_id: chatId,
       user_id: currentUserId,
       text: text.trim(),
-      media_url: null,
+      media_url: selectedImage, // Show preview immediately
       created_at: new Date().toISOString(),
       status: "sending",
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
-    setText("");
-    setIsUploading(!!file);
+    setText("");    setSelectedImage(null);
+    setIsUploading(!!selectedFile);
 
     try {
-      let mediaUrl = null;
-      if (file) {
-        mediaUrl = await compressAndUploadImage(file, currentUserId);
+      let finalMediaUrl = null;
+      
+      // If there is an image, compress it and upload it to Supabase Storage
+      if (selectedFile) {
+        const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
+        const compressedFile = await imageCompression(selectedFile, options);
+        const fileExt = compressedFile.name.split(".").pop();
+        const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("messages")
+          .upload(fileName, compressedFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage.from("messages").getPublicUrl(uploadData.path);
+        finalMediaUrl = urlData.publicUrl;
       }
 
+      // Save the message to the database
       const { data, error } = await supabase
         .from("messages")
         .insert({
-          chat_id: chatId,          user_id: currentUserId,
+          chat_id: chatId,
+          user_id: currentUserId,
           text: optimisticMsg.text,
-          media_url: mediaUrl,
+          media_url: finalMediaUrl,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Update optimistic message with real ID and "sent" status
+      // Update the temporary message with the real ID
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === tempId ? { ...msg, id: data.id, status: "sent" } : msg
-        )
+        prev.map((msg) => (msg.id === tempId ? { ...msg, id: data.id, status: "sent", media_url: finalMediaUrl } : msg))
       );
     } catch (error) {
-      console.error("Failed to send message:", error);
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === tempId ? { ...msg, status: "sending" } : msg))
-      );
-      alert("Failed to send. Tap to retry.");
+      console.error("Failed to send:", error);
+      alert("Failed to send. Check your connection or storage bucket.");
     } finally {
       setIsUploading(false);
+      setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleSend(file);
-  };
-
   return (
     <div className="flex flex-col h-full bg-gbackground dark:bg-gdark-background">
       {/* Messages Area */}
@@ -138,19 +156,14 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
             <div key={msg.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[80%] rounded-gbubble px-4 py-3 shadow-sm ${
-                  isOwn
-                    ? "bg-ggreen-primary text-white"
-                    : "bg-glight-bubble text-gtext dark:bg-gdark-bubble dark:text-gdark-text"
+                  isOwn ? "bg-ggreen-primary text-white" : "bg-glight-bubble text-gtext dark:bg-gdark-bubble dark:text-gdark-text"
                 }`}
               >
                 {msg.media_url && (
-                  <img
-                    src={msg.media_url}                    alt="Attachment"
-                    className="rounded-lg mb-2 max-w-full h-auto"
-                  />
+                  <img src={msg.media_url} alt="Attachment" className="rounded-lg mb-2 max-w-full h-auto" />
                 )}
                 {msg.text && <p className="whitespace-pre-wrap break-words text-[15px]">{msg.text}</p>}
-                <div className={`flex items-center justify-end gap-1 mt-1 text-[11px] ${isOwn ? "text-white/80" : "text-gmuted dark:text-gdark-muted"}`}>
+                <div className={`flex items-center justify-end gap-1 mt-1 text-[11px] ${isOwn ? "text-white/80" : "text-gmuted"}`}>
                   <span>{format(new Date(msg.created_at), "HH:mm")}</span>
                   {isOwn && (
                     <span>
@@ -168,48 +181,66 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Composer */}
+      {/* Image Preview Area */}
+      {selectedImage && (
+        <div className="px-4 py-2 bg-gbackground dark:bg-gdark-background border-t border-gborder">
+          <div className="relative inline-block">
+            <img src={selectedImage} alt="Preview" className="h-20 rounded-lg border border-gborder" />
+            <button 
+              onClick={() => { setSelectedImage(null); setSelectedFile(null); }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Bottom Chat Bar */}
       <div className="border-t border-gborder bg-white dark:border-gdark-border dark:bg-gdark-surface p-3">
         <div className="flex items-end gap-2">
+          
+          {/* 1. The Camera/Image Button */}
           <button
+            type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="flex h-12 w-12 items-center justify-center rounded-full text-gmuted hover:bg-gborder/50 dark:hover:bg-gdark-border/50 disabled:opacity-50"
+            className="flex h-12 w-12 items-center justify-center rounded-full text-gmuted hover:bg-gborder/50 dark:hover:bg-gdark-border/50"
           >
             <ImageIcon className="h-6 w-6" />
           </button>
+          
+          {/* 2. The Hidden File Input */}
           <input
-            type="file"
             ref={fileInputRef}
-            onChange={handleFileSelect}
+            type="file"
             accept="image/*"
             className="hidden"
+            onChange={handleImageSelect}
           />
           
-          <div className="flex-1 relative">
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }              }}
-              placeholder="Type a message..."
-              rows={1}
-              className="w-full max-h-32 min-h-[48px] resize-none rounded-gbutton border border-gborder bg-gbackground px-4 py-3 text-[15px] outline-none focus:border-ggreen-primary dark:border-gdark-border dark:bg-gdark-background"
-            />
-          </div>
+          {/* 3. The Text Box */}
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Message"
+            rows={1}
+            className="flex-1 max-h-32 min-h-[48px] resize-none rounded-gbutton border border-gborder bg-gbackground px-4 py-3 text-[15px] outline-none focus:border-ggreen-primary dark:border-gdark-border dark:bg-gdark-background"
+          />
 
+          {/* 4. The Send Button */}
           <button
-            onClick={() => handleSend()}
-            disabled={!text.trim() || isUploading}
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-ggreen-primary text-white shadow-lg shadow-ggreen-primary/30 active:bg-ggreen-deep disabled:opacity-50 disabled:shadow-none"
+            onClick={handleSend}
+            disabled={(!text.trim() && !selectedFile) || isUploading}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-ggreen-primary text-white shadow-lg active:bg-ggreen-deep disabled:opacity-50"
           >
             {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </button>
         </div>
       </div>
     </div>
-  );
-}
+  );}
