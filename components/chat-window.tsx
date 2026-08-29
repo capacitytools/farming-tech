@@ -74,7 +74,6 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      // Create a temporary local URL to show a preview before sending
       const localUrl = URL.createObjectURL(file);
       setSelectedImage(localUrl);
     }
@@ -90,19 +89,18 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
       chat_id: chatId,
       user_id: currentUserId,
       text: text.trim(),
-      media_url: selectedImage, // Show preview immediately
+      media_url: selectedImage,
       created_at: new Date().toISOString(),
       status: "sending",
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
-    setText("");    setSelectedImage(null);
-    setIsUploading(!!selectedFile);
+    setText("");
+    setSelectedImage(null);    setIsUploading(!!selectedFile);
 
     try {
       let finalMediaUrl = null;
       
-      // If there is an image, compress it and upload it to Supabase Storage
       if (selectedFile) {
         const options = { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true };
         const compressedFile = await imageCompression(selectedFile, options);
@@ -119,7 +117,6 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
         finalMediaUrl = urlData.publicUrl;
       }
 
-      // Save the message to the database
       const { data, error } = await supabase
         .from("messages")
         .insert({
@@ -133,7 +130,6 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
 
       if (error) throw error;
 
-      // Update the temporary message with the real ID
       setMessages((prev) =>
         prev.map((msg) => (msg.id === tempId ? { ...msg, id: data.id, status: "sent", media_url: finalMediaUrl } : msg))
       );
@@ -146,10 +142,10 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
   return (
     <div className="flex flex-col h-full bg-gbackground dark:bg-gdark-background">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages Area */}      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => {
           const isOwn = msg.user_id === currentUserId;
           return (
@@ -195,11 +191,11 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
           </div>
         </div>
       )}
+
       {/* Bottom Chat Bar */}
       <div className="border-t border-gborder bg-white dark:border-gdark-border dark:bg-gdark-surface p-3">
-        <div className="flex items-end gap-2">
-          
-          {/* 1. The Camera/Image Button */}
+        <div className="flex items-end gap-2">          
+          {/* 1. THE CAMERA BUTTON - THIS IS WHAT YOU'VE BEEN WAITING FOR! */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -243,4 +239,5 @@ export function ChatWindow({ chatId, currentUserId }: { chatId: string; currentU
         </div>
       </div>
     </div>
-  );}
+  );
+}
