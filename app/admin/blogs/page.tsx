@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { uploadToCloudinary } from "@/lib/upload";
 
@@ -46,8 +47,8 @@ export default function AdminBlogsPage() {
 
   async function save(e: any) {
     e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) return alert("Title and content are required.");
-    setBusy(true);    const supabase = createClient();
+    if (!form.title.trim() || !form.content.trim()) return alert("Title and content are required.");    setBusy(true);
+    const supabase = createClient();
     const payload = {
       title: form.title.trim(),
       category: form.category.trim() || "Farming",
@@ -67,6 +68,21 @@ export default function AdminBlogsPage() {
     setBusy(false);
   }
 
+  async function blastPost(b: any) {
+    const supabase = createClient();
+    try {
+      await supabase.from("announcements").insert({
+        title: "📰 " + b.title,
+        body: (b.content || "").slice(0, 120) + "...",
+        link: "/blog/" + b.slug,
+        emoji: "📰",
+      });
+      alert("📢 Blasted! Every member now sees this post at the top of every page.");
+    } catch {
+      alert("Megaphone table not ready yet — run the Megaphone SQL first.");
+    }
+  }
+
   function startEdit(b: any) {
     setEditId(b.id);
     setForm({ title: b.title, category: b.category || "Farming", content: b.content });
@@ -81,22 +97,22 @@ export default function AdminBlogsPage() {
     await supabase.from("blogs").delete().eq("id", id);
     load();
   }
-
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   if (!admin) return <p className="text-center text-gray-500 py-10">🛡️ Admin access only.</p>;
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-extrabold">📰 Blog Manager</h1>
+        <h1 className="text-2xl font-extrabold">📰 Blog Control Room</h1>
         <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ title: "", category: "Farming", content: "" }); setCover(""); }} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ New Post</button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">Every post here auto-joins the RSS feed → your Facebook page and The Harvest Wire.</p>
+      <p className="text-xs text-gray-500 mb-4">Publish, edit, blast and delete. Every post auto-joins the RSS feed → your Facebook page.</p>
       {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
 
       {showForm && (
         <form onSubmit={save} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
-          <p className="text-sm font-bold text-forest-700">{editId ? "✏️ Edit Post" : "📝 New Blog Post"}</p>          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (catchy!)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <p className="text-sm font-bold text-forest-700">{editId ? "✏️ Edit Post" : "📝 New Blog Post"}</p>
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (catchy!)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Category (Farming / Tech / Business)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
           <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image
             <input type="file" accept="image/*" className="hidden" onChange={uploadCoverFn} />
@@ -109,14 +125,15 @@ export default function AdminBlogsPage() {
 
       <div className="space-y-2">
         {blogs.map((b) => (
-          <div key={b.id} className="glass-card p-3 rounded-2xl flex items-center gap-3">
+          <div key={b.id} className="glass-card p-3 rounded-2xl flex items-center gap-2">
             {b.cover_image_url ? <img src={b.cover_image_url} alt="" className="w-12 h-12 object-cover rounded-lg" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">📰</div>}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold line-clamp-1">{b.title}</p>
+              <Link href={"/blog/" + b.slug} className="text-sm font-bold line-clamp-1 hover:underline">{b.title}</Link>
               <p className="text-[10px] text-gray-500">{b.category} · 👁️ {b.views_count || 0} · {new Date(b.created_at).toLocaleDateString()}</p>
             </div>
-            <button onClick={() => startEdit(b)} className="text-xs font-bold text-forest-700 bg-forest-50 px-3 py-2 rounded-xl">✏️</button>
-            <button onClick={() => remove(b.id)} className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl">🗑</button>
+            <button onClick={() => blastPost(b)} title="Blast to all members" className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-2 rounded-xl">📢</button>
+            <button onClick={() => startEdit(b)} className="text-xs font-bold text-forest-700 bg-forest-50 px-2 py-2 rounded-xl">✏️</button>
+            <button onClick={() => remove(b.id)} className="text-xs font-bold text-red-500 bg-red-50 px-2 py-2 rounded-xl">🗑</button>
           </div>
         ))}
         {blogs.length === 0 && <p className="text-sm text-gray-500 text-center py-8">No posts yet — publish your first insight!</p>}
