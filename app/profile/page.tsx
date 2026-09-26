@@ -5,6 +5,16 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { uploadToCloudinary } from "@/lib/upload";
 
+const ADMIN_TOOLS = [
+  { href: "/admin/analytics", icon: "📊", label: "Analytics & Visitors" },
+  { href: "/admin/traffic", icon: "🛰️", label: "Traffic Intelligence" },
+  { href: "/admin/customers", icon: "📇", label: "Customer Spreadsheet" },
+  { href: "/admin/megaphone", icon: "📢", label: "The Megaphone" },
+  { href: "/admin/blogs", icon: "📰", label: "Blog Manager" },
+  { href: "/admin/bills", icon: "🧾", label: "Bills Fulfilment Desk" },
+  { href: "/admin/ads", icon: "📣", label: "Ad Switch Manager" },
+];
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -37,8 +47,7 @@ export default function ProfilePage() {
   useEffect(() => { load(); }, []);
 
   async function uploadAvatar(e: any) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const file = e.target.files?.[0];    if (!file) return;
     try {
       const url = await uploadToCloudinary(file, "avatars");
       setAvatar(url);
@@ -47,7 +56,8 @@ export default function ProfilePage() {
     }
   }
 
-  async function uploadCover(e: any) {    const file = e.target.files?.[0];
+  async function uploadCover(e: any) {
+    const file = e.target.files?.[0];
     if (!file) return;
     try {
       const url = await uploadToCloudinary(file, "covers");
@@ -86,8 +96,7 @@ export default function ProfilePage() {
 
   if (!user) {
     return (
-      <div className="p-6 pb-24 max-w-md mx-auto text-center">
-        <div className="glass-card p-6 rounded-2xl">
+      <div className="p-6 pb-24 max-w-md mx-auto text-center">        <div className="glass-card p-6 rounded-2xl">
           <p className="text-4xl mb-2">🔐</p>
           <h1 className="text-xl font-extrabold mb-1">My Dashboard</h1>
           <p className="text-sm text-gray-500 mb-4">Log in to see your points, posts and profile tools.</p>
@@ -96,6 +105,7 @@ export default function ProfilePage() {
       </div>
     );
   }
+
   return (
     <div className="pb-24 max-w-2xl mx-auto">
       <div className="relative h-36 bg-forest-700">
@@ -130,6 +140,21 @@ export default function ProfilePage() {
         <div className="glass-card p-3 rounded-2xl text-center"><p className="text-lg font-extrabold text-forest-800">{stats.followers}</p><p className="text-[9px] text-gray-500 font-bold">👥 Followers</p></div>
       </div>
 
+      {profile?.role === "admin" && (
+        <div className="px-4 mt-4">
+          <div className="glass-card p-3 rounded-2xl border-2 border-amber-400">
+            <p className="text-sm font-extrabold text-amber-700 mb-2">🛡️ ADMIN CONTROL ROOM</p>
+            <div className="grid grid-cols-2 gap-2">
+              {ADMIN_TOOLS.map((t) => (                <Link key={t.href} href={t.href} className="bg-amber-50 hover:bg-amber-100 p-3 rounded-xl text-center active:scale-95 transition-transform">
+                  <p className="text-xl">{t.icon}</p>
+                  <p className="text-[10px] font-bold text-amber-800 mt-1">{t.label}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="px-4 mt-4 grid grid-cols-2 gap-2">
         <Link href="/wallet" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">💰 Wallet & Verification</Link>
         <Link href="/achievements" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">🏅 Achievements</Link>
@@ -145,5 +170,6 @@ export default function ProfilePage() {
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="WhatsApp number (for customer sheet & deliveries)" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
         <button className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold disabled:opacity-50" disabled={busy}>{busy ? "Saving..." : "💾 Save Changes"}</button>
       </form>
-    </div>  );
+    </div>
+  );
 }
