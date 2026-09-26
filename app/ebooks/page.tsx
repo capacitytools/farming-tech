@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { uploadToCloudinary } from "@/lib/upload";
 import { currencySymbol } from "@/lib/currency";
 
 const PAYSTACK_PUBLIC_KEY = "pk_live_00573ba36a45a7fa73d358fee60ae30f5ce1dd49";
@@ -25,7 +26,7 @@ export default function EbooksPage() {
   const [books, setBooks] = useState<any[]>([]);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", desc: "", price: "", mode: "file", link: "" });
+  const [form, setForm] = useState({ title: "", desc: "", price: "", mode: "link", link: "" });
   const [cover, setCover] = useState("");
   const [fileUrl, setFileUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,8 +47,8 @@ export default function EbooksPage() {
     }
     const { data: b } = await supabase.from("ebooks").select("*").order("created_at", { ascending: false });
     let withAuthors: any[] = b || [];
-    if (b && b.length) {
-      const ids = Array.from(new Set(b.map((x: any) => x.author_id)));      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);
+    if (b && b.length) {      const ids = Array.from(new Set(b.map((x: any) => x.author_id)));
+      const { data: pr } = await supabase.from("profiles").select("id, full_name, avatar_url, referral_code").in("id", ids as any[]);
       const map: any = {};
       (pr || []).forEach((p: any) => { map[p.id] = p; });
       withAuthors = b.map((x: any) => ({ ...x, profiles: map[x.author_id] || null }));
@@ -61,21 +62,23 @@ export default function EbooksPage() {
   async function uploadCover(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `ebook-cover-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("blog-images").upload(path, file);
-    if (!error) setCover(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
+    try {
+      const url = await uploadToCloudinary(file, "ebook-covers");
+      setCover(url);
+    } catch (err: any) {
+      alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
+    }
   }
 
   async function uploadFile(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "pdf";
-    const path = `ebook-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("blog-images").upload(path, file);
-    if (!error) setFileUrl(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
+    try {
+      const url = await uploadToCloudinary(file, "ebooks");
+      setFileUrl(url);
+    } catch (err: any) {
+      alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
+    }
   }
 
   async function publish(e: any) {
@@ -93,10 +96,10 @@ export default function EbooksPage() {
       price: Number(form.price),
       currency: "NGN",
       cover_url: cover || null,
-      file_url: form.mode === "file" ? fileUrl : null,
-      access_link: form.mode === "link" ? form.link.trim() : null,
+      file_url: form.mode === "file" ? fileUrl : null,      access_link: form.mode === "link" ? form.link.trim() : null,
     });
-    setMsg("✅ Ebook published! You keep 70% of every sale.");    setForm({ title: "", desc: "", price: "", mode: "file", link: "" });
+    setMsg("✅ Ebook published! You keep 70% of every sale.");
+    setForm({ title: "", desc: "", price: "", mode: "link", link: "" });
     setCover(""); setFileUrl("");
     setShowForm(false);
     setTimeout(() => setMsg(""), 2500);
@@ -142,10 +145,10 @@ export default function EbooksPage() {
           (async () => {
             const supabase2 = createClient();
             await supabase2.from("ebook_purchases").insert({
-              ebook_id: book.id,
-              user_id: user.id,
+              ebook_id: book.id,              user_id: user.id,
               status: "paid",
-              affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,            });
+              affiliate_code: refParam && refParam !== book.profiles?.referral_code ? refParam : null,
+            });
             alert("🎉 Payment successful! Your ebook is unlocked.");
             load();
           })();
@@ -191,10 +194,10 @@ export default function EbooksPage() {
       {showForm && (
         <form onSubmit={publish} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
           <p className="text-sm font-bold text-forest-700">📖 Publish your ebook</p>
-          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (e.g. Rabbit Farming Masterclass)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? (buyers see this before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (e.g. Rabbit Farming Masterclass)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Full details — what will the reader learn? (buyers see this before paying)..." value={form.desc} onChange={(e) => setForm({ ...form, desc: e.target.value })} />
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" type="number" placeholder="Price in Naira — put 0 to make it FREE" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} />
-          <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image (optional)            <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
+          <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image (optional)
+            <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
           </label>
           {cover && <img src={cover} alt="" className="h-16 w-12 object-cover rounded-lg" />}
 
@@ -240,10 +243,10 @@ export default function EbooksPage() {
                 <button onClick={() => buy(b)} className="w-full bg-green-600 text-white py-2 rounded-xl text-xs font-bold">{Number(b.price) <= 0 ? "🎁 Get Free" : "💳 Buy Now"}</button>
               )}
               {user && <button onClick={(e) => copyMyLink(b, e)} className="w-full bg-amber-100 text-amber-700 py-1.5 rounded-xl text-[10px] font-bold">🔗 Copy My Share Link & earn</button>}
-            </div>
-          </div>
+            </div>          </div>
         ))}
-      </div>      {books.length === 0 && <p className="text-sm text-gray-500 text-center py-10">No ebooks yet. Publish the first one and keep 70% of every sale!</p>}
+      </div>
+      {books.length === 0 && <p className="text-sm text-gray-500 text-center py-10">No ebooks yet. Publish the first one and keep 70% of every sale!</p>}
     </div>
   );
 }
