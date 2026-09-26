@@ -2,98 +2,124 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
+import { uploadToCloudinary } from "@/lib/upload";
 
-const CATEGORIES = ["All", "Animal", "Plants", "Business", "Tech", "Poultry", "Rabbits", "Goats", "Pigs", "Fish", "Crops"];
+function slugify(t: string) {
+  return t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
 
 export default function AdminBlogsPage() {
+  const [admin, setAdmin] = useState(false);
   const [blogs, setBlogs] = useState<any[]>([]);
-  const [filter, setFilter] = useState("All");
-  const [message, setMessage] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ title: "", category: "Farming", content: "" });
+  const [cover, setCover] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [loaded, setLoaded] = useState(false);
 
   async function load() {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: p } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      setAdmin(p?.role === "admin");
+    }
     const { data } = await supabase.from("blogs").select("*").order("created_at", { ascending: false });
     setBlogs(data || []);
+    setLoaded(true);
   }
-  useEffect(() => {
-    load();
-  }, []);
 
-  async function deleteBlog(id: string) {
-    if (!confirm("Delete this blog?")) return;
+  useEffect(() => { load(); }, []);
+
+  async function uploadCoverFn(e: any) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadToCloudinary(file, "blog-covers");
+      setCover(url);
+    } catch (err: any) {
+      alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
+    }
+  }
+
+  async function save(e: any) {
+    e.preventDefault();
+    if (!form.title.trim() || !form.content.trim()) return alert("Title and content are required.");
+    setBusy(true);    const supabase = createClient();
+    const payload = {
+      title: form.title.trim(),
+      category: form.category.trim() || "Farming",
+      content: form.content,
+      cover_image_url: cover || null,
+      slug: slugify(form.title) + (editId ? "" : "-" + Date.now().toString().slice(-4)),
+    };
+    if (editId) await supabase.from("blogs").update(payload).eq("id", editId);
+    else await supabase.from("blogs").insert(payload);
+    setMsg(editId ? "✅ Post updated!" : "✅ Published! It also flows to your Facebook page via the RSS feed.");
+    setForm({ title: "", category: "Farming", content: "" });
+    setCover("");
+    setEditId(null);
+    setShowForm(false);
+    setTimeout(() => setMsg(""), 3000);
+    await load();
+    setBusy(false);
+  }
+
+  function startEdit(b: any) {
+    setEditId(b.id);
+    setForm({ title: b.title, category: b.category || "Farming", content: b.content });
+    setCover(b.cover_image_url || "");
+    setShowForm(true);
+    window.scrollTo({ top: 0 });
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Delete this blog post forever?")) return;
     const supabase = createClient();
     await supabase.from("blogs").delete().eq("id", id);
     load();
   }
 
-  function copyLink(slug: string) {
-    const url = `https://farming-tech.vercel.app/blog/${slug}`;
-    navigator.clipboard.writeText(url);
-    setMessage("Link copied! ✅");
-    setTimeout(() => setMessage(""), 2000);
-  }
-
-  function shareBlog(b: any, net: string) {
-    const url = `https://farming-tech.vercel.app/blog/${b.slug}`;
-    const caption = `🌾 ${b.title} — read free on Farming Tech & Business! 👨‍🌾 Practical tips for Nigerian farmers.`;
-    const e = encodeURIComponent;
-    if (net === "wa") window.open(`https://wa.me/?text=${e(caption + " " + url)}`);
-    else window.open(`https://www.facebook.com/sharer/sharer.php?u=${e(url)}`);
-  }
-
-  const filtered = filter === "All" ? blogs : blogs.filter((b) => b.category === filter);
+  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
+  if (!admin) return <p className="text-center text-gray-500 py-10">🛡️ Admin access only.</p>;
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-4 gap-2">
-        <h1 className="text-2xl font-bold">📝 Manage Blogs</h1>
-        <div className="flex gap-2">
-          <Link href="/admin/blogs/ai-writer" className="bg-purple-600 text-white px-3 py-2 rounded-xl font-semibold text-sm whitespace-nowrap">🤖 AI Writer</Link>
-          <Link href="/admin/blogs/new" className="bg-green-600 text-white px-3 py-2 rounded-xl font-semibold text-sm whitespace-nowrap">✍️ Write New</Link>
-        </div>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-2xl font-extrabold">📰 Blog Manager</h1>
+        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ title: "", category: "Farming", content: "" }); setCover(""); }} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ New Post</button>
       </div>
+      <p className="text-xs text-gray-500 mb-4">Every post here auto-joins the RSS feed → your Facebook page and The Harvest Wire.</p>
+      {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
 
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-        {CATEGORIES.map((cat) => (
-          <button key={cat} onClick={() => setFilter(cat)} className={`px-3 py-1 rounded-full text-sm font-semibold whitespace-nowrap ${filter === cat ? "bg-green-600 text-white" : "bg-gray-200"}`}>
-            {cat}
-          </button>
-        ))}
-      </div>
+      {showForm && (
+        <form onSubmit={save} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
+          <p className="text-sm font-bold text-forest-700">{editId ? "✏️ Edit Post" : "📝 New Blog Post"}</p>          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (catchy!)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Category (Farming / Tech / Business)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+          <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image
+            <input type="file" accept="image/*" className="hidden" onChange={uploadCoverFn} />
+          </label>
+          {cover && <img src={cover} alt="" className="h-20 w-full object-cover rounded-xl" />}
+          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={10} placeholder="Write the full article here... (blank lines between paragraphs)" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
+          <button className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>{busy ? "Saving..." : "🚀 Publish"}</button>
+        </form>
+      )}
 
-      {message && <p className="text-sm text-center text-green-700 mb-4">{message}</p>}
-
-      <div className="space-y-3">
-        {filtered.length > 0 ? (
-          filtered.map((b) => (
-            <div key={b.id} className="glass-card p-4 rounded-2xl">
-              <div className="flex gap-3">
-                {b.cover_image_url && <img src={b.cover_image_url} alt={b.title} className="w-20 h-20 object-cover rounded-lg" />}
-                <div className="flex-1">
-                  <h3 className="font-bold text-sm">{b.title}</h3>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                    <span>{b.category || "Uncategorized"}</span>
-                    <span>·</span>
-                    <span className={b.status === "published" ? "text-green-600 font-bold" : "text-yellow-600 font-bold"}>{b.status}</span>
-                    <span>·</span>
-                    <span className="font-semibold">👁️ {b.views_count || 0} views</span>
-                  </div>
-                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">{b.excerpt}</p>
-                  <div className="flex gap-3 mt-2 flex-wrap">
-                    <a href={`/admin/blogs/edit?id=${b.id}`} className="text-blue-600 text-sm font-semibold">Edit</a>
-                    <button onClick={() => deleteBlog(b.id)} className="text-red-600 text-sm font-semibold">Delete</button>
-                    <button onClick={() => copyLink(b.slug)} className="text-green-600 text-sm font-semibold">Copy Link</button>
-                    <button onClick={() => shareBlog(b, "wa")} className="text-green-700 text-sm font-semibold">📤 WhatsApp</button>
-                    <button onClick={() => shareBlog(b, "fb")} className="text-blue-700 text-sm font-semibold">📘 Facebook</button>
-                  </div>
-                </div>
-              </div>
+      <div className="space-y-2">
+        {blogs.map((b) => (
+          <div key={b.id} className="glass-card p-3 rounded-2xl flex items-center gap-3">
+            {b.cover_image_url ? <img src={b.cover_image_url} alt="" className="w-12 h-12 object-cover rounded-lg" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">📰</div>}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold line-clamp-1">{b.title}</p>
+              <p className="text-[10px] text-gray-500">{b.category} · 👁️ {b.views_count || 0} · {new Date(b.created_at).toLocaleDateString()}</p>
             </div>
-          ))
-        ) : (
-          <p className="text-gray-500 text-center py-10">No blogs in this category.</p>
-        )}
+            <button onClick={() => startEdit(b)} className="text-xs font-bold text-forest-700 bg-forest-50 px-3 py-2 rounded-xl">✏️</button>
+            <button onClick={() => remove(b.id)} className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl">🗑</button>
+          </div>
+        ))}
+        {blogs.length === 0 && <p className="text-sm text-gray-500 text-center py-8">No posts yet — publish your first insight!</p>}
       </div>
     </div>
   );
