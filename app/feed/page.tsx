@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { uploadToCloudinary } from "@/lib/upload";
 import VideoCard from "@/components/VideoCard";
 import VideoComposer from "@/components/VideoComposer";
 import AdBar from "@/components/AdBar";
@@ -46,8 +47,8 @@ function loadScript(src: string) {
     document.body.appendChild(s);
   });
 }
-
-export default function FeedPage() {  const [user, setUser] = useState<any>(null);
+export default function FeedPage() {
+  const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState("foryou");
   const [posts, setPosts] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
@@ -95,8 +96,8 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
     });
 
     let mapped = (ranked.data || []).map((r: any) => ({
-      ...r,
-      kind: "post",      profiles: { full_name: r.author_name, avatar_url: r.author_avatar, verified: r.author_verified },
+      ...r,      kind: "post",
+      profiles: { full_name: r.author_name, avatar_url: r.author_avatar, verified: r.author_verified },
     }));
 
     if (tab === "following" && u) {
@@ -117,11 +118,12 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
   async function uploadImage(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `feed-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("blog-images").upload(path, file);
-    if (!error) setImage(supabase.storage.from("blog-images").getPublicUrl(path).data.publicUrl);
+    try {
+      const url = await uploadToCloudinary(file, "feed");
+      setImage(url);
+    } catch (err: any) {
+      alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
+    }
   }
 
   async function publish(e: any) {
@@ -143,9 +145,9 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
     if (mine) {
       if (mine.reaction === reaction) await supabase.from("feed_likes").delete().eq("id", mine.id);
       else await supabase.from("feed_likes").update({ reaction }).eq("id", mine.id);
-    } else {
-      await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id, reaction });
-    }    const { data: l } = await supabase.from("feed_likes").select("id, post_id, user_id, reaction");
+    } else {      await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id, reaction });
+    }
+    const { data: l } = await supabase.from("feed_likes").select("id, post_id, user_id, reaction");
     setLikes(l || []);
   }
 
@@ -192,9 +194,9 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
     }
   }
 
-  async function reportPost(postId: string) {
-    if (!user) return alert("Log in to report.");
-    const reason = prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");    if (!reason) return;
+  async function reportPost(postId: string) {    if (!user) return alert("Log in to report.");
+    const reason = prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");
+    if (!reason) return;
     const supabase = createClient();
     await supabase.from("reports").insert({ reporter_id: user.id, target_type: "post", target_id: postId, reason });
     alert("Reported. Our admin team will review it.");
@@ -241,9 +243,9 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
     const ref = item.profiles?.referral_code || "";
     const url = `${window.location.origin}/post/${item.id}?ref=${ref}`;
     const text = `${(item.content || item.title || "").slice(0, 120)} 🌾 Join, Learn, Grow, Connect & Earn on Farming Tech & Business!`;
-    const en = encodeURIComponent;
-    const media = item.image_url || "";
-    const links: any = {      wa: `https://wa.me/?text=${en(text + " " + url)}`,
+    const en = encodeURIComponent;    const media = item.image_url || "";
+    const links: any = {
+      wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
       x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
       pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
@@ -290,9 +292,9 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
               <button className="ml-auto bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>Post</button>
             </div>
           </form>
-          {videoMode && (
-            <VideoComposer
-              context="feed"              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
+          {videoMode && (            <VideoComposer
+              context="feed"
+              initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
               onDone={() => { setVideoMode(""); load(); }}
             />
           )}
@@ -339,9 +341,9 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
 
                 {item.ad && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-amber-300">
-                    <AdBar ad={item.ad} />
-                  </div>
+                    <AdBar ad={item.ad} />                  </div>
                 )}
+
                 {(() => {
                   const postLikes = likes.filter((l) => l.post_id === item.id);
                   const mine = user && postLikes.find((l) => l.user_id === user.id);
@@ -388,9 +390,9 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
                       {user?.id === item.author_id && (
                         <button onClick={() => openReactors(item)} className="w-full mt-2 bg-forest-50 rounded-xl p-2 text-[10px] font-bold text-forest-700 flex justify-around">
                           <span>📊 ENGAGEMENT</span>
-                          <span>👁️ {item.views_count || 0}</span>
-                          <span>🎭 {postLikes.length}</span>
-                          <span>💬 {postComments.length}</span>                          <span>🔁 {item.shares_count || 0}</span>
+                          <span>👁️ {item.views_count || 0}</span>                          <span>🎭 {postLikes.length}</span>
+                          <span>💬 {postComments.length}</span>
+                          <span>🔁 {item.shares_count || 0}</span>
                         </button>
                       )}
 
@@ -438,8 +440,8 @@ export default function FeedPage() {  const [user, setUser] = useState<any>(null
           </p>
         )}
       </div>
-
-      {reactorsFor && (        <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setReactorsFor("")}>
+      {reactorsFor && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setReactorsFor("")}>
           <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-4 max-h-[75vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-3">
               <p className="font-extrabold">📊 Post Engagement</p>
