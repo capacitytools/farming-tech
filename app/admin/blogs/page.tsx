@@ -104,14 +104,20 @@ export default function AdminBlogsPage() {
     <div className="p-4 pb-24 max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-2xl font-extrabold">📰 Blog Control Room</h1>
-        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ title: "", category: "Farming", content: "" }); setCover(""); }} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ New Post</button>
+        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ title: "", category: "Farming", content: "" }); setCover(""); }} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ Quick Post</button>
       </div>
-      <p className="text-xs text-gray-500 mb-4">Publish, edit, blast and delete. Every post auto-joins the RSS feed → your Facebook page.</p>
+      <p className="text-xs text-gray-500 mb-3">Publish, edit, blast and delete. Every post auto-joins the RSS feed → your Facebook page.</p>
+
+      <Link href="/admin/article-engine" className="block bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-extrabold text-center mb-4 active:scale-[0.98]">
+        🧠 OPEN THE AI ARTICLE & SEO ENGINE →
+        <span className="block text-[10px] font-semibold text-purple-200">intent · keywords · schema · audit · social pack</span>
+      </Link>
+
       {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
 
       {showForm && (
         <form onSubmit={save} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
-          <p className="text-sm font-bold text-forest-700">{editId ? "✏️ Edit Post" : "📝 New Blog Post"}</p>
+          <p className="text-sm font-bold text-forest-700">{editId ? "✏️ Edit Post" : "📝 Quick Blog Post"}</p>
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (catchy!)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Category (Farming / Tech / Business)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
           <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image
@@ -129,7 +135,7 @@ export default function AdminBlogsPage() {
             {b.cover_image_url ? <img src={b.cover_image_url} alt="" className="w-12 h-12 object-cover rounded-lg" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">📰</div>}
             <div className="flex-1 min-w-0">
               <Link href={"/blog/" + b.slug} className="text-sm font-bold line-clamp-1 hover:underline">{b.title}</Link>
-              <p className="text-[10px] text-gray-500">{b.category} · 👁️ {b.views_count || 0} · {new Date(b.created_at).toLocaleDateString()}</p>
+              <p className="text-[10px] text-gray-500">{b.category} · 👁️ {b.views_count || 0} · {b.status || "published"} · {new Date(b.created_at).toLocaleDateString()}</p>
             </div>
             <button onClick={() => blastPost(b)} title="Blast to all members" className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-2 rounded-xl">📢</button>
             <button onClick={() => startEdit(b)} className="text-xs font-bold text-forest-700 bg-forest-50 px-2 py-2 rounded-xl">✏️</button>
@@ -139,5 +145,4 @@ export default function AdminBlogsPage() {
         {blogs.length === 0 && <p className="text-sm text-gray-500 text-center py-8">No posts yet — publish your first insight!</p>}
       </div>
     </div>
-  );
-}
+  );}
