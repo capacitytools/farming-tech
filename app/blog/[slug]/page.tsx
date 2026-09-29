@@ -13,7 +13,7 @@ function sb() {
   );
 }
 
-function safeParse(s, fallback) {
+function safeParse(s: any, fallback: any) {
   try {
     return s ? JSON.parse(s) : fallback;
   } catch (e) {
@@ -21,39 +21,42 @@ function safeParse(s, fallback) {
   }
 }
 
-async function getBlog(slug) {
+async function getBlog(slug: string) {
   const supabase = sb();
-  const res1 = await supabase.from('blogs').select('*').eq('slug', slug).single();
-  const b = res1.data;
-  if (!b) return null;
+  const { data: b, error } = await supabase.from('blogs').select('*').eq('slug', slug).single();
+  if (!b || error) return null;
   
-  const res2 = await supabase.from('blogs').select('slug,title,category,cover_image_url').eq('category', b.category).neq('id', b.id).limit(6);
-  const rel = res2.data || [];
+  const { data: rel } = await supabase
+    .from('blogs')
+    .select('slug,title,category,cover_image_url')
+    .eq('category', b.category)
+    .neq('id', b.id)
+    .limit(6);
   
-  let ebook = null;
+  let ebook: any = null;
   if (b.product_cta) {
     const res3 = await supabase.from('ebooks').select('id,title,price,cover_url').eq('id', b.product_cta).single();
     ebook = res3.data;
   }
   
-  return { b: b, rel: rel, ebook: ebook };
+  return { b, rel: rel || [], ebook };
 }
 
-export async function generateMetadata(props) {
-  const d = await getBlog(props.params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const d = await getBlog(params.slug);
   if (!d) return { title: 'Article not found | Farming Tech & Business' };
   
   const b = d.b;
-  const title = b.meta_title || b.title;
-  const desc = b.meta_description || b.excerpt || (b.content || '').slice(0, 150);
+  const title = b.meta_title || b.title;  const desc = b.meta_description || b.excerpt || (b.content || '').slice(0, 150);
   const indexable = b.indexable !== false && b.status !== 'draft' && b.status !== 'archived';
-    return {
+  
+  return {
     title: title + ' | Farming Tech & Business',
     description: desc,
     alternates: { canonical: SITE + '/blog/' + b.slug },
     robots: { index: indexable, follow: true },
     openGraph: {
-      title: title,
+      title,
       description: desc,
       type: 'article',
       url: SITE + '/blog/' + b.slug,
@@ -62,16 +65,16 @@ export async function generateMetadata(props) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: title,
+      title,
       description: desc,
       images: b.cover_image_url ? [b.cover_image_url] : [],
     },
   };
 }
 
-function inline(text) {
+function inline(text: string) {
   const parts = (text || '').split(/(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g);
-  return parts.map(function(p, i) {
+  return parts.map((p: string, i: number) => {
     if (p.startsWith('**') && p.endsWith('**')) return <strong key={i} className="font-extrabold text-forest-900">{p.slice(2, -2)}</strong>;
     if (p.startsWith('*') && p.endsWith('*') && p.length > 2) return <em key={i}>{p.slice(1, -1)}</em>;
     const m = p.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
@@ -80,23 +83,23 @@ function inline(text) {
   });
 }
 
-function blocks(content) {
+function blocks(content: string) {
   const lines = (content || '').split('\n');
-  const out = [];
-  let list = [];
-  let table = [];
+  const out: any[] = [];
+  let list: string[] = [];
+  let table: string[] = [];
   
-  function flushList() { if (list.length) { out.push({ t: 'ul', items: list }); list = []; } }
-  function flushTable() { if (table.length) { out.push({ t: 'table', rows: table }); table = []; } }
+  const flushList = () => { if (list.length) { out.push({ t: 'ul', items: list }); list = []; } };
+  const flushTable = () => { if (table.length) { out.push({ t: 'table', rows: table }); table = []; } };
   
   for (let i = 0; i < lines.length; i++) {
     const s = lines[i].trim();
     if (!s) { flushList(); flushTable(); continue; }
     if (s.startsWith('|')) { flushList(); table.push(s); continue; }
-    flushTable();
-    if (s.startsWith('### ')) { flushList(); out.push({ t: 'h3', text: s.slice(4) }); }
+    flushTable();    if (s.startsWith('### ')) { flushList(); out.push({ t: 'h3', text: s.slice(4) }); }
     else if (s.startsWith('## ')) { flushList(); out.push({ t: 'h2', text: s.slice(3) }); }
-    else if (s.startsWith('# ')) { flushList(); out.push({ t: 'h2', text: s.slice(2) }); }    else if (s.startsWith('- ') || s.startsWith('* ')) { list.push(s.slice(2)); }
+    else if (s.startsWith('# ')) { flushList(); out.push({ t: 'h2', text: s.slice(2) }); }
+    else if (s.startsWith('- ') || s.startsWith('* ')) { list.push(s.slice(2)); }
     else { flushList(); out.push({ t: 'p', text: s }); }
   }
   flushList(); 
@@ -104,8 +107,8 @@ function blocks(content) {
   return out;
 }
 
-export default async function BlogArticlePage(props) {
-  const d = await getBlog(props.params.slug);
+export default async function BlogArticlePage({ params }: { params: { slug: string } }) {
+  const d = await getBlog(params.slug);
   
   if (!d) {
     return (
@@ -118,10 +121,8 @@ export default async function BlogArticlePage(props) {
     );
   }
   
-  const b = d.b;
-  const rel = d.rel;
-  const ebook = d.ebook;
-  const faqs = safeParse(b.faq_json, []);
+  const { b, rel, ebook } = d;
+  const faqs: any[] = safeParse(b.faq_json, []);
   
   const schemaObj = {
     '@context': 'https://schema.org',
@@ -144,8 +145,8 @@ export default async function BlogArticlePage(props) {
       <nav className="px-4 pt-3 text-[10px] text-gray-500 font-semibold">
         <Link href="/" className="hover:underline">Home</Link>
         <span> / </span>
-        <Link href="/blog" className="hover:underline">{b.category || 'Insights'}</Link>
-        <span> / </span>        <span className="text-forest-700">{b.title}</span>
+        <Link href="/blog" className="hover:underline">{b.category || 'Insights'}</Link>        <span> / </span>
+        <span className="text-forest-700">{b.title}</span>
       </nav>
 
       <header className="px-4 mt-2">
@@ -163,20 +164,20 @@ export default async function BlogArticlePage(props) {
       )}
 
       <article className="px-4 mt-4 space-y-3">
-        {blocks(b.content).map(function(blk, i) {
+        {blocks(b.content).map((blk: any, i: number) => {
           if (blk.t === 'h2') return <h2 key={i} className="text-lg font-extrabold text-forest-800 pt-2 border-l-4 border-forest-300 pl-2">{inline(blk.text)}</h2>;
           if (blk.t === 'h3') return <h3 key={i} className="text-base font-bold text-forest-700 pt-1">{inline(blk.text)}</h3>;
-          if (blk.t === 'ul') return <ul key={i} className="list-disc pl-5 space-y-1 text-sm text-gray-800">{blk.items.map(function(it, j) { return <li key={j}>{inline(it)}</li> })}</ul>;
+          if (blk.t === 'ul') return <ul key={i} className="list-disc pl-5 space-y-1 text-sm text-gray-800">{blk.items.map((it: string, j: number) => <li key={j}>{inline(it)}</li>)}</ul>;
           if (blk.t === 'table') {
-            const rows = blk.rows.map(function(r) { return r.split('|').map(function(c) { return c.trim() }).filter(Boolean) });
+            const rows = blk.rows.map((r: string) => r.split('|').map((c: string) => c.trim()).filter(Boolean));
             return (
               <div key={i} className="overflow-x-auto">
                 <table className="w-full text-xs border border-gray-200 rounded-xl overflow-hidden">
                   <thead className="bg-forest-50">
-                    <tr>{(rows[0] || []).map(function(c, j) { return <th key={j} className="p-2 text-left font-extrabold text-forest-800">{c}</th> })}</tr>
+                    <tr>{(rows[0] || []).map((c: string, j: number) => <th key={j} className="p-2 text-left font-extrabold text-forest-800">{c}</th>)}</tr>
                   </thead>
                   <tbody>
-                    {rows.slice(1).map(function(r, j) { return <tr key={j} className="border-t border-gray-100">{r.map(function(c, k) { return <td key={k} className="p-2 text-gray-700">{inline(c)}</td> })}</tr> })}
+                    {rows.slice(1).map((r: string[], j: number) => <tr key={j} className="border-t border-gray-100">{r.map((c: string, k: number) => <td key={k} className="p-2 text-gray-700">{inline(c)}</td>)}</tr>)}
                   </tbody>
                 </table>
               </div>
@@ -193,20 +194,18 @@ export default async function BlogArticlePage(props) {
             <p className="text-xs text-green-100 mt-1">Get the {ebook.title}.</p>
             <Link href={'/ebooks/' + ebook.id} className="inline-block bg-amber-400 text-forest-900 px-5 py-2.5 rounded-xl text-xs font-extrabold mt-3">GET THE COMPLETE GUIDE</Link>
           </div>
-        </div>
-      )}
+        </div>      )}
+
       {faqs.length > 0 && (
         <section className="px-4 mt-6">
           <h2 className="text-lg font-extrabold text-forest-800 mb-2">Frequently Asked Questions</h2>
           <div className="space-y-2">
-            {faqs.map(function(f, i) {
-              return (
-                <div key={i} className="glass-card p-3 rounded-2xl">
-                  <p className="text-sm font-bold text-forest-800">{f.q}</p>
-                  <p className="text-xs text-gray-700 mt-1 text-justify">{f.a}</p>
-                </div>
-              );
-            })}
+            {faqs.map((f: any, i: number) => (
+              <div key={i} className="glass-card p-3 rounded-2xl">
+                <p className="text-sm font-bold text-forest-800">{f.q}</p>
+                <p className="text-xs text-gray-700 mt-1 text-justify">{f.a}</p>
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -215,14 +214,12 @@ export default async function BlogArticlePage(props) {
         <section className="px-4 mt-6">
           <h2 className="text-lg font-extrabold text-forest-800 mb-2">Continue Learning</h2>
           <div className="space-y-2">
-            {rel.map(function(r) {
-              return (
-                <Link key={r.slug} href={'/blog/' + r.slug} className="glass-card p-3 rounded-2xl flex items-center gap-3 active:scale-[0.99]">
-                  {r.cover_image_url ? <img src={r.cover_image_url} alt={r.title} className="w-12 h-12 object-cover rounded-lg" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">News</div>}
-                  <p className="text-xs font-bold text-forest-800 line-clamp-2">{r.title}</p>
-                </Link>
-              );
-            })}
+            {rel.map((r: any) => (
+              <Link key={r.slug} href={'/blog/' + r.slug} className="glass-card p-3 rounded-2xl flex items-center gap-3 active:scale-[0.99]">
+                {r.cover_image_url ? <img src={r.cover_image_url} alt={r.title} className="w-12 h-12 object-cover rounded-lg" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">News</div>}
+                <p className="text-xs font-bold text-forest-800 line-clamp-2">{r.title}</p>
+              </Link>
+            ))}
           </div>
         </section>
       )}
