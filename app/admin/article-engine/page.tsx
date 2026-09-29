@@ -35,7 +35,7 @@ export default function ArticleEnginePage() {
   const [audit, setAudit] = useState<any[]>([]);
   const [score, setScore] = useState(0);
   const [aiKey, setAiKey] = useState('');
-  const [aiModel, setAiModel] = useState('gemini-1.5-flash');
+  const [aiModel, setAiModel] = useState('gemini-2.5-flash');
   const [aiBusy, setAiBusy] = useState(false);
 
   async function load() {
@@ -111,41 +111,57 @@ export default function ArticleEnginePage() {
     flash('AI writer is working... this takes 20-60 seconds.');
     
     const links = (analysis.internal || []).map((i: any) => '- ' + i.title + ' (' + i.url + ')').join('\n');
-    const system = 'You are the senior agricultural writer of Farming Tech & Business. Rules: searcher first; open with the answer immediately; include a Quick Answer; use ## headings; use markdown tables; wrap key terms in **bold**; never fabricate experience.';
     
-    const instructionText = 'Write a complete article now.\nTOPIC: ' + f.topic + '\nKEYWORD: ' + analysis.pk + '\nINTENT: ' + intent?.intent + '\nSTRUCTURE: ' + analysis.structure.join(' -> ') + '\nINTERNAL LINKS: ' + links + '\nOUTPUT: ---ARTICLE---\n(markdown)\n---FAQ---\nQ | A\n---SOURCES---\nTitle | Org | URL';
+    // MASTER PROMPT SYSTEM INSTRUCTION
+    const system = 'You are the senior agricultural writer for Farming Tech & Business. Rules: SEARCHER FIRST. Open with the answer or problem immediately. NEVER use AI filler like "In today\'s world", "delve", "unlock", or "embark". Use practical, farmer-friendly language. Use ## headings and markdown tables where they help. Wrap key terms in **bold**. Never fabricate personal experience; use "Farmers commonly..." or "Research indicates...". Include a "Quick Answer" section (40-100 words) and a "Key Takeaways" list.';
     
-    try {
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + aiModel + ':generateContent?key=' + key, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: system }] },
-          contents: [{ parts: [{ text: instructionText }] }],
-        }),
-      });
-      const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      if (!text) throw new Error(data?.error?.message || 'empty response');
-      
-      const art = (text.split('---ARTICLE---')[1] || text).split('---FAQ---')[0].trim();
-      const faqPart = text.split('---FAQ---')[1]?.split('---SOURCES---')[0]?.trim() || '';
-      const srcPart = text.split('---SOURCES---')[1]?.trim() || '';
-      
-      setContent(art);
-      setFaqText(faqPart);
-      setSrcText(srcPart === 'none' ? '' : srcPart);
-      auditNow(art, faqPart);
-      flash('Article written and auto-filled!');
-    } catch (err: any) {
-      alert('AI writer error: ' + (err && err.message ? err.message : 'check key'));
+    const instructionText = 'Write a complete, publication-ready article now.\nTOPIC: ' + f.topic + '\nPRIMARY KEYWORD: ' + analysis.pk + '\nINTENT: ' + intent?.intent + ' (' + intent?.why + ')\nAUDIENCE: ' + f.audience + ' | REGION: ' + f.region + '\nSTRUCTURE: ' + analysis.structure.join(' -> ') + '\nINTERNAL LINKS (embed naturally): ' + links + '\nOUTPUT FORMAT:\n---ARTICLE---\n(full markdown)\n---FAQ---\nQuestion | Answer\n---SOURCES---\nTitle | Org | URL';
+    
+    // MODEL FALLBACK LOOP
+    const models = [aiModel, 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    let text = '';
+    let lastErr = '';
+    
+    for (let i = 0; i < models.length; i++) {
+      try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent?key=' + key, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents: [{ parts: [{ text: instructionText }] }],
+          }),
+        });
+        const data = await res.json();
+        text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (text) break;
+        lastErr = data?.error?.message || 'empty response';
+      } catch (err: any) {
+        lastErr = err.message;
+      }
     }
+    
+    if (!text) {
+      alert('AI writer error: ' + lastErr);
+      setAiBusy(false);
+      return;
+    }    
+    const art = (text.split('---ARTICLE---')[1] || text).split('---FAQ---')[0].trim();
+    const faqPart = text.split('---FAQ---')[1]?.split('---SOURCES---')[0]?.trim() || '';
+    const srcPart = text.split('---SOURCES---')[1]?.trim() || '';
+    
+    setContent(art);
+    setFaqText(faqPart);
+    setSrcText(srcPart === 'none' ? '' : srcPart);
+    auditNow(art, faqPart);
+    flash('Article written and auto-filled!');
     setAiBusy(false);
   }
 
   function auditNow(c: string, fq: string) {
     const words = c.trim() ? c.trim().split(/\s+/).length : 0;
-    const faqs = fq.split('\n').filter((l) => l.includes('|'));    const checks = [
+    const faqs = fq.split('\n').filter((l) => l.includes('|'));
+    const checks = [
       { k: 'Search intent', ok: !!intent },
       { k: 'Primary keyword', ok: !!analysis?.pk },
       { k: 'SEO title (30-60)', ok: seo.title.length >= 30 && seo.title.length <= 60 },
@@ -178,8 +194,7 @@ export default function ArticleEnginePage() {
       title: seo.h1 || seo.title, slug: seo.slug, content, category: f.category, cover_image_url: cover || null,
       meta_title: seo.title, meta_description: seo.meta, primary_keyword: analysis?.pk || '', search_intent: intent?.intent || '',
       author_name: f.author, status, indexable, faq_json: JSON.stringify(faqs), product_cta: f.productId || null,
-    };
-    if (editId) await supabase.from('blogs').update(payload).eq('id', editId);
+    };    if (editId) await supabase.from('blogs').update(payload).eq('id', editId);
     else await supabase.from('blogs').insert(payload);
     flash('Published!');
     load();
@@ -194,7 +209,8 @@ export default function ArticleEnginePage() {
       {msg && <p className="text-xs font-bold text-green-700">{msg}</p>}
 
       <div className="glass-card p-4 rounded-2xl space-y-2">
-        <input className="w-full p-2 rounded-xl border text-sm" placeholder="Topic" value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} />        <input className="w-full p-2 rounded-xl border text-sm" placeholder="Primary Keyword" value={f.primaryKey} onChange={(e) => setF({ ...f, primaryKey: e.target.value })} />
+        <input className="w-full p-2 rounded-xl border text-sm" placeholder="Topic" value={f.topic} onChange={(e) => setF({ ...f, topic: e.target.value })} />
+        <input className="w-full p-2 rounded-xl border text-sm" placeholder="Primary Keyword" value={f.primaryKey} onChange={(e) => setF({ ...f, primaryKey: e.target.value })} />
         <select className="w-full p-2 rounded-xl border text-sm" value={f.category} onChange={(e) => setF({ ...f, category: e.target.value })}>
           <option>Farming</option><option>Tech</option><option>Business</option>
         </select>
@@ -227,7 +243,6 @@ export default function ArticleEnginePage() {
               {ebooks.map((eb) => <option key={eb.id} value={eb.id}>{eb.title}</option>)}
             </select>
           </div>
-
           <div className="glass-card p-4 rounded-2xl space-y-2">
             <p className="text-sm font-bold">FAQs & Sources (Auto-filled)</p>
             <textarea className="w-full p-2 rounded-xl border text-xs" rows={4} value={faqText} onChange={(e) => setFaqText(e.target.value)} />
