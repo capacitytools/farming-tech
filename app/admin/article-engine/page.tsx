@@ -63,7 +63,7 @@ export default function ArticleEnginePage() {
 
   function classify(t: string) {
     const s = t.toLowerCase();
-    if (/(buy|price|cost|for sale|supplier|ebook|training fee|order)/.test(s)) return { intent: 'Transactional', why: 'The query contains purchase language (buy/price/ebook), so the searcher is ready to act.' };
+    if (/(buy|price|cost|for sale|supplier|ebook|training fee|order)/.test(s)) return { intent: 'Transactional', why: 'The query contains purchase language, so the searcher is ready to act.' };
     if (/(best|vs|review|which|compare|top)/.test(s)) return { intent: 'Commercial investigation', why: 'The searcher is comparing options before deciding.' };
     if (/(near me|in nigeria|in lagos|in ibadan|around me)/.test(s)) return { intent: 'Local', why: 'The query carries location intent.' };
     if (/(how to|steps|guide|start|setup|build|make)/.test(s)) return { intent: 'Informational (How-To)', why: 'The searcher wants a practical procedure they can follow.' };
@@ -88,7 +88,7 @@ export default function ArticleEnginePage() {
     const cannib = blogs.filter((b) => ((b.primary_keyword || '').toLowerCase().includes(pk) || (b.title || '').toLowerCase().includes(pk)));
     const internal = blogs.filter((b) => b.category === f.category).slice(0, 4).map((b) => ({ title: b.title, url: '/blog/' + b.slug }));
     
-    const title = (f.topic + ' — ' + f.region + ' Guide').slice(0, 60);
+    const title = (f.topic + ' - ' + f.region + ' Guide').slice(0, 60);
     const meta = (f.topic + ': practical steps, real costs and common mistakes for ' + f.audience.toLowerCase() + '.').slice(0, 158);
     const slug = slugify(f.topic);
     
@@ -236,7 +236,7 @@ export default function ArticleEnginePage() {
 
           <div className="glass-card p-4 rounded-2xl border-2 border-green-400">
             <p className="text-sm font-bold mb-2">Audit Score: {score}/100</p>
-            {audit.map((c) => <p key={c.k} className={'text-xs ' + (c.ok ? 'text-green-700' : 'text-amber-600')}>{c.ok ? '✅' : '🟡'} {c.k}</p>)}
+            {audit.map((c) => <p key={c.k} className={'text-xs ' + (c.ok ? 'text-green-700' : 'text-amber-600')}>{c.ok ? 'PASS' : 'REVIEW'} {c.k}</p>)}
             <button onClick={publish} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold mt-4">3. Publish Article</button>
           </div>
         </>
