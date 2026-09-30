@@ -35,7 +35,7 @@ export default function ArticleEnginePage() {
   const [audit, setAudit] = useState<any[]>([]);
   const [score, setScore] = useState(0);
   const [aiKey, setAiKey] = useState('');
-  const [aiModel, setAiModel] = useState('gemini-flash-latest');
+  const [aiModel, setAiModel] = useState('gemini-3.8-flash');
   const [aiBusy, setAiBusy] = useState(false);
 
   async function load() {
@@ -94,12 +94,20 @@ export default function ArticleEnginePage() {
 
     const cannib = blogs.filter((b) => ((b.primary_keyword || '').toLowerCase().includes(pk) || (b.title || '').toLowerCase().includes(pk)));
     const internal = blogs.filter((b) => b.category === f.category && b.slug !== slugify(f.topic)).slice(0, 4).map((b) => ({ title: b.title, url: '/blog/' + b.slug }));
+    const reverse = blogs.filter((b) => b.category === f.category).slice(0, 3).map((b) => b.title);
+    const ideas = [
+      'what is ' + pk,      'how to start ' + pk,
+      pk + ' life cycle and stages',
+      pk + ' cost and budget guide',
+      'common ' + pk + ' problems and solutions',
+    ];
 
     const title = (f.topic + ' - ' + f.region + ' Guide').slice(0, 60);
-    const meta = (f.topic + ': practical steps, real costs and common mistakes for ' + f.audience.toLowerCase() + '. Clear guidance from Farming Tech & Business.').slice(0, 158);    const slug = slugify(f.topic);
+    const meta = (f.topic + ': practical steps, real costs and common mistakes for ' + f.audience.toLowerCase() + '. Clear guidance from Farming Tech & Business.').slice(0, 158);
+    const slug = slugify(f.topic);
 
     setSeo({ title, h1: f.topic, meta, slug });
-    setAnalysis({ pk, secondary, structure, cannib, internal });
+    setAnalysis({ pk, secondary, structure, cannib, internal, reverse, ideas });
     flash('Analysis complete. Ready for the AI writer.');
   }
 
@@ -123,7 +131,7 @@ export default function ArticleEnginePage() {
 
     const instructionText = 'Write a complete, publication-ready article now.\nBRIEF:\nTopic: ' + f.topic + '\nPrimary keyword: ' + analysis.pk + '\nSecondary keywords: ' + analysis.secondary.join(', ') + '\nQuestions to answer: ' + (f.questions || analysis.pk + ' basics') + '\nSearch intent: ' + (intent ? intent.intent + ' - ' + intent.why : '') + '\nAudience: ' + f.audience + ' | Region: ' + f.region + ' | Depth: ' + f.depth + '\nStructure: ' + analysis.structure.join(' -> ') + '\nINTERNAL LINKS - embed 2 to 4 naturally as markdown links [anchor](url):\n' + (links || '(none yet)') + '\n' + (f.instructions ? 'SPECIAL INSTRUCTIONS: ' + f.instructions + '\n' : '') + 'OUTPUT FORMAT - use these exact markers on their own lines:\n---ARTICLE---\n(full markdown article, start with a 2-3 sentence intro, no H1)\n---FAQ---\nQuestion | Answer\n(one per line, 5-7 lines)\n---SOURCES---\nTitle | Organization | URL\n(only real verifiable sources; if none write exactly: none)';
 
-    const models = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', aiModel];
+    const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.8-pro', aiModel];
     let text = '';
     const errs: string[] = [];
 
@@ -137,14 +145,14 @@ export default function ArticleEnginePage() {
             contents: [{ parts: [{ text: instructionText }] }],
           }),
         });
-        const data = await res.json();
-        text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const data = await res.json();        text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         if (text) break;
         errs.push(models[i] + ': ' + (data?.error?.message || 'empty response'));
       } catch (err: any) {
         errs.push(models[i] + ': ' + (err && err.message ? err.message : 'network error'));
       }
     }
+
     if (!text) {
       alert('AI writer tried all models:\n' + errs.join('\n'));
       setAiBusy(false);
@@ -186,15 +194,15 @@ export default function ArticleEnginePage() {
     auditNow(content, faqText);
   }
 
-  function buildSchema() {
-    const faqs = faqText.split('\n').filter((l) => l.includes('|')).map((l) => {
+  function buildSchema() {    const faqs = faqText.split('\n').filter((l) => l.includes('|')).map((l) => {
       const parts = l.split('|');
       return { q: (parts[0] || '').trim(), a: (parts[1] || '').trim() };
     });
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const schema: any = {
       '@context': 'https://schema.org',
-      '@graph': [        {
+      '@graph': [
+        {
           '@type': 'BlogPosting',
           'headline': seo.h1 || seo.title,
           'description': seo.meta,
@@ -235,7 +243,10 @@ export default function ArticleEnginePage() {
   }
 
   function imagePrompt() {
-    return 'Photorealistic Nigerian farm scene illustrating "' + f.topic + '", golden hour, vertical 2:3, deep green and gold palette, educational composition, no text overlays - Farming Tech & Business visual identity.';
+    return 'Photorealistic Nigerian farm scene illustrating "' + f.topic + '", golden hour, vertical 2:3, deep green and gold palette, educational composition, no text overlays - Farming Tech & Business visual identity.';  }
+
+  function altText() {
+    return f.topic + ' - practical ' + f.category.toLowerCase() + ' guide illustration from Farming Tech & Business';
   }
 
   async function uploadCoverFn(e: any) {
@@ -243,7 +254,8 @@ export default function ArticleEnginePage() {
     if (!file) return;
     try {
       setCover(await uploadToCloudinary(file, 'blog-covers'));
-    } catch (err: any) {      alert('Upload failed');
+    } catch (err: any) {
+      alert('Upload failed');
     }
   }
 
@@ -281,7 +293,6 @@ export default function ArticleEnginePage() {
     flash('Published with full SEO pack! Score: ' + score + '/100');
     load();
   }
-
   if (!loaded) return <p className="text-center p-10">Loading engine...</p>;
   if (!admin) return <p className="text-center p-10">Admin access only.</p>;
 
@@ -291,8 +302,9 @@ export default function ArticleEnginePage() {
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
       <div>
         <h1 className="text-2xl font-extrabold">AI Article & SEO Engine</h1>
-        <p className="text-xs text-gray-500">Research - intent - keywords - AI writes - auto-fill - audit - publish.</p>
-        {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}      </div>
+        <p className="text-xs text-gray-500">Research - intent - keywords - AI writes - auto-fill - audit - publish - sitemap.</p>
+        {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
+      </div>
 
       <div className="glass-card p-4 rounded-2xl space-y-2">
         <p className="text-sm font-extrabold text-forest-700">1. ARTICLE BRIEF</p>
@@ -320,33 +332,36 @@ export default function ArticleEnginePage() {
       {analysis && (
         <>
           <div className="glass-card p-4 rounded-2xl space-y-2">
-            <p className="text-sm font-extrabold text-forest-700">2. ANALYSIS</p>
+            <p className="text-sm font-extrabold text-forest-700">2. ANALYSIS + TOPICAL CLUSTER</p>
             <p className="text-xs"><b>Intent:</b> {intent?.intent} - <i>{intent?.why}</i></p>
             <p className="text-xs"><b>Secondary:</b> {analysis.secondary.join(', ')}</p>
             <p className="text-xs"><b>Structure:</b> {analysis.structure.join(' > ')}</p>
+            <p className="text-xs"><b>Cluster:</b> {f.category} | Pillar idea: Complete Guide to {analysis.pk}</p>
+            <p className="text-xs"><b>Supporting article ideas:</b> {analysis.ideas.join(' | ')}</p>
             {analysis.cannib.length > 0 && (
               <p className="text-xs font-bold text-red-600 bg-red-50 p-2 rounded-xl">CANNIBALIZATION WARNING: similar articles exist: {analysis.cannib.map((c: any) => c.title).join('; ')} - consider updating them instead.</p>
             )}
-            <p className="text-xs"><b>Internal links:</b> {analysis.internal.length ? analysis.internal.map((i: any) => i.title).join(', ') : 'none yet'}</p>
+            <p className="text-xs"><b>Internal links:</b> {analysis.internal.length ? analysis.internal.map((i: any) => i.title).join(', ') : 'none yet'}</p>            <p className="text-xs"><b>Reverse links (add links FROM these):</b> {analysis.reverse.length ? analysis.reverse.join(', ') : 'none yet'}</p>
           </div>
 
           <div className="glass-card p-4 rounded-2xl space-y-2 border-2 border-purple-400">
-            <p className="text-sm font-extrabold text-purple-700">IN-HOUSE AI WRITER</p>
+            <p className="text-sm font-extrabold text-purple-700">3. IN-HOUSE AI WRITER</p>
             <div className="flex gap-2">
               <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" type="password" placeholder="Gemini API key (free at aistudio.google.com/apikey)" value={aiKey} onChange={(e) => { setAiKey(e.target.value); localStorage.setItem('ftb_gemini_key', e.target.value); }} />
               <select className="p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" value={aiModel} onChange={(e) => setAiModel(e.target.value)}>
+                <option value="gemini-3.8-flash">3.8-flash</option>
                 <option value="gemini-flash-latest">flash-latest</option>
-                <option value="gemini-2.5-flash">2.5-flash</option>
-                <option value="gemini-2.0-flash">2.0-flash</option>
+                <option value="gemini-3.8-pro">3.8-pro</option>
               </select>
             </div>
             <button onClick={writeWithAI} disabled={aiBusy} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 rounded-xl font-extrabold disabled:opacity-50">
-              {aiBusy ? 'Writing & formatting your article...' : 'WRITE THE ARTICLE WITH AI (auto-fills everything)'}            </button>
-            <p className="text-[9px] text-gray-400">Embeds internal links, bolds key terms, builds tables and FAQs, then fills content, FAQ and source panels automatically. Tries gemini-flash-latest first, then falls back automatically.</p>
+              {aiBusy ? 'Writing & formatting your article...' : 'WRITE THE ARTICLE WITH AI (auto-fills everything)'}
+            </button>
+            <p className="text-[9px] text-gray-400">Tries gemini-3.8-flash first, then falls back automatically. Embeds internal links, bolds key terms, builds tables and FAQs, then fills content, FAQ and source panels.</p>
           </div>
 
           <div className="glass-card p-4 rounded-2xl space-y-2">
-            <p className="text-sm font-extrabold text-forest-700">3. SEO PACK</p>
+            <p className="text-sm font-extrabold text-forest-700">4. SEO PACK</p>
             <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" value={seo.title} onChange={(e) => setSeo({ ...seo, title: e.target.value })} />
             <p className="text-[9px] text-gray-400">SEO title ({seo.title.length}/60)</p>
             <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" value={seo.h1} onChange={(e) => setSeo({ ...seo, h1: e.target.value })} />
@@ -363,19 +378,19 @@ export default function ArticleEnginePage() {
           </div>
 
           <div className="glass-card p-4 rounded-2xl space-y-2">
-            <p className="text-sm font-extrabold text-forest-700">4. CONTENT + MEDIA + CTA</p>
+            <p className="text-sm font-extrabold text-forest-700">5. CONTENT + MEDIA + CTA</p>
             <div className="flex gap-2">
               <button onClick={() => copy(content, 'Article')} className="flex-1 bg-green-600 text-white py-2 rounded-xl text-xs font-bold">Copy Article</button>
               <button onClick={() => copy(faqText, 'FAQ')} className="flex-1 bg-teal-600 text-white py-2 rounded-xl text-xs font-bold">Copy FAQ</button>
               <button onClick={() => copy(srcText, 'Sources')} className="flex-1 bg-gray-600 text-white py-2 rounded-xl text-xs font-bold">Copy Sources</button>
             </div>
             <button onClick={() => copy(imagePrompt(), 'Image prompt')} className="w-full bg-amber-500 text-white py-2 rounded-xl text-xs font-bold">Copy AI Image Prompt</button>
+            <button onClick={() => copy(altText(), 'ALT text')} className="w-full bg-amber-400 text-amber-900 py-2 rounded-xl text-xs font-bold">Copy Image ALT Text</button>
             <label className="block text-xs font-semibold text-green-700 cursor-pointer">Featured image (Cloudinary)
               <input type="file" accept="image/*" className="hidden" onChange={uploadCoverFn} />
             </label>
             {cover && <img src={cover} alt="" className="h-20 w-full object-cover rounded-xl" />}
-            <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm font-mono" rows={12} placeholder="Article Markdown (AI writer fills this automatically)..." value={content} onChange={(e) => setContent(e.target.value)} />
-            <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="YouTube video URL (optional)" value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
+            <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm font-mono" rows={12} placeholder="Article Markdown (AI writer fills this automatically)..." value={content} onChange={(e) => setContent(e.target.value)} />            <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="YouTube video URL (optional)" value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
             <select className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
               <option value="">- Ebook CTA: none -</option>
               {ebooks.map((eb) => <option key={eb.id} value={eb.id}>{eb.title}</option>)}
@@ -383,14 +398,15 @@ export default function ArticleEnginePage() {
           </div>
 
           <div className="glass-card p-4 rounded-2xl space-y-2">
-            <p className="text-sm font-extrabold text-forest-700">5. FAQ + SOURCES (auto-filled by AI)</p>
+            <p className="text-sm font-extrabold text-forest-700">6. FAQ + SOURCES (auto-filled by AI)</p>
             <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={4} placeholder="Question | Answer (one per line)" value={faqText} onChange={(e) => setFaqText(e.target.value)} />
             <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={3} placeholder="Source title | Organization | URL (one per line)" value={srcText} onChange={(e) => setSrcText(e.target.value)} />
           </div>
 
           {social && (
             <div className="glass-card p-4 rounded-2xl space-y-2">
-              <p className="text-sm font-extrabold text-forest-700">6. SOCIAL DISTRIBUTION PACK</p>              <button onClick={() => copy(social.fb, 'Facebook post')} className="w-full bg-blue-600 text-white py-2 rounded-xl text-xs font-bold">Copy Facebook post</button>
+              <p className="text-sm font-extrabold text-forest-700">7. SOCIAL DISTRIBUTION PACK</p>
+              <button onClick={() => copy(social.fb, 'Facebook post')} className="w-full bg-blue-600 text-white py-2 rounded-xl text-xs font-bold">Copy Facebook post</button>
               <button onClick={() => copy(social.ig, 'Instagram caption')} className="w-full bg-pink-600 text-white py-2 rounded-xl text-xs font-bold">Copy Instagram caption</button>
               <button onClick={() => copy(social.x, 'X post')} className="w-full bg-gray-800 text-white py-2 rounded-xl text-xs font-bold">Copy X post</button>
               <button onClick={() => copy(social.li, 'LinkedIn post')} className="w-full bg-sky-700 text-white py-2 rounded-xl text-xs font-bold">Copy LinkedIn post</button>
@@ -399,7 +415,7 @@ export default function ArticleEnginePage() {
           )}
 
           <div className="glass-card p-4 rounded-2xl space-y-2">
-            <p className="text-sm font-extrabold text-forest-700">7. QUALITY AUDIT</p>
+            <p className="text-sm font-extrabold text-forest-700">8. QUALITY AUDIT</p>
             <button onClick={runAudit} className="w-full bg-forest-600 text-white py-2.5 rounded-xl font-extrabold">RUN SEO READINESS AUDIT</button>
             {audit.length > 0 && (
               <>
@@ -412,7 +428,7 @@ export default function ArticleEnginePage() {
           </div>
 
           <div className="glass-card p-4 rounded-2xl space-y-2 border-2 border-green-400">
-            <p className="text-sm font-extrabold text-green-700">8. PUBLISH</p>
+            <p className="text-sm font-extrabold text-green-700">9. PUBLISH</p>
             <div className="flex gap-2">
               <select className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="draft">Draft</option>
@@ -423,8 +439,7 @@ export default function ArticleEnginePage() {
               <label className="flex items-center gap-1 text-xs font-bold"><input type="checkbox" checked={indexable} onChange={(e) => setIndexable(e.target.checked)} /> indexable</label>
             </div>
             <button onClick={publish} className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold">{editId ? 'UPDATE ARTICLE' : 'PUBLISH ARTICLE'}</button>
-            <p className="text-[9px] text-gray-400">Never publish below 60/100 without review. Searcher first, always.</p>
-          </div>
+            <p className="text-[9px] text-gray-400">Never publish below 60/100 without review. Searcher first, always. Sitemap updates automatically.</p>          </div>
         </>
       )}
     </div>
