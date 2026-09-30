@@ -1,85 +1,75 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Home, Users, ScanLine, ShoppingBag, User } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {
+  Home, Film, ShoppingBag, User, Sprout, Bell, Search, Trophy,
+  BookOpen, Stethoscope, GraduationCap, Info, Phone, Facebook,
+  Instagram, Youtube, ChevronRight, Newspaper, Wallet, Award,
+  Megaphone, Moon, Sun
+} from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
-const TABS = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/communities', label: 'Tribes', icon: Users },
-  { href: '/scanner', label: 'Scan', icon: ScanLine, isCenter: true },
+const NAV_ITEMS = [
+  { href: '/feed', label: 'Feed', icon: Home },
+  { href: '/reels', label: 'Reels', icon: Film },
+  { href: '/ai-farm', label: 'AI Farm', icon: Sprout, highlight: true },
   { href: '/market', label: 'Market', icon: ShoppingBag },
   { href: '/profile', label: 'Profile', icon: User },
 ];
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      if (user) {
+        const { count } = await supabase
+          .from('notifications')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('read', false);
+        setNotifCount(count || 0);
+      }
+    })();
+  }, []);
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 pb-[env(safe-area-inset-bottom)]"
-      aria-label="Primary"
-    >
-      <div className="mx-auto max-w-md">
-        <div className="flex items-end justify-between gap-1 bg-white/85 dark:bg-forest-900/85 backdrop-blur-xl border-t border-white/40 dark:border-forest-700/40 shadow-app-nav rounded-t-3xl px-3 pt-2 pb-2">
-          {TABS.map((tab) => {
-            const isActive = tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href);
-            const Icon = tab.icon;
-
-            if (tab.isCenter) {
-              return (
-                <Link key={tab.href} href={tab.href} className="flex flex-col items-center -mt-6 relative">
-                  <motion.div
-                    whileTap={{ scale: 0.9 }}
-                    className={cn(
-                      'flex items-center justify-center w-14 h-14 rounded-full shadow-glass border-4 border-white dark:border-forest-900',
-                      isActive
-                        ? 'bg-gold-500 text-forest-900'
-                        : 'bg-forest-600 text-white'
-                    )}
-                  >
-                    <Icon className="w-6 h-6" strokeWidth={2.5} />
-                  </motion.div>
-                  <span className={cn(
-                    'text-[11px] font-bold mt-1',
-                    isActive ? 'text-forest-700 dark:text-gold-400' : 'text-forest-400'
-                  )}>
-                    {tab.label}
-                  </span>
-                </Link>
-              );
-            }
-
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-forest-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-forest-800 shadow-lg">
+      <div className="max-w-2xl mx-auto px-2 py-2">
+        <div className="flex items-center justify-around">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
+            
             return (
               <Link
-                key={tab.href}
-                href={tab.href}
-                className="flex flex-col items-center gap-1 py-2 px-2 flex-1 min-w-0"
+                key={item.href}
+                href={item.href}
+                className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all active:scale-95 ${
+                  item.highlight
+                    ? 'bg-gradient-to-br from-forest-600 to-forest-800 text-white shadow-lg scale-110 -mt-4'
+                    : isActive
+                      ? 'bg-forest-100 dark:bg-forest-800 text-forest-700 dark:text-forest-200'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-forest-600 dark:hover:text-forest-300'
+                }`}
               >
-                <motion.div whileTap={{ scale: 0.85 }} className="relative">
-                  <Icon
-                    className={cn(
-                      'w-6 h-6',
-                      isActive ? 'text-forest-600 dark:text-gold-400' : 'text-forest-300 dark:text-forest-600'
-                    )}
-                    strokeWidth={isActive ? 2.5 : 2}
-                  />
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-dot"
-                      className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-forest-600 dark:bg-gold-400"
-                    />
+                <div className="relative">
+                  <Icon className={`w-5 h-5 ${item.highlight ? 'text-gold-400' : ''}`} />
+                  {item.href === '/feed' && notifCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                      {notifCount > 9 ? '9+' : notifCount}
+                    </span>
                   )}
-                </motion.div>
-                <span
-                  className={cn(
-                    'text-[11px] font-semibold truncate',
-                    isActive ? 'text-forest-700 dark:text-gold-400' : 'text-forest-400 dark:text-forest-600'
-                  )}
-                >
-                  {tab.label}
+                </div>
+                <span className={`text-[9px] font-bold ${item.highlight ? 'text-white' : ''}`}>
+                  {item.label}
                 </span>
               </Link>
             );
