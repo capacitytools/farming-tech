@@ -25,3 +25,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+import BottomNav from '@/components/BottomNav';
+   
+   export default function RootLayout({ children }) {
+     return (
+       <html>
+         <body>
+           {children}
+           <BottomNav />
+         </body>
+       </html>
+     );
+   }
