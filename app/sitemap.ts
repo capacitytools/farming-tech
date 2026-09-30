@@ -1,47 +1,33 @@
-import { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { MetadataRoute } from 'next';
+import { createClient } from '@supabase/supabase-js';
 
-const BASE = process.env.SITE_URL || "https://farming-tech.vercel.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farming-tech.vercel.app';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+  const { data } = await supabase
+    .from('blogs')
+    .select('slug, updated_at, created_at, indexable, status')
+    .eq('status', 'published');
 
-  const [blogs, tribes, listings] = await Promise.all([
-    supabase.from("blogs").select("slug, published_at, updated_at").eq("status", "published"),
-    supabase.from("tribes").select("slug"),
-    supabase.from("livestock_listings").select("id, created_at").eq("status", "active"),
-  ]);
+  const posts = (data || [])
+    .filter((b: any) => b.indexable !== false)
+    .map((b: any) => ({
+      url: SITE + '/blog/' + b.slug,
+      lastModified: new Date(b.updated_at || b.created_at || Date.now()),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
 
-  const staticPages = [
-    "", "/blog", "/market", "/communities", "/ebooks", "/scanner",
-    "/experts", "/about", "/contact", "/search", "/leaderboard", "/login",
-  ].map((path) => ({
-    url: `${BASE}${path}`,
+  const statics = ['/', '/feed', '/blog', '/ebooks', '/market', '/bills', '/communities', '/scanner'].map((p) => ({
+    url: SITE + p,
     lastModified: new Date(),
-    changeFrequency: "daily" as const,
-    priority: path === "" ? 1 : 0.8,
+    changeFrequency: 'daily' as const,
+    priority: p === '/' ? 1 : 0.7,
   }));
 
-  const blogPages = (blogs.data || []).map((b: any) => ({
-    url: `${BASE}/blog/${b.slug}`,
-    lastModified: new Date(b.updated_at || b.published_at || Date.now()),
-    changeFrequency: "weekly" as const,
-    priority: 0.7,
-  }));
-
-  const tribePages = (tribes.data || []).map((t: any) => ({
-    url: `${BASE}/communities/${t.slug}`,
-    lastModified: new Date(),
-    changeFrequency: "daily" as const,
-    priority: 0.6,
-  }));
-
-  const listingPages = (listings.data || []).map((l: any) => ({
-    url: `${BASE}/market/${l.id}`,
-    lastModified: new Date(l.created_at || Date.now()),
-    changeFrequency: "weekly" as const,
-    priority: 0.5,
-  }));
-
-  return [...staticPages, ...blogPages, ...tribePages, ...listingPages];
+  return [...statics, ...posts];
 }
