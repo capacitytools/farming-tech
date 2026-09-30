@@ -1,15 +1,16 @@
-import { MetadataRoute } from "next";
+import { MetadataRoute } from 'next';
+
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farming-tech.vercel.app';
 
 export default function robots(): MetadataRoute.Robots {
-  const BASE = process.env.SITE_URL || "https://farming-tech.vercel.app";
   return {
     rules: [
       {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/admin", "/api", "/inbox", "/login"],
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/admin', '/wallet', '/inbox', '/login'],
       },
     ],
-    sitemap: `${BASE}/sitemap.xml`,
+    sitemap: SITE + '/sitemap.xml',
   };
 }
