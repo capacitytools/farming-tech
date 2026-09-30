@@ -25,38 +25,38 @@ async function getBlog(slug: string) {
   const supabase = sb();
   const { data: b, error } = await supabase.from('blogs').select('*').eq('slug', slug).single();
   if (!b || error) return null;
-  
+
   const { data: rel } = await supabase
     .from('blogs')
     .select('slug,title,category,cover_image_url')
     .eq('category', b.category)
     .neq('id', b.id)
     .limit(6);
-  
+
   let ebook: any = null;
   if (b.product_cta) {
     const res3 = await supabase.from('ebooks').select('id,title,price,cover_url').eq('id', b.product_cta).single();
     ebook = res3.data;
   }
-  
-  return { b, rel: rel || [], ebook };
+
+  return { b: b, rel: rel || [], ebook: ebook };
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const d = await getBlog(params.slug);
   if (!d) return { title: 'Article not found | Farming Tech & Business' };
-  
+
   const b = d.b;
   const title = b.meta_title || b.title;  const desc = b.meta_description || b.excerpt || (b.content || '').slice(0, 150);
   const indexable = b.indexable !== false && b.status !== 'draft' && b.status !== 'archived';
-  
+
   return {
     title: title + ' | Farming Tech & Business',
     description: desc,
     alternates: { canonical: SITE + '/blog/' + b.slug },
     robots: { index: indexable, follow: true },
     openGraph: {
-      title,
+      title: title,
       description: desc,
       type: 'article',
       url: SITE + '/blog/' + b.slug,
@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: title,
       description: desc,
       images: b.cover_image_url ? [b.cover_image_url] : [],
     },
@@ -88,10 +88,10 @@ function blocks(content: string) {
   const out: any[] = [];
   let list: string[] = [];
   let table: string[] = [];
-  
+
   const flushList = () => { if (list.length) { out.push({ t: 'ul', items: list }); list = []; } };
   const flushTable = () => { if (table.length) { out.push({ t: 'table', rows: table }); table = []; } };
-  
+
   for (let i = 0; i < lines.length; i++) {
     const s = lines[i].trim();
     if (!s) { flushList(); flushTable(); continue; }
@@ -102,14 +102,14 @@ function blocks(content: string) {
     else if (s.startsWith('- ') || s.startsWith('* ')) { list.push(s.slice(2)); }
     else { flushList(); out.push({ t: 'p', text: s }); }
   }
-  flushList(); 
+  flushList();
   flushTable();
   return out;
 }
 
 export default async function BlogArticlePage({ params }: { params: { slug: string } }) {
   const d = await getBlog(params.slug);
-  
+
   if (!d) {
     return (
       <div className="p-10 pb-24 text-center max-w-md mx-auto">
@@ -120,10 +120,12 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
       </div>
     );
   }
-  
-  const { b, rel, ebook } = d;
+
+  const b = d.b;
+  const rel = d.rel;
+  const ebook = d.ebook;
   const faqs: any[] = safeParse(b.faq_json, []);
-  
+
   const schemaObj = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -132,9 +134,9 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
     'author': { '@type': 'Person', 'name': b.author_name || 'Farming Tech & Business' },
     'datePublished': b.created_at,
     'publisher': { '@type': 'Organization', 'name': 'Farming Tech & Business' },
-    'mainEntityOfPage': SITE + '/blog/' + b.slug
+    'mainEntityOfPage': SITE + '/blog/' + b.slug,
   };
-  
+
   const schema = b.schema_json || JSON.stringify(schemaObj);
 
   return (
@@ -143,9 +145,9 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
       <BlogViewBumper id={b.id} />
 
       <nav className="px-4 pt-3 text-[10px] text-gray-500 font-semibold">
-        <Link href="/" className="hover:underline">Home</Link>
+        <Link href="/" className="hover:underline">Home</Link>        <span> / </span>
+        <Link href="/blog" className="hover:underline">{b.category || 'Insights'}</Link>
         <span> / </span>
-        <Link href="/blog" className="hover:underline">{b.category || 'Insights'}</Link>        <span> / </span>
         <span className="text-forest-700">{b.title}</span>
       </nav>
 
@@ -191,10 +193,10 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
         <div className="px-4 mt-6">
           <div className="bg-gradient-to-r from-forest-600 to-green-700 text-white p-5 rounded-2xl">
             <p className="text-sm font-extrabold">Want to Go Deeper?</p>
-            <p className="text-xs text-green-100 mt-1">Get the {ebook.title}.</p>
-            <Link href={'/ebooks/' + ebook.id} className="inline-block bg-amber-400 text-forest-900 px-5 py-2.5 rounded-xl text-xs font-extrabold mt-3">GET THE COMPLETE GUIDE</Link>
-          </div>
-        </div>      )}
+            <p className="text-xs text-green-100 mt-1">This article gives you the foundation. For the complete practical system, get the {ebook.title}.</p>
+            <Link href={'/ebooks/' + ebook.id} className="inline-block bg-amber-400 text-forest-900 px-5 py-2.5 rounded-xl text-xs font-extrabold mt-3">GET THE COMPLETE GUIDE</Link>          </div>
+        </div>
+      )}
 
       {faqs.length > 0 && (
         <section className="px-4 mt-6">
