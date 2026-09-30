@@ -125,8 +125,9 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
   const rel = d.rel;
   const ebook = d.ebook;
   const faqs: any[] = safeParse(b.faq_json, []);
+  const sources: any[] = safeParse(b.sources_json, []);
 
-  const schemaObj = {
+  const schema = b.schema_json || JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
     'headline': b.title,
@@ -135,9 +136,7 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
     'datePublished': b.created_at,
     'publisher': { '@type': 'Organization', 'name': 'Farming Tech & Business' },
     'mainEntityOfPage': SITE + '/blog/' + b.slug,
-  };
-
-  const schema = b.schema_json || JSON.stringify(schemaObj);
+  });
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
@@ -145,8 +144,8 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
       <BlogViewBumper id={b.id} />
 
       <nav className="px-4 pt-3 text-[10px] text-gray-500 font-semibold">
-        <Link href="/" className="hover:underline">Home</Link>        <span> / </span>
-        <Link href="/blog" className="hover:underline">{b.category || 'Insights'}</Link>
+        <Link href="/" className="hover:underline">Home</Link>
+        <span> / </span>        <Link href="/blog" className="hover:underline">{b.category || 'Insights'}</Link>
         <span> / </span>
         <span className="text-forest-700">{b.title}</span>
       </nav>
@@ -194,8 +193,8 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
           <div className="bg-gradient-to-r from-forest-600 to-green-700 text-white p-5 rounded-2xl">
             <p className="text-sm font-extrabold">Want to Go Deeper?</p>
             <p className="text-xs text-green-100 mt-1">This article gives you the foundation. For the complete practical system, get the {ebook.title}.</p>
-            <Link href={'/ebooks/' + ebook.id} className="inline-block bg-amber-400 text-forest-900 px-5 py-2.5 rounded-xl text-xs font-extrabold mt-3">GET THE COMPLETE GUIDE</Link>          </div>
-        </div>
+            <Link href={'/ebooks/' + ebook.id} className="inline-block bg-amber-400 text-forest-900 px-5 py-2.5 rounded-xl text-xs font-extrabold mt-3">GET THE COMPLETE GUIDE</Link>
+          </div>        </div>
       )}
 
       {faqs.length > 0 && (
@@ -209,6 +208,20 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {sources.length > 0 && (
+        <section className="px-4 mt-6">
+          <h2 className="text-sm font-extrabold text-forest-800 mb-2">Sources & References</h2>
+          <ul className="space-y-1">
+            {sources.map((s: any, i: number) => (
+              <li key={i} className="text-[11px] text-gray-600">
+                {s.url ? <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-green-700 underline">{s.title}</a> : s.title}
+                {s.org ? ' - ' + s.org : ''}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
