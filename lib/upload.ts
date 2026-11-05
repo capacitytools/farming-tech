@@ -14,3 +14,9 @@ export async function uploadToCloudinary(file: File, folder = "farmtech"): Promi
   if (data.error) throw new Error(data.error.message);
   return data.secure_url;
 }
+
+export function withRatio(url: string, ratio: "2:3" | "4:5"): string {
+  if (!url || !url.includes("/upload/")) return url;
+  const ar = ratio === "4:5" ? "ar_4:5" : "ar_2:3";
+  return url.replace("/upload/", `/upload/c_fill,${ar},w_900,q_auto,f_auto/`);
+}
