@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
-import TopBar from '@/components/TopBar';
+import TopBar from '@/components/layout/TopBar';
 import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
