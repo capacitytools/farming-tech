@@ -1,34 +1,34 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import { uploadToCloudinary } from "@/lib/upload";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import { uploadToCloudinary } from '@/lib/upload';
 
 const ADMIN_TOOLS = [
-  { href: "/admin/analytics", icon: "📊", label: "Analytics & Visitors" },
-  { href: "/admin/traffic", icon: "🛰️", label: "Traffic Intelligence" },
-  { href: "/admin/customers", icon: "📇", label: "Customer Spreadsheet" },
-  { href: "/admin/megaphone", icon: "📢", label: "The Megaphone" },
-  { href: "/admin/blogs", icon: "📰", label: "Blog Control Room" },
-  { href: "/admin/ads", icon: "📣", label: "Ad Switch Manager" },
-  { href: "/admin/bills", icon: "🧾", label: "Bills Fulfilment Desk" },
-  { href: "/admin/moderation", icon: "🚩", label: "Reports & Moderation" },
-  { href: "/admin/payouts", icon: "💰", label: "Payouts & Points" },
-  { href: "/leaderboard", icon: "🏆", label: "Leaderboard Control" },
+  { href: '/admin/analytics', icon: '📊', label: 'Analytics & Visitors' },
+  { href: '/admin/traffic', icon: '🛰️', label: 'Traffic Intelligence' },
+  { href: '/admin/customers', icon: '📇', label: 'Customer Spreadsheet' },
+  { href: '/admin/megaphone', icon: '📢', label: 'The Megaphone' },
+  { href: '/admin/blogs', icon: '📰', label: 'Blog Control Room' },
+  { href: '/admin/team', icon: '👥', label: 'Team & Admin Roles' },
+  { href: '/admin/ads', icon: '📣', label: 'Ad Switch Manager' },
+  { href: '/admin/bills', icon: '🧾', label: 'Bills Fulfilment Desk' },
+  { href: '/admin/moderation', icon: '🚩', label: 'Reports & Moderation' },
+  { href: '/admin/payouts', icon: '💰', label: 'Payouts & Points' },
 ];
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [view, setView] = useState<"member" | "admin">("member");
+  const [view, setView] = useState<'member' | 'admin'>('member');
   const [stats, setStats] = useState({ posts: 0, followers: 0, following: 0 });
   const [adminStats, setAdminStats] = useState<any>(null);
-  const [form, setForm] = useState({ full_name: "", bio: "", whatsapp: "" });
-  const [avatar, setAvatar] = useState("");
-  const [cover, setCover] = useState("");
+  const [form, setForm] = useState({ full_name: '', bio: '', whatsapp: '' });
+  const [avatar, setAvatar] = useState('');
+  const [cover, setCover] = useState('');
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState('');
   const [loaded, setLoaded] = useState(false);
 
   async function load() {
@@ -37,25 +37,26 @@ export default function ProfilePage() {
     setUser(u);
     if (u) {
       const [{ data: p }, { count: pc }, { count: fc }, { count: gc }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", u.id).single(),
-        supabase.from("feed_posts").select("*", { count: "exact", head: true }).eq("author_id", u.id),
-        supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", u.id),
-        supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", u.id),
+        supabase.from('profiles').select('*').eq('id', u.id).single(),
+        supabase.from('feed_posts').select('*', { count: 'exact', head: true }).eq('author_id', u.id),
+        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', u.id),
+        supabase.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', u.id),
       ]);
       setProfile(p);
       if (p) {
-        setForm({ full_name: p.full_name || "", bio: p.bio || "", whatsapp: p.whatsapp || "" });
-        if (p.role === "admin" && localStorage.getItem("ftb_adminview") === "admin") setView("admin");
+        setForm({ full_name: p.full_name || '', bio: p.bio || '', whatsapp: p.whatsapp || '' });
+        if (p.role === 'admin' && localStorage.getItem('ftb_adminview') === 'admin') setView('admin');
       }
       setStats({ posts: pc || 0, followers: fc || 0, following: gc || 0 });
-      if (p?.role === "admin") {
+
+      if (p?.role === 'admin') {
         const [m, fp, eb, ll, rp, pu] = await Promise.all([
-          supabase.from("profiles").select("*", { count: "exact", head: true }),
-          supabase.from("feed_posts").select("*", { count: "exact", head: true }),
-          supabase.from("ebooks").select("*", { count: "exact", head: true }),
-          supabase.from("livestock_listings").select("*", { count: "exact", head: true }),
-          supabase.from("reports").select("*", { count: "exact", head: true }),
-          supabase.from("ebook_purchases").select("*", { count: "exact", head: true }),
+          supabase.from('profiles').select('*', { count: 'exact', head: true }),
+          supabase.from('feed_posts').select('*', { count: 'exact', head: true }),
+          supabase.from('ebooks').select('*', { count: 'exact', head: true }),
+          supabase.from('livestock_listings').select('*', { count: 'exact', head: true }),
+          supabase.from('reports').select('*', { count: 'exact', head: true }),
+          supabase.from('ebook_purchases').select('*', { count: 'exact', head: true }),
         ]);
         setAdminStats({ members: m.count || 0, posts: fp.count || 0, ebooks: eb.count || 0, listings: ll.count || 0, reports: rp.count || 0, sales: pu.count || 0 });
       }
@@ -65,30 +66,28 @@ export default function ProfilePage() {
 
   useEffect(() => { load(); }, []);
 
-  function switchView(v: "member" | "admin") {
+  function switchView(v: 'member' | 'admin') {
     setView(v);
-    localStorage.setItem("ftb_adminview", v);
+    localStorage.setItem('ftb_adminview', v);
   }
 
   async function uploadAvatar(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = await uploadToCloudinary(file, "avatars");
-      setAvatar(url);
+      setAvatar(await uploadToCloudinary(file, 'avatars'));
     } catch (err: any) {
-      alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
+      alert('Upload failed: ' + (err && err.message ? err.message : 'try again'));
     }
   }
 
-  async function uploadCover(e: any) {
+  async function uploadCoverFn(e: any) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const url = await uploadToCloudinary(file, "covers");
-      setCover(url);
+      setCover(await uploadToCloudinary(file, 'covers'));
     } catch (err: any) {
-      alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
+      alert('Upload failed: ' + (err && err.message ? err.message : 'try again'));
     }
   }
 
@@ -96,16 +95,17 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
     setBusy(true);
-    const supabase = createClient();    await supabase.from("profiles").update({
+    const supabase = createClient();
+    await supabase.from('profiles').update({
       full_name: form.full_name.trim(),
       bio: form.bio.trim(),
       whatsapp: form.whatsapp.trim(),
       avatar_url: avatar || profile?.avatar_url || null,
       cover_url: cover || profile?.cover_url || null,
-    }).eq("id", user.id);
-    setMsg("✅ Profile updated!");
-    setAvatar(""); setCover("");
-    setTimeout(() => setMsg(""), 2500);
+    }).eq('id', user.id);
+    setMsg('Profile updated!');
+    setAvatar(''); setCover('');
+    setTimeout(() => setMsg(''), 2500);
     await load();
     setBusy(false);
   }
@@ -113,7 +113,7 @@ export default function ProfilePage() {
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    window.location.href = "/";
+    window.location.href = '/';
   }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
@@ -125,36 +125,37 @@ export default function ProfilePage() {
           <p className="text-4xl mb-2">🔐</p>
           <h1 className="text-xl font-extrabold mb-1">My Dashboard</h1>
           <p className="text-sm text-gray-500 mb-4">Log in to see your points, posts and profile tools.</p>
-          <Link href="/login" className="block bg-green-600 text-white py-3 rounded-xl font-extrabold">🔓 Log In / Register Free</Link>
+          <Link href="/login" className="block bg-green-600 text-white py-3 rounded-xl font-extrabold"> Log In / Register Free</Link>
         </div>
       </div>
     );
   }
 
-  const isAdmin = profile?.role === "admin";
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
       <div className="relative h-36 bg-forest-700">
         {(cover || profile?.cover_url) && <img src={cover || profile.cover_url} alt="" className="w-full h-36 object-cover" />}
         <label className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-3 py-1.5 rounded-full cursor-pointer">📷 Change cover
-          <input type="file" accept="image/*" className="hidden" onChange={uploadCover} />
+          <input type="file" accept="image/*" className="hidden" onChange={uploadCoverFn} />
         </label>
       </div>
       <div className="px-4 -mt-8">
         <div className="flex items-end gap-3">
           <div className="relative">
             {profile?.avatar_url || avatar ? (
-              <img src={avatar || profile.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-white" />            ) : (
-              <div className="w-20 h-20 rounded-full bg-green-200 border-4 border-white flex items-center justify-center text-2xl font-extrabold text-green-800">{(profile?.full_name || "?")[0]}</div>
+              <img src={avatar || profile.avatar_url} alt="" className="w-20 h-20 rounded-full object-cover border-4 border-white" />
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-green-200 border-4 border-white flex items-center justify-center text-2xl font-extrabold text-green-800">{(profile?.full_name || '?')[0]}</div>
             )}
             <label className="absolute -bottom-1 -right-1 bg-green-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs cursor-pointer">📷
               <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
             </label>
           </div>
           <div className="flex-1 pb-1">
-            <h1 className="text-lg font-extrabold">{profile?.full_name || "Farmer"} {profile?.verified && "✅"}</h1>
-            <p className="text-[10px] text-gray-500">@{profile?.referral_code || "—"} · {isAdmin ? "🛡️ Admin" : "🌾 Member"}</p>
+            <h1 className="text-lg font-extrabold">{profile?.full_name || 'Farmer'} {profile?.verified && '✅'}</h1>
+            <p className="text-[10px] text-gray-500">@{profile?.referral_code || '—'} · {isAdmin ? '🛡️ Admin' : profile?.role === 'editor' ? '✍️ Editor' : '🌾 Member'}</p>
           </div>
           <button onClick={logout} className="text-[10px] font-bold text-red-500 pb-1">Log out</button>
         </div>
@@ -163,13 +164,13 @@ export default function ProfilePage() {
       {isAdmin && (
         <div className="px-4 mt-4">
           <div className="flex bg-gray-100 rounded-xl p-1">
-            <button onClick={() => switchView("member")} className={`flex-1 py-2.5 rounded-lg text-sm font-extrabold ${view === "member" ? "bg-white shadow text-forest-700" : "text-gray-500"}`}>🌾 Member View</button>
-            <button onClick={() => switchView("admin")} className={`flex-1 py-2.5 rounded-lg text-sm font-extrabold ${view === "admin" ? "bg-amber-400 shadow text-amber-900" : "text-gray-500"}`}>🛡️ Admin View</button>
+            <button onClick={() => switchView('member')} className={`flex-1 py-2.5 rounded-lg text-sm font-extrabold ${view === 'member' ? 'bg-white shadow text-forest-700' : 'text-gray-500'}`}>🌾 Member View</button>
+            <button onClick={() => switchView('admin')} className={`flex-1 py-2.5 rounded-lg text-sm font-extrabold ${view === 'admin' ? 'bg-amber-400 shadow text-amber-900' : 'text-gray-500'}`}>🛡️ Admin View</button>
           </div>
         </div>
       )}
 
-      {isAdmin && view === "admin" ? (
+      {isAdmin && view === 'admin' ? (
         <div className="px-4 mt-4 space-y-4">
           <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl">
             <p className="text-sm font-extrabold">🛡️ ADMIN CONTROL ROOM</p>
@@ -195,9 +196,6 @@ export default function ProfilePage() {
               </Link>
             ))}
           </div>
-          <div className="glass-card p-3 rounded-2xl">
-            <p className="text-[10px] text-gray-500">🛡️ Admin View is visible only to accounts with the admin role. Members always see the Member View only.</p>
-          </div>
         </div>
       ) : (
         <>
@@ -222,7 +220,7 @@ export default function ProfilePage() {
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Full name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
         <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={3} placeholder="Bio — what do you farm or build?" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
         <input className="w-full p-3 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="WhatsApp number (for customer sheet & deliveries)" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
-        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold disabled:opacity-50" disabled={busy}>{busy ? "Saving..." : "💾 Save Changes"}</button>
+        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold disabled:opacity-50" disabled={busy}>{busy ? 'Saving...' : '💾 Save Changes'}</button>
       </form>
     </div>
   );
