@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { uploadToCloudinary } from '@/lib/upload';
+import { uploadToCloudinary, withRatio } from '@/lib/upload';
 
 function slugify(t: string) {
   return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -47,7 +47,8 @@ export default function ArticleEnginePage() {
 
   const [f, setF] = useState({
     topic: '', primaryKey: '', category: 'Farming', audience: 'Beginner farmers in Nigeria',
-    region: 'Nigeria', author: 'Site Admin', productId: '', secondaryKw: '', questions: '',    instructions: '', depth: 'standard', videoUrl: '',
+    region: 'Nigeria', author: 'Site Admin', productId: '', secondaryKw: '', questions: '',
+    instructions: '', depth: 'standard', videoUrl: '',
   });
 
   const [intent, setIntent] = useState<{ intent: string; why: string } | null>(null);
@@ -55,6 +56,7 @@ export default function ArticleEnginePage() {
   const [seo, setSeo] = useState({ title: '', h1: '', meta: '', slug: '' });
   const [content, setContent] = useState('');
   const [cover, setCover] = useState('');
+  const [coverRatio, setCoverRatio] = useState<'2:3' | '4:5'>('2:3');
   const [faqText, setFaqText] = useState('');
   const [srcText, setSrcText] = useState('');
   const [indexable, setIndexable] = useState(true);
@@ -70,7 +72,7 @@ export default function ArticleEnginePage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      setAdmin(p?.role === 'admin');
+      setAdmin(p?.role === 'admin' || p?.role === 'editor');
     }
     const [b, e] = await Promise.all([
       supabase.from('blogs').select('*').order('created_at', { ascending: false }),
@@ -96,7 +98,8 @@ export default function ArticleEnginePage() {
 
   function classify(t: string) {
     const s = t.toLowerCase();
-    if (/(buy|price|cost|for sale|supplier|ebook|training fee|order)/.test(s)) return { intent: 'Transactional', why: 'The query contains purchase language, so the searcher is ready to act.' };    if (/(best|vs|review|which|compare|top)/.test(s)) return { intent: 'Commercial investigation', why: 'The searcher is comparing options before deciding.' };
+    if (/(buy|price|cost|for sale|supplier|ebook|training fee|order)/.test(s)) return { intent: 'Transactional', why: 'The query contains purchase language, so the searcher is ready to act.' };
+    if (/(best|vs|review|which|compare|top)/.test(s)) return { intent: 'Commercial investigation', why: 'The searcher is comparing options before deciding.' };
     if (/(near me|in nigeria|in lagos|in ibadan|around me)/.test(s)) return { intent: 'Local', why: 'The query carries location intent.' };
     if (/(how to|steps|guide|start|setup|build|make)/.test(s)) return { intent: 'Informational (How-To)', why: 'The searcher wants a practical procedure they can follow.' };
     if (/(what|why|meaning|causes|symptoms|deficiency)/.test(s)) return { intent: 'Informational', why: 'The searcher needs understanding before action.' };
@@ -145,7 +148,8 @@ export default function ArticleEnginePage() {
     if (!key) {
       const p = window.prompt('Paste your free Google Gemini API key (get it at aistudio.google.com/apikey):');
       if (!p) return;
-      key = p.trim();      localStorage.setItem('ftb_gemini_key', key);
+      key = p.trim();
+      localStorage.setItem('ftb_gemini_key', key);
       setAiKey(key);
     }
 
@@ -194,7 +198,8 @@ export default function ArticleEnginePage() {
     setContent(art);
     setFaqText(faqPart);
     setSrcText(srcPart === 'none' ? '' : srcPart);
-    auditNow(art, faqPart);    flash('Article written, formatted and auto-filled!');
+    auditNow(art, faqPart);
+    flash('Article written, formatted and auto-filled!');
     setAiBusy(false);
   }
 
@@ -243,7 +248,8 @@ export default function ArticleEnginePage() {
             { '@type': 'ListItem', 'position': 2, 'name': f.category, 'item': origin + '/blog' },
             { '@type': 'ListItem', 'position': 3, 'name': seo.h1 || seo.title, 'item': origin + '/blog/' + seo.slug },
           ],
-        },      ],
+        },
+      ],
     };
     if (faqs.length) {
       schema['@graph'].push({
@@ -267,7 +273,7 @@ export default function ArticleEnginePage() {
   }
 
   function imagePrompt() {
-    return 'Photorealistic Nigerian farm scene illustrating "' + f.topic + '", golden hour, vertical 2:3, deep green and gold palette, educational composition, no text overlays - Farming Tech & Business visual identity.';
+    return 'Photorealistic Nigerian farm scene illustrating "' + f.topic + '", golden hour, vertical ' + (coverRatio === '4:5' ? '4:5' : '2:3') + ', deep green and gold palette, educational composition, no text overlays - Farming Tech & Business visual identity.';
   }
 
   function altText() {
@@ -292,9 +298,11 @@ export default function ArticleEnginePage() {
     const srcs = srcText.split('\n').filter((l) => l.includes('|')).map((l) => { const parts = l.split('|'); return { title: (parts[0] || '').trim(), org: (parts[1] || '').trim(), url: (parts[2] || '').trim() }; });
     const payload: any = {
       title: seo.h1 || seo.title,
-      slug: seo.slug,      content: content,
+      slug: seo.slug,
+      content: content,
       category: f.category,
-      cover_image_url: cover || null,
+      cover_image_url: cover ? withRatio(cover, coverRatio) : null,
+      cover_ratio: coverRatio,
       meta_title: seo.title,
       meta_description: seo.meta,
       excerpt: seo.meta,
@@ -324,6 +332,7 @@ export default function ArticleEnginePage() {
         content: payload.content,
         category: payload.category,
         cover_image_url: payload.cover_image_url,
+        cover_ratio: payload.cover_ratio,
       };
       const res2: any = editId
         ? await supabase.from('blogs').update(minimal).eq('id', editId)
@@ -340,7 +349,8 @@ export default function ArticleEnginePage() {
   }
 
   if (!loaded) return <p className="text-center p-10">Loading engine...</p>;
-  if (!admin) return <p className="text-center p-10">Admin access only.</p>;
+  if (!admin) return <p className="text-center p-10">Admin or Editor access only.</p>;
+
   const social = analysis ? socialPack() : null;
 
   return (
@@ -390,7 +400,8 @@ export default function ArticleEnginePage() {
             <p className="text-xs"><b>Reverse links (add links FROM these):</b> {analysis.reverse.length ? analysis.reverse.join(', ') : 'none yet'}</p>
           </div>
 
-          <div className="glass-card p-4 rounded-2xl space-y-2 border-2 border-purple-400">            <p className="text-sm font-extrabold text-purple-700">3. IN-HOUSE AI WRITER</p>
+          <div className="glass-card p-4 rounded-2xl space-y-2 border-2 border-purple-400">
+            <p className="text-sm font-extrabold text-purple-700">3. IN-HOUSE AI WRITER</p>
             <div className="flex gap-2">
               <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" type="password" placeholder="Gemini API key (free at aistudio.google.com/apikey)" value={aiKey} onChange={(e) => { setAiKey(e.target.value); localStorage.setItem('ftb_gemini_key', e.target.value); }} />
               <select className="p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" value={aiModel} onChange={(e) => setAiModel(e.target.value)}>
@@ -434,12 +445,21 @@ export default function ArticleEnginePage() {
             <label className="block text-xs font-semibold text-green-700 cursor-pointer">Featured image (Cloudinary)
               <input type="file" accept="image/*" className="hidden" onChange={uploadCoverFn} />
             </label>
-            {cover && <img src={cover} alt="" className="h-20 w-full object-cover rounded-xl" />}
+            {cover && (
+              <>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setCoverRatio('2:3')} className={'flex-1 py-2 rounded-xl text-xs font-bold ' + (coverRatio === '2:3' ? 'bg-forest-600 text-white' : 'bg-gray-100 text-gray-600')}>2:3 portrait</button>
+                  <button type="button" onClick={() => setCoverRatio('4:5')} className={'flex-1 py-2 rounded-xl text-xs font-bold ' + (coverRatio === '4:5' ? 'bg-forest-600 text-white' : 'bg-gray-100 text-gray-600')}>4:5 portrait</button>
+                </div>
+                <img src={withRatio(cover, coverRatio)} alt="" className="w-28 object-cover rounded-xl" style={{ aspectRatio: coverRatio === '4:5' ? '4 / 5' : '2 / 3' }} />
+              </>
+            )}
             <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm font-mono" rows={12} placeholder="Article Markdown (AI writer fills this automatically)..." value={content} onChange={(e) => setContent(e.target.value)} />
             <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="YouTube video URL (optional)" value={f.videoUrl} onChange={(e) => setF({ ...f, videoUrl: e.target.value })} />
             <select className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" value={f.productId} onChange={(e) => setF({ ...f, productId: e.target.value })}>
               <option value="">- Ebook CTA: none -</option>
-              {ebooks.map((eb) => <option key={eb.id} value={eb.id}>{eb.title}</option>)}            </select>
+              {ebooks.map((eb) => <option key={eb.id} value={eb.id}>{eb.title}</option>)}
+            </select>
           </div>
 
           <div className="glass-card p-4 rounded-2xl space-y-2">
@@ -488,5 +508,6 @@ export default function ArticleEnginePage() {
           </div>
         </>
       )}
-    </div>  );
+    </div>
+  );
 }
