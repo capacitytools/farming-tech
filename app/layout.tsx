@@ -1,17 +1,20 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import TopBar from "@/components/layout/TopBar";
-import BottomNav from "@/components/layout/BottomNav";
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import TopBar from '@/components/TopBar';
+import BottomNav from '@/components/BottomNav';
 
 export const metadata: Metadata = {
-  title: {
-    default: "Farming Tech & Business — Join, Learn, Grow, Connect & Earn",
-    template: "%s | Farming Tech & Business",
+  title: 'Farming Tech & Business',
+  description: 'Join, Learn, Grow, Connect & Earn — the digital operating system for African farmers.',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon-192.png',
+    apple: '/icon-192.png',
   },
-  description:
-    "The ultimate platform for farmers: AI crop & livestock doctor, marketplace, tribes, live trainings, ebooks, reels and more.",
-  manifest: "/manifest.webmanifest",
-  themeColor: "#166534",
+};
+
+export const viewport: Viewport = {
+  themeColor: '#166534',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -25,15 +28,3 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-import BottomNav from '@/components/BottomNav';
-   
-   export default function RootLayout({ children }) {
-     return (
-       <html>
-         <body>
-           {children}
-           <BottomNav />
-         </body>
-       </html>
-     );
-   }
