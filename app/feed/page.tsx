@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { uploadToCloudinary } from "@/lib/upload";
+import { uploadToCloudinary, withRatio } from "@/lib/upload";
 import VideoCard from "@/components/VideoCard";
 import VideoComposer from "@/components/VideoComposer";
 import AdBar from "@/components/AdBar";
@@ -47,6 +47,7 @@ function loadScript(src: string) {
     document.body.appendChild(s);
   });
 }
+
 export default function FeedPage() {
   const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState("foryou");
@@ -57,6 +58,8 @@ export default function FeedPage() {
   const [followingIds, setFollowingIds] = useState<string[]>([]);
   const [content, setContent] = useState("");
   const [image, setImage] = useState("");
+  const [imageRaw, setImageRaw] = useState("");
+  const [imageRatio, setImageRatio] = useState<"2:3" | "4:5">("4:5");
   const [busy, setBusy] = useState(false);
   const [openC, setOpenC] = useState("");
   const [cText, setCText] = useState("");
@@ -96,7 +99,8 @@ export default function FeedPage() {
     });
 
     let mapped = (ranked.data || []).map((r: any) => ({
-      ...r,      kind: "post",
+      ...r,
+      kind: "post",
       profiles: { full_name: r.author_name, avatar_url: r.author_avatar, verified: r.author_verified },
     }));
 
@@ -120,7 +124,8 @@ export default function FeedPage() {
     if (!file) return;
     try {
       const url = await uploadToCloudinary(file, "feed");
-      setImage(url);
+      setImageRaw(url);
+      setImage(withRatio(url, imageRatio));
     } catch (err: any) {
       alert("Upload failed: " + (err && err.message ? err.message : "check connection and try again"));
     }
@@ -134,6 +139,7 @@ export default function FeedPage() {
     await supabase.from("feed_posts").insert({ author_id: user.id, content: content.trim(), image_url: image || null });
     setContent("");
     setImage("");
+    setImageRaw("");
     await load();
     setBusy(false);
   }
@@ -145,7 +151,8 @@ export default function FeedPage() {
     if (mine) {
       if (mine.reaction === reaction) await supabase.from("feed_likes").delete().eq("id", mine.id);
       else await supabase.from("feed_likes").update({ reaction }).eq("id", mine.id);
-    } else {      await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id, reaction });
+    } else {
+      await supabase.from("feed_likes").insert({ post_id: postId, user_id: user.id, reaction });
     }
     const { data: l } = await supabase.from("feed_likes").select("id, post_id, user_id, reaction");
     setLikes(l || []);
@@ -194,7 +201,8 @@ export default function FeedPage() {
     }
   }
 
-  async function reportPost(postId: string) {    if (!user) return alert("Log in to report.");
+  async function reportPost(postId: string) {
+    if (!user) return alert("Log in to report.");
     const reason = prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");
     if (!reason) return;
     const supabase = createClient();
@@ -243,7 +251,8 @@ export default function FeedPage() {
     const ref = item.profiles?.referral_code || "";
     const url = `${window.location.origin}/post/${item.id}?ref=${ref}`;
     const text = `${(item.content || item.title || "").slice(0, 120)} 🌾 Join, Learn, Grow, Connect & Earn on Farming Tech & Business!`;
-    const en = encodeURIComponent;    const media = item.image_url || "";
+    const en = encodeURIComponent;
+    const media = item.image_url || "";
     const links: any = {
       wa: `https://wa.me/?text=${en(text + " " + url)}`,
       fb: `https://www.facebook.com/sharer/sharer.php?u=${en(url)}`,
@@ -286,13 +295,20 @@ export default function FeedPage() {
             <textarea className="w-full p-3 rounded-xl border border-gray-200 bg-white/70" rows={2} placeholder="What's happening on your farm today? Links & #hashtags become clickable!" value={content} onChange={(e) => setContent(e.target.value)} />
             <div className="flex items-center gap-3 mt-2 flex-wrap">
               <label className="text-sm font-semibold text-green-700 cursor-pointer">📷 Photo<input type="file" accept="image/*" onChange={uploadImage} className="hidden" /></label>
+              {image && (
+                <span className="flex gap-1">
+                  <button type="button" onClick={() => { setImageRatio("2:3"); setImage(withRatio(imageRaw, "2:3")); }} className={`text-[9px] font-bold px-2 py-1 rounded-full ${imageRatio === "2:3" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}>2:3</button>
+                  <button type="button" onClick={() => { setImageRatio("4:5"); setImage(withRatio(imageRaw, "4:5")); }} className={`text-[9px] font-bold px-2 py-1 rounded-full ${imageRatio === "4:5" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600"}`}>4:5</button>
+                </span>
+              )}
               <button type="button" onClick={() => setVideoMode(videoMode === "reel" ? "" : "reel")} className={`text-sm font-semibold ${videoMode === "reel" ? "text-purple-700 underline" : "text-purple-600"}`}>📱 Reel</button>
               <button type="button" onClick={() => setVideoMode(videoMode === "video" ? "" : "video")} className={`text-sm font-semibold ${videoMode === "video" ? "text-forest-700 underline" : "text-forest-600"}`}>🎬 Video</button>
               {image && <img src={image} alt="" className="h-10 w-10 object-cover rounded-lg" />}
               <button className="ml-auto bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>Post</button>
             </div>
           </form>
-          {videoMode && (            <VideoComposer
+          {videoMode && (
+            <VideoComposer
               context="feed"
               initialAspect={videoMode === "reel" ? "portrait" : "landscape"}
               onDone={() => { setVideoMode(""); load(); }}
@@ -341,7 +357,8 @@ export default function FeedPage() {
 
                 {item.ad && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-amber-300">
-                    <AdBar ad={item.ad} />                  </div>
+                    <AdBar ad={item.ad} />
+                  </div>
                 )}
 
                 {(() => {
@@ -390,7 +407,8 @@ export default function FeedPage() {
                       {user?.id === item.author_id && (
                         <button onClick={() => openReactors(item)} className="w-full mt-2 bg-forest-50 rounded-xl p-2 text-[10px] font-bold text-forest-700 flex justify-around">
                           <span>📊 ENGAGEMENT</span>
-                          <span>👁️ {item.views_count || 0}</span>                          <span>🎭 {postLikes.length}</span>
+                          <span>👁️ {item.views_count || 0}</span>
+                          <span>🎭 {postLikes.length}</span>
                           <span>💬 {postComments.length}</span>
                           <span>🔁 {item.shares_count || 0}</span>
                         </button>
@@ -440,6 +458,7 @@ export default function FeedPage() {
           </p>
         )}
       </div>
+
       {reactorsFor && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-end" onClick={() => setReactorsFor("")}>
           <div className="bg-white w-full max-w-md mx-auto rounded-t-3xl p-4 max-h-[75vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
