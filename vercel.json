@@ -2,26 +2,14 @@
   "redirects": [
     {
       "source": "/(.*)",
-      "has": [
-        { "type": "host", "value": "farming-tech.vercel.app" }
-      ],
-      "destination": "https://farmtechbusiness.com/$1",
+      "has": [{ "type": "host", "value": "farming-tech.vercel.app" }],
+      "destination": "https://farmingtechbusiness.com/$1",
       "permanent": true
     },
     {
       "source": "/(.*)",
-      "has": [
-        { "type": "host", "value": "farming-tech-.*\\.vercel\\.app" }
-      ],
-      "destination": "https://farmtechbusiness.com/$1",
-      "permanent": true
-    },
-    {
-      "source": "/(.*)",
-      "has": [
-        { "type": "host", "value": "www.farmtechbusiness.com" }
-      ],
-      "destination": "https://farmtechbusiness.com/$1",
+      "has": [{ "type": "host", "value": "farming-tech-.*\\.vercel\\.app" }],
+      "destination": "https://farmingtechbusiness.com/$1",
       "permanent": true
     }
   ],
