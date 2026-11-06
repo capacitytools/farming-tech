@@ -1,18 +1,32 @@
+export const metadata = {
+  title: 'Privacy Policy | Farming Tech & Business',
+  description: 'Learn how we collect, use, and protect your personal information.',
+};
+
 export default function PrivacyPage() {
   return (
-    <div className="p-4 pb-24 max-w-2xl mx-auto prose prose-sm max-w-none">
-      <h1>🔒 Privacy Policy</h1>
-      <p className="text-gray-500 text-xs">Farming Tech & Business · farmtechbusiness.com</p>
-      <h2>What we collect</h2>
-      <p>When you register, we collect your name, email, phone/WhatsApp number and location. When you use the app, we store your posts, listings, scans, purchases and messages so the service works.</p>
-      <h2>How we use it</h2>
-      <p>Your data powers your profile, wallet, points and referrals. We never sell your personal data. Aggregated, anonymous statistics may be used to improve the platform.</p>
-      <h2>Ads & notifications</h2>
-      <p>We show third-party ads (Adsterra) to keep the platform free; they may use cookies. With your permission, we send push notifications via OneSignal. You can unsubscribe anytime from the bell button.</p>
-      <h2>Payments</h2>
-      <p>Purchases are processed securely by Paystack. We never see or store your card details.</p>
-      <h2>Your rights</h2>
-      <p>You may request a copy or deletion of your data anytime by contacting the admin through the Contact page.</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-forest-950 pb-24">
+      <div className="bg-gradient-to-br from-forest-700 to-forest-900 text-white p-6 rounded-b-3xl shadow-md">
+        <h1 className="text-2xl font-extrabold">Privacy Policy</h1>
+        <p className="text-xs text-forest-100 mt-1">Last Updated: October 2026</p>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-5 py-8 space-y-6 text-gray-800 dark:text-gray-200 leading-relaxed">
+        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">1. Information We Collect</h2>
+        <p>We collect information you provide directly to us when you create an account, subscribe to our newsletter, or use our AI tools. This includes your name, email address, and profile information.</p>
+
+        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">2. How We Use Your Data</h2>
+        <p>Your data helps us operate the platform, personalize your experience, improve our AI models (anonymized), and send you relevant agricultural content. We do not sell your personal data to third parties.</p>
+
+        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">3. Cookies & Tracking</h2>
+        <p>We use cookies to keep you logged in, remember your preferences, and analyze site traffic. We may also use third-party advertising partners (like Google AdSense) who may use cookies to serve ads based on your prior visits to our website.</p>
+
+        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">4. AI Tools & Data</h2>
+        <p>When you use our AI Agri-Doctor or other AI tools, the images and text you submit may be processed by third-party AI providers (like Google Gemini). We do not permanently store these images for training our own models without your explicit consent.</p>
+
+        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">5. Your Rights</h2>
+        <p>You have the right to request access to, correction of, or deletion of your personal data. You can contact us at any time to exercise these rights.</p>
+      </div>
     </div>
   );
 }
