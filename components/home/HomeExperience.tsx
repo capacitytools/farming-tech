@@ -349,7 +349,10 @@ export default function HomeExperience({ d }: { d: any }) {
           {hotVisible.map((p: any, i: number) => {
             const isExpanded = expandedPosts[p.id];
             const content = p.content || '';
-            const isLong = content.length > 150;
+            
+            // 🚨 HARD CUTOFF AT 80 CHARACTERS 🚨
+            const isLong = content.length > 80; 
+            const displayContent = isExpanded ? content : content.slice(0, 80);
 
             return (
               <div key={p.id} className="glass-card p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
@@ -367,7 +370,7 @@ export default function HomeExperience({ d }: { d: any }) {
                         <p className="font-bold text-sm text-forest-900 dark:text-white leading-none">{p.author_name || "Farmer"}</p>
                         {p.author_verified && <span className="text-sky-500 text-[10px]">✅</span>}
                       </div>
-                      <p className="text-[9px] text-gray-500 mt-0.5">Click to view profile</p>
+                      <p className="text-[9px] text-gray-500 mt-0.5">View Profile</p>
                     </div>
                   </Link>
                   <span className="ml-auto text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">#{i + 1} 🔥</span>
@@ -375,11 +378,17 @@ export default function HomeExperience({ d }: { d: any }) {
 
                 {/* COLLAPSIBLE CONTENT */}
                 <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
-                  {isExpanded || !isLong ? rich(content) : rich(content.slice(0, 150) + '...')}
+                  {rich(displayContent)}
+                  {isLong && !isExpanded && '...'}
                 </div>
+
+                {/* THE SEE MORE BUTTON */}
                 {isLong && (
-                  <button onClick={() => toggleExpand(p.id)} className="text-green-700 text-xs font-bold mt-1 mb-2 hover:underline">
-                    {isExpanded ? "See less" : "...See more"}
+                  <button 
+                    onClick={() => toggleExpand(p.id)} 
+                    className="text-green-700 text-xs font-extrabold mt-1 mb-2 hover:underline block"
+                  >
+                    {isExpanded ? "▲ See less" : "▼ See more"}
                   </button>
                 )}
 
