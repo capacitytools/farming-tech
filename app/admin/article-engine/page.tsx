@@ -1,24 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState } from 'react';
 
 export default function PromptStudioPage() {
-  const [admin, setAdmin] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [blogs, setBlogs] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
   
-  // Mode: 'existing' or 'manual'
-  const [mode, setMode] = useState<'existing' | 'manual'>('existing');
-
   // Brand State
   const [brandType, setBrandType] = useState<'default' | 'custom'>('default');
   const [customBrandName, setCustomBrandName] = useState('');
   const [customBrandUrl, setCustomBrandUrl] = useState('');
 
-  // Form State
-  const [selectedId, setSelectedId] = useState('');
+  // Form State (Defaults to Manual Entry to prevent database loading issues)
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [details, setDetails] = useState('');
@@ -28,41 +20,9 @@ export default function PromptStudioPage() {
   const [facebookPrompts, setFacebookPrompts] = useState<string[]>([]);
   const [aiBusy, setAiBusy] = useState(false);
 
-  async function load() {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).single();
-      setAdmin(p?.role === 'admin' || p?.role === 'editor');
-    }
-
-    // Grab ALL blogs so the dropdown is never empty
-    if (admin) {
-      const { data: b } = await supabase
-        .from('blogs')
-        .select('id,title,meta_description,excerpt,content')
-        .order('created_at', { ascending: false });
-      setBlogs(b || []);
-    }
-    
-    setLoaded(true);
-  }
-
-  useEffect(() => { load(); }, []);
-
   function flash(t: string) {
     setMsg(t);
     setTimeout(() => setMsg(''), 3000);
-  }
-
-  function handleSelectBlog(id: string) {
-    setSelectedId(id);
-    const b = blogs.find(x => x.id === id);
-    if (b) {
-      setTitle(b.title);
-      setDesc(b.meta_description || b.excerpt || '');
-      setDetails((b.content || '').slice(0, 800) + '...');
-    }
   }
 
   async function generatePrompts() {
@@ -176,8 +136,6 @@ Key Details: ${details || 'None provided'}`;
     flash('Prompt copied to clipboard!');
   }
 
-  if (!loaded) return <p className="text-center p-10">Loading Studio...</p>;
-
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <div>
@@ -219,42 +177,25 @@ Key Details: ${details || 'None provided'}`;
         </div>
 
         <div>
-          <p className="text-sm font-extrabold text-forest-700 mb-2">2. TOPIC SOURCE</p>
-          {admin && (
-            <div className="flex gap-2 mb-2">
-              <button onClick={() => setMode('existing')} className={'flex-1 py-1.5 rounded-lg text-xs font-bold ' + (mode === 'existing' ? 'bg-gray-800 text-white' : 'bg-gray-200')}>Existing Blog</button>
-              <button onClick={() => setMode('manual')} className={'flex-1 py-1.5 rounded-lg text-xs font-bold ' + (mode === 'manual' ? 'bg-gray-800 text-white' : 'bg-gray-200')}>Manual Entry</button>
-            </div>
-          )}
-
-          {admin && mode === 'existing' ? (
-            <select
-              className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mb-2"
-              value={selectedId}
-              onChange={(e) => handleSelectBlog(e.target.value)}
-            >
-              <option value="">- Select a published article -</option>
-              {blogs.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
-            </select>
-          ) : null}
-
+          <p className="text-sm font-extrabold text-forest-700 mb-2">2. ARTICLE DETAILS</p>
+          
           <input
             className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mb-2"
-            placeholder="Title / Topic *"
+            placeholder="Title / Topic * (e.g., How to Start Rabbit Farming)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
           <textarea
             className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mb-2"
             rows={2}
-            placeholder="Short Description *"
+            placeholder="Short Description * (e.g., Learn how to build cages, feed rabbits, and make profit in Nigeria.)"
             value={desc}
             onChange={(e) => setDesc(e.target.value)}
           />
           <textarea
             className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm"
             rows={2}
-            placeholder="Key Details (e.g., specific animals, colors, settings)"
+            placeholder="Key Details (optional - e.g., specific animals, colors, settings)"
             value={details}
             onChange={(e) => setDetails(e.target.value)}
           />
