@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import TopBar from '@/components/layout/TopBar';
 import BottomNav from '@/components/BottomNav';
+import Footer from '@/components/layout/Footer'; // 🚨 Added Footer import
 
 export const metadata: Metadata = {
   title: 'Farming Tech & Business',
@@ -22,7 +23,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <TopBar />
-        <main className="mx-auto max-w-md min-h-screen">{children}</main>
+        <main className="mx-auto max-w-md min-h-screen">
+          {children}
+          {/* 🚨 Added Footer here so it shows on every page */}
+          <Footer />
+        </main>
         <BottomNav />
       </body>
     </html>
