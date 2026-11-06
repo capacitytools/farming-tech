@@ -47,7 +47,8 @@ export default function HomeExperience({ d }: { d: any }) {
       const diff = Math.max(0, end.getTime() - now.getTime());
       setLeft({
         d: Math.floor(diff / 86400000),
-        h: Math.floor(diff / 3600000) % 24,        m: Math.floor(diff / 60000) % 60,
+        h: Math.floor(diff / 3600000) % 24,
+        m: Math.floor(diff / 60000) % 60,
         s: Math.floor(diff / 1000) % 60,
       });
     }, 1000);
@@ -96,7 +97,8 @@ export default function HomeExperience({ d }: { d: any }) {
     await supabase.from("feed_comments").insert({ post_id: id, user_id: user.id, content: homeCText.trim() });
     setHomeCText("");
     const { data } = await supabase.from("feed_comments").select("*, profiles(full_name)").eq("post_id", id).order("created_at", { ascending: true });
-    setHomeComments({ ...homeComments, [id]: data || [] });  }
+    setHomeComments({ ...homeComments, [id]: data || [] });
+  }
 
   async function homeLike(id: string) {
     const supabase = createClient();
@@ -145,7 +147,8 @@ export default function HomeExperience({ d }: { d: any }) {
   const TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
 
   const tickerItems = [
-    ...d.tickerPosts.map((n: string) => "📣 " + n + " just posted on the Timeline"),    ...d.tickerSales.map((s: any) => "💰 " + s.name + " SOLD: " + s.title),
+    ...d.tickerPosts.map((n: string) => "📣 " + n + " just posted on the Timeline"),
+    ...d.tickerSales.map((s: any) => "💰 " + s.name + " SOLD: " + s.title),
     "👥 " + d.joinedToday + " new farmers joined today",
     "✅ " + d.verifiedCount + " verified members share this month's ad pool",
   ];
@@ -243,7 +246,8 @@ export default function HomeExperience({ d }: { d: any }) {
               <p className="font-bold text-sm">🚀 Get Started</p>
               <span className="text-xs font-bold text-green-700">{d.onboarding.doneCount}/{d.onboarding.steps.length} done</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-3">              <div className="bg-green-600 h-2 rounded-full" style={{ width: (d.onboarding.doneCount / d.onboarding.steps.length) * 100 + "%" }} />
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-3">              
+              <div className="bg-green-600 h-2 rounded-full" style={{ width: (d.onboarding.doneCount / d.onboarding.steps.length) * 100 + "%" }} />
             </div>
             <div className="space-y-1">
               {d.onboarding.steps.map((st: any) => (
@@ -273,6 +277,63 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* SHINING EBOOK BANNER */}
       <EbookBanner count={d.ebooks.length} />
 
+      {/* 🚨 NEW: AGRICULTURAL KNOWLEDGE CENTER (MAGAZINE LAYOUT) 🚨 */}
+      <div className="px-4 mt-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-extrabold text-forest-800 dark:text-white">🌾 Agricultural Knowledge</h2>
+          <Link href="/blog" className="text-xs font-semibold text-forest-600">View all →</Link>
+        </div>
+
+        {/* CATEGORY PILLS */}
+        <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
+          {['Poultry', 'Rabbits', 'Livestock', 'Fish', 'Crops', 'Business'].map(cat => (
+             <Link key={cat} href={'/blog?cat=' + cat} className="whitespace-nowrap px-3 py-1.5 bg-white dark:bg-forest-900 rounded-full text-[10px] font-bold text-forest-700 shadow-sm border border-gray-100 dark:border-forest-800">
+               {cat}
+             </Link>
+          ))}
+        </div>
+
+        {/* POPULAR / TRENDING GRID */}
+        {d.popularBlogs && d.popularBlogs.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {d.popularBlogs.slice(0, 2).map((b: any, i: number) => (
+              <Link key={b.slug} href={"/blog/" + b.slug} className="relative rounded-2xl overflow-hidden h-40 group shadow-md">
+                {b.cover_image_url ? (
+                  <img src={b.cover_image_url} alt={b.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full bg-forest-100 flex items-center justify-center text-3xl">📰</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-3 flex flex-col justify-end">
+                  <p className="text-[9px] font-bold text-amber-400 uppercase tracking-wider mb-1">🔥 Trending #{i + 1}</p>
+                  <p className="text-white text-xs font-extrabold line-clamp-2 leading-tight">{b.title}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* LATEST ARTICLES LIST */}
+        <div className="space-y-3">
+          {d.blogs.map((b: any) => (
+            <Link key={b.slug} href={"/blog/" + b.slug} className="glass-card bg-white dark:bg-forest-900 p-3 rounded-2xl flex gap-3 items-center shadow-sm border border-gray-100 dark:border-forest-800">
+              <div className="w-20 shrink-0 overflow-hidden rounded-xl bg-forest-100 relative flex items-center justify-center" style={{ aspectRatio: b.cover_ratio === '4:5' ? '4 / 5' : '2 / 3' }}>
+                <div className="absolute inset-0 flex items-center justify-center text-2xl opacity-30">🌾</div>
+                {b.cover_image_url && (
+                  <img src={b.cover_image_url} alt={b.title} className="w-full h-full object-cover relative z-10" loading="lazy" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] font-bold text-forest-600 uppercase tracking-wider">{b.category}</p>
+                <p className="font-bold text-sm text-forest-900 dark:text-white line-clamp-2 mt-0.5">{b.title}</p>
+                <p className="text-[10px] text-gray-500 mt-1.5 line-clamp-1">{b.excerpt || ''}</p>
+                <p className="text-[9px] text-gray-400 mt-1">👁️ {b.views_count || 0} views</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+      {/* 🚨 END AGRICULTURAL KNOWLEDGE CENTER 🚨 */}
+
       {/* FOR YOU with FULL SHARE + LIVE LINKS */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
@@ -292,7 +353,8 @@ export default function HomeExperience({ d }: { d: any }) {
                 </Link>
                 <Link href={"/farmer/" + p.author_id} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
                 {p.author_verified && <span className="text-sky-500 text-xs">✅</span>}
-                <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>              </div>
+                <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>
+              </div>
               <p className="text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{rich(p.content)}</p>
               {p.image_url && (
                 <Link href="/feed"><img src={p.image_url} alt="" className="mt-2 w-full h-40 object-cover rounded-xl" /></Link>
@@ -341,7 +403,8 @@ export default function HomeExperience({ d }: { d: any }) {
                 <Link href="/login" className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl text-center">
                   🔒 Register FREE to unlock more posts
                   <span className="block text-[10px] font-semibold text-green-100">+ claim your 50 welcome points 🎁</span>
-                </Link>              </div>
+                </Link>              
+              </div>
             </div>
           )}
           {d.hot.length === 0 && <p className="text-sm text-gray-500">No posts yet — be the first on the For You board!</p>}
@@ -375,28 +438,6 @@ export default function HomeExperience({ d }: { d: any }) {
         <div className="glass-card p-4 rounded-2xl border-l-4 border-amber-400">
           <p className="text-xs font-bold text-amber-600 mb-1">💡 TIP OF THE DAY</p>
           <p className="text-sm text-gray-800">{TIP}</p>
-        </div>
-      </div>
-
-      {/* LATEST INSIGHTS */}
-      <div className="px-4 mt-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold">📰 Latest Insights</h2>
-          <Link href="/blog" className="text-xs font-semibold text-green-700">View all →</Link>
-        </div>
-        <div className="space-y-3">
-          {d.blogs.map((b: any) => (
-            <Link key={b.slug} href={"/blog/" + b.slug} className="glass-card p-3 rounded-2xl flex gap-3 items-center">
-              {b.cover_image_url ? (
-                <img src={b.cover_image_url} alt={b.title} className="w-16 h-16 object-cover rounded-xl flex-shrink-0" />
-              ) : (
-                <div className="w-16 h-16 bg-forest-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">📰</div>              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm line-clamp-2">{b.title}</p>
-                <p className="text-[10px] text-gray-500 mt-1">{b.category} · 👁️ {b.views_count || 0}</p>
-              </div>
-            </Link>
-          ))}
         </div>
       </div>
 
@@ -439,7 +480,8 @@ export default function HomeExperience({ d }: { d: any }) {
               <p className="text-sm font-bold text-green-700 mt-1">{currencySymbol(l.currency)}{Number(l.price).toLocaleString()}</p>
             </Link>
           ))}
-        </div>      </div>
+        </div>      
+      </div>
 
       {/* TOP FARMERS */}
       <div className="px-4 mt-8">
@@ -488,7 +530,8 @@ export default function HomeExperience({ d }: { d: any }) {
           <p className="text-lg font-bold mb-1">📲 Take us everywhere</p>
           <p className="text-xs text-green-100 mb-3">Install Farming Tech & Business on your phone — works like a real app, even offline.</p>
           <p className="text-[10px] text-green-200">Menu (⋮) → "Add to Home screen" / "Install app"</p>
-        </div>      </div>
+        </div>      
+      </div>
 
       <SpinWheel userId={d.user ? d.user.id : null} />
       <HelperBubble />
