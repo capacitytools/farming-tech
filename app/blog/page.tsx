@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import BlogPublishFab from '@/components/BlogPublishFab';
 
@@ -83,21 +82,15 @@ export default async function BlogHomePage({ searchParams }: { searchParams: { c
           <Link key={b.id || b.slug} href={'/blog/' + b.slug} className="glass-card bg-white dark:bg-forest-900 p-3 rounded-2xl flex gap-3 active:scale-[0.99]">
             <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-forest-100 relative flex items-center justify-center" style={{ aspectRatio: b.cover_ratio === '4:5' ? '4 / 5' : '2 / 3' }}>
               
-              {/* SAFETY CHECK FOR BROKEN IMAGES */}
-              {b.cover_image_url ? (
-                <Image 
+              {/* FALLBACK FOR MISSING/BROKEN IMAGES WITHOUT CRASHING SERVER */}
+              <div className="absolute inset-0 flex items-center justify-center text-3xl opacity-30">🌾</div>
+              {b.cover_image_url && (
+                <img 
                   src={b.cover_image_url} 
-                  alt={`Image for ${b.title}`} 
-                  fill 
-                  sizes="96px"
-                  className="object-cover" 
-                  onError={(e) => {
-                    // If the image is broken, hide it so the background placeholder shows
-                    e.currentTarget.style.display = 'none';
-                  }}
+                  alt={b.title} 
+                  className="w-full h-full object-cover relative z-10" 
+                  loading="lazy"
                 />
-              ) : (
-                <span className="text-2xl">📰</span>
               )}
             </div>
             
