@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { createClient } from '@supabase/supabase-js';
 import BlogPublishFab from '@/components/BlogPublishFab';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farming-tech.vercel.app';
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
 export const revalidate = 300;
 
@@ -29,20 +30,37 @@ export default async function BlogHomePage({ searchParams }: { searchParams: { c
 
   let query = supabase
     .from('blogs')
-    .select('slug,title,excerpt,meta_description,cover_image_url,cover_ratio,category,created_at,views_count,status,indexable')
+    .select('id,slug,title,excerpt,meta_description,cover_image_url,cover_ratio,category,created_at,views_count,status,indexable')
     .eq('status', 'published')
     .order('created_at', { ascending: false })
-    .limit(60);
+    .limit(80); // Increased limit slightly so we don't lose real posts after deduplication
+    
   if (cat) query = query.eq('category', cat);
   if (q) query = query.ilike('title', '%' + q + '%');
+  
   const { data } = await query;
-  const posts = (data || []).filter((b: any) => b.indexable !== false);
+  
+  // 🚨 THE DEDUPLICATION FIX
+  // We use a Map to ensure each title only appears once.
+  // It keeps the first one it sees (which is the newest due to our order clause).
+  const uniquePostsMap = new Map();
+  (data || []).forEach((post: any) => {
+    if (post.indexable !== false) {
+      const normalizedTitle = post.title.toLowerCase().trim();
+      if (!uniquePostsMap.has(normalizedTitle)) {
+        uniquePostsMap.set(normalizedTitle, post);
+      }
+    }
+  });
+  const posts = Array.from(uniquePostsMap.values());
 
   const { data: allCats } = await supabase.from('blogs').select('category').eq('status', 'published').limit(500);
   const cats = Array.from(new Set((allCats || []).map((c: any) => c.category).filter(Boolean))) as string[];
 
   return (
     <div className="pb-24 max-w-2xl mx-auto min-h-screen bg-gray-50 dark:bg-forest-950">
+      
+      {/* HEADER */}
       <div className="bg-gradient-to-br from-forest-700 to-forest-900 text-white p-5 rounded-b-3xl">
         <h1 className="text-2xl font-extrabold">📰 FTB Blog</h1>
         <p className="text-[11px] text-forest-200 mt-0.5">Practical agricultural knowledge, guides and business ideas</p>
@@ -53,6 +71,7 @@ export default async function BlogHomePage({ searchParams }: { searchParams: { c
         </form>
       </div>
 
+      {/* CATEGORIES */}
       <div className="px-4 mt-3 flex gap-2 overflow-x-auto pb-1">
         <Link href={'/blog' + (q ? '?q=' + encodeURIComponent(q) : '')} className={'whitespace-nowrap px-3 py-1.5 rounded-full text-[10px] font-bold ' + (!cat ? 'bg-forest-600 text-white' : 'bg-white dark:bg-forest-900 text-forest-700 dark:text-forest-200 shadow-sm')}>All</Link>
         {cats.map((c) => (
@@ -60,12 +79,19 @@ export default async function BlogHomePage({ searchParams }: { searchParams: { c
         ))}
       </div>
 
+      {/* BLOG LIST */}
       <div className="p-4 space-y-3">
         {posts.map((b: any) => (
-          <Link key={b.slug} href={'/blog/' + b.slug} className="glass-card bg-white dark:bg-forest-900 p-3 rounded-2xl flex gap-3 active:scale-[0.99]">
-            <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-forest-100" style={{ aspectRatio: b.cover_ratio === '4:5' ? '4 / 5' : '2 / 3' }}>
+          <Link key={b.id || b.slug} href={'/blog/' + b.slug} className="glass-card bg-white dark:bg-forest-900 p-3 rounded-2xl flex gap-3 active:scale-[0.99]">
+            <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-forest-100 relative" style={{ aspectRatio: b.cover_ratio === '4:5' ? '4 / 5' : '2 / 3' }}>
               {b.cover_image_url ? (
-                <img src={b.cover_image_url} alt={b.title} className="w-full h-full object-cover" loading="lazy" />
+                <Image 
+                  src={b.cover_image_url} 
+                  alt={b.title} 
+                  fill 
+                  sizes="96px"
+                  className="object-cover" 
+                />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-2xl">📰</div>
               )}
