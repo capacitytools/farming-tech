@@ -1,0 +1,40 @@
+export const metadata = {
+  title: 'Contact Us | Farming Tech & Business',
+  description: 'Get in touch with the Farming Tech & Business team for support, partnerships, or inquiries.',
+};
+
+export default function ContactPage() {
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-forest-950 pb-24">
+      <div className="bg-gradient-to-br from-forest-700 to-forest-900 text-white p-6 rounded-b-3xl shadow-md">
+        <h1 className="text-2xl font-extrabold">Contact Us</h1>
+        <p className="text-xs text-forest-100 mt-1">We'd love to hear from you.</p>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-5 py-8 space-y-4 text-gray-800 dark:text-gray-200">
+        <p className="leading-relaxed">
+          Whether you have a question about farming, need support with the platform, or want to explore partnership opportunities, our team is here to help.
+        </p>
+
+        <div className="glass-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
+          <p className="font-bold text-forest-800 dark:text-white mb-1">Email Support</p>
+          <p className="text-sm">For general inquiries and support, email us at:<br/>
+          <strong className="text-green-700 dark:text-green-400">support@farmingtechbusiness.com</strong></p>
+        </div>
+
+        <div className="glass-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
+          <p className="font-bold text-forest-800 dark:text-white mb-1">Business & Partnerships</p>
+          <p className="text-sm">For advertising, sponsored posts, or partnerships:<br/>
+          <strong className="text-green-700 dark:text-green-400">partnerships@farmingtechbusiness.com</strong></p>
+        </div>
+
+        <div className="glass-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
+          <p className="font-bold text-forest-800 dark:text-white mb-1">Report an Issue</p>
+          <p className="text-sm leading-relaxed">
+            If you spot a broken link, an inaccurate article, or a technical glitch, please let us know via email so we can fix it immediately.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
