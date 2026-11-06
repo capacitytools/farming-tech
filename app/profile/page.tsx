@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadToCloudinary } from '@/lib/upload';
 
 const ADMIN_TOOLS = [
+  // 🚨 NEW: Full Admin Console Shortcut
+  { href: '/admin', icon: '🛡️', label: 'Full Admin Console' },
+  
   { href: '/admin/analytics', icon: '📊', label: 'Analytics & Visitors' },
   { href: '/admin/traffic', icon: '🛰️', label: 'Traffic Intelligence' },
   { href: '/admin/customers', icon: '📇', label: 'Customer Spreadsheet' },
@@ -16,6 +19,7 @@ const ADMIN_TOOLS = [
   { href: '/admin/bills', icon: '🧾', label: 'Bills Fulfilment Desk' },
   { href: '/admin/moderation', icon: '🚩', label: 'Reports & Moderation' },
   { href: '/admin/payouts', icon: '💰', label: 'Payouts & Points' },
+  { href: '/admin/affiliates', icon: '🔗', label: 'Affiliate Manager' },
 ];
 
 export default function ProfilePage() {
