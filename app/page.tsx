@@ -1,13 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import HomeExperience from "@/components/home/HomeExperience";
 
+// SEO METADATA
+export const metadata = {
+  title: 'Farming Tech & Business | Agricultural Knowledge & Tech',
+  description: 'Learn modern farming, livestock rearing, crop science, and agribusiness in Nigeria. Use our AI Agri-Doctor to diagnose plant and animal diseases instantly.',
+  alternates: { canonical: 'https://farmingtechbusiness.com' },
+};
+
 export default async function HomePage() {
   const supabase = createClient();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const [blogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount, authUser, hot, recentPosts, recentSales, joinedToday, verifiedCount] = await Promise.all([
-    supabase.from("blogs").select("title, slug, cover_image_url, category, views_count").eq("status", "published").order("published_at", { ascending: false }).limit(4),
+  const [blogs, popularBlogs, tribes, listings, ebooks, leaders, profileCount, tribeCount, listingCount, authUser, hot, recentPosts, recentSales, joinedToday, verifiedCount] = await Promise.all([
+    // Latest Articles (for the magazine section)
+    supabase.from("blogs").select("title, slug, cover_image_url, cover_ratio, category, views_count, excerpt").eq("status", "published").order("created_at", { ascending: false }).limit(6),
+    
+    // Popular Articles (for the trending section)
+    supabase.from("blogs").select("title, slug, cover_image_url, cover_ratio, category, views_count").eq("status", "published").order("views_count", { ascending: false }).limit(3),
+
     supabase.from("tribes").select("name, slug, icon, image_url, member_count").order("member_count", { ascending: false }).limit(6),
     supabase.from("livestock_listings").select("id, title, price, currency, images").eq("status", "active").order("created_at", { ascending: false }).limit(4),
     supabase.from("ebooks").select("id, title, price, currency, cover_url").eq("is_active", true).limit(3),
@@ -46,6 +58,7 @@ export default async function HomePage() {
     <HomeExperience
       d={{
         blogs: blogs.data || [],
+        popularBlogs: popularBlogs.data || [], // 🚨 NEW: Passing popular blogs to the UI
         tribes: tribes.data || [],
         listings: listings.data || [],
         ebooks: ebooks.data || [],
