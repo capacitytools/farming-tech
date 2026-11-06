@@ -68,6 +68,9 @@ export default function FeedPage() {
   const [reactorsFor, setReactorsFor] = useState("");
   const [reactors, setReactors] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
+  
+  // STATE FOR EXPANDING POSTS
+  const [expandedPosts, setExpandedPosts] = useState<{ [key: string]: boolean }>({});
 
   let holdTimer: any = null;
 
@@ -203,7 +206,7 @@ export default function FeedPage() {
 
   async function reportPost(postId: string) {
     if (!user) return alert("Log in to report.");
-    const reason = prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");
+    const reason = window.prompt("Why are you reporting this post? (e.g. spam, fake, abuse)");
     if (!reason) return;
     const supabase = createClient();
     await supabase.from("reports").insert({ reporter_id: user.id, target_type: "post", target_id: postId, reason });
@@ -234,14 +237,14 @@ export default function FeedPage() {
   }
 
   async function deletePost(id: string) {
-    if (!confirm("Delete this post?")) return;
+    if (!window.confirm("Delete this post?")) return;
     const supabase = createClient();
     await supabase.from("feed_posts").delete().eq("id", id);
     load();
   }
 
   async function deleteVideo(id: string) {
-    if (!confirm("Delete this video?")) return;
+    if (!window.confirm("Delete this video?")) return;
     const supabase = createClient();
     await supabase.from("videos").delete().eq("id", id);
     load();
@@ -261,11 +264,18 @@ export default function FeedPage() {
     };
     const supabase = createClient();
     supabase.from("feed_posts").update({ shares_count: (item.shares_count || 0) + 1 }).eq("id", item.id);
-    if (network === "copy") navigator.clipboard.writeText(url);
+    if (network === "copy") {
+       navigator.clipboard.writeText(url);
+       alert("Link copied to clipboard!");
+    }
     else if (network === "status") {
       navigator.clipboard.writeText(text + " " + url);
       window.open("https://wa.me/", "_blank");
     } else window.open(links[network], "_blank");
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedPosts(prev => ({ ...prev, [id]: !prev[id] }));
   }
 
   if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
@@ -318,42 +328,72 @@ export default function FeedPage() {
       )}
 
       <div className="space-y-4">
-        {timeline.map((item: any, idx: number) => (
-          <div key={`${item.kind}-${item.id}`}>
-            {item.kind === "video" ? (
-              <div>
+        {timeline.map((item: any, idx: number) => {
+          
+          if (item.kind === "video") {
+            return (
+              <div key={`video-${item.id}`}>
                 <VideoCard video={item} />
                 {(user?.id === item.author_id || user?.role === "admin") && (
                   <button onClick={() => deleteVideo(item.id)} className="text-red-500 text-xs font-semibold mt-1">Delete video</button>
                 )}
               </div>
-            ) : (
+            );
+          }
+
+          const isExpanded = expandedPosts[item.id];
+          const contentText = item.content || '';
+          const isLong = contentText.length > 120;
+          const displayContent = isExpanded ? contentText : contentText.slice(0, 120);
+
+          return (
+            <div key={`post-${item.id}`}>
               <div className={`glass-card p-4 rounded-2xl ${item.boosted_until && new Date(item.boosted_until) > new Date() ? "border-2 border-amber-400" : ""}`}>
+                
+                {/* CLICKABLE AUTHOR HEADER */}
                 <div className="flex items-center gap-2 mb-2">
-                  <Link href={`/farmer/${item.author_id}`}>
+                  <Link href={`/farmer/${item.author_id}`} className="flex items-center gap-2 hover:opacity-80">
                     {item.profiles?.avatar_url ? (
-                      <img src={item.profiles.avatar_url} className="w-10 h-10 rounded-full object-cover" alt="" />
+                      <img src={item.profiles.avatar_url} className="w-10 h-10 rounded-full object-cover border border-gray-200" alt="" />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-green-200 flex items-center justify-center font-bold text-green-800">{item.profiles?.full_name?.[0] || "?"}</div>
                     )}
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="font-bold text-sm text-forest-900 dark:text-white leading-none hover:underline">{item.profiles?.full_name || "Farmer"}</p>
+                        {item.profiles?.verified && <span className="text-sky-500 text-[10px]">✅</span>}
+                        {item.boosted_until && new Date(item.boosted_until) > new Date() && <span className="ml-1 text-[9px] bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full font-extrabold">🚀 BOOSTED</span>}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-0.5">{new Date(item.created_at).toLocaleDateString()} · 👁️ {item.views_count || 0} impressions</p>
+                    </div>
                   </Link>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm">
-                      <Link href={`/farmer/${item.author_id}`} className="hover:underline">{item.profiles?.full_name || "Farmer"}</Link>
-                      {item.profiles?.verified && <span className="ml-1 text-sky-500">✅</span>}
-                      {item.boosted_until && new Date(item.boosted_until) > new Date() && <span className="ml-1 text-[9px] bg-amber-400 text-amber-900 px-2 py-0.5 rounded-full font-extrabold">🚀 BOOSTED</span>}
-                    </p>
-                    <p className="text-[10px] text-gray-400">{new Date(item.created_at).toLocaleDateString()} · 👁️ {item.views_count || 0} impressions</p>
+                  
+                  <div className="ml-auto">
+                    {user?.id === item.author_id ? (
+                      <button onClick={() => deletePost(item.id)} className="text-red-500 text-xs font-semibold p-2">Delete</button>
+                    ) : (
+                      <button onClick={() => reportPost(item.id)} className="text-gray-400 text-xs font-semibold p-2">🚩</button>
+                    )}
                   </div>
-                  {user?.id === item.author_id ? (
-                    <button onClick={() => deletePost(item.id)} className="text-red-500 text-xs font-semibold">Delete</button>
-                  ) : (
-                    <button onClick={() => reportPost(item.id)} className="text-gray-400 text-xs font-semibold">🚩</button>
-                  )}
                 </div>
 
-                <p className="text-sm text-gray-800 whitespace-pre-line">{renderText(item.content)}</p>
-                {item.image_url && <img src={item.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl" />}
+                {/* COLLAPSIBLE CONTENT */}
+                <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
+                  {renderText(displayContent)}
+                  {isLong && !isExpanded && '...'}
+                </div>
+
+                {/* THE SEE MORE BUTTON */}
+                {isLong && (
+                  <button 
+                    onClick={() => toggleExpand(item.id)} 
+                    className="text-green-700 text-xs font-extrabold mt-1 mb-2 hover:underline block"
+                  >
+                    {isExpanded ? "▲ See less" : "▼ See more"}
+                  </button>
+                )}
+
+                {item.image_url && <img src={item.image_url} alt="" className="mt-2 w-full h-64 object-cover rounded-xl border border-gray-100" />}
 
                 {item.ad && (
                   <div className="mt-3 rounded-xl overflow-hidden border border-amber-300">
@@ -414,26 +454,28 @@ export default function FeedPage() {
                         </button>
                       )}
 
-                      <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
-                        <span className="text-[9px] text-gray-400">Share via:</span>
-                        <button onClick={() => share(item, "wa")} title="WhatsApp">📤</button>
-                        <button onClick={() => share(item, "status")} title="WhatsApp Status">🟢</button>
-                        <button onClick={() => share(item, "fb")} title="Facebook">f</button>
-                        <button onClick={() => share(item, "x")} title="X / Twitter">𝕏</button>
-                        <button onClick={() => share(item, "pin")} title="Pinterest">📌</button>
-                        <button onClick={() => share(item, "copy")} title="Copy link">🔗</button>
+                      {/* 🚨 CLEAN SHARE ROW 🚨 */}
+                      <div className="flex items-center gap-2 mt-2 bg-gray-50 dark:bg-forest-950 p-1.5 rounded-lg overflow-x-auto scrollbar-hide">
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider pl-1 shrink-0">Share:</span>
+                        <button onClick={() => share(item, "wa")} className="text-lg bg-white p-1 rounded-md shadow-sm">📤</button>
+                        <button onClick={() => share(item, "status")} className="text-lg bg-white p-1 rounded-md shadow-sm">🟢</button>
+                        <button onClick={() => share(item, "fb")} className="text-lg bg-white p-1 rounded-md shadow-sm">f</button>
+                        <button onClick={() => share(item, "x")} className="text-lg bg-white p-1 rounded-md shadow-sm">𝕏</button>
+                        <button onClick={() => share(item, "pin")} className="text-lg bg-white p-1 rounded-md shadow-sm">📌</button>
+                        <button onClick={() => share(item, "copy")} className="text-lg bg-white p-1 rounded-md shadow-sm">🔗</button>
                       </div>
+
                       {openC === item.id && (
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-3 space-y-2 border-t pt-2 border-gray-100">
                           <AdBanner slot="post_comments" />
                           {postComments.map((c) => (
-                            <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
+                            <div key={c.id} className="bg-gray-50 dark:bg-forest-950 p-2 rounded-xl text-xs">
                               <Link href={`/farmer/${c.user_id}`} className="font-bold hover:underline">{c.profiles?.full_name || "Farmer"}</Link>: {renderText(c.content)}
                             </div>
                           ))}
                           {user && (
-                            <div className="flex gap-2">
-                              <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Write a comment (+3 pts)..." value={cText} onChange={(e) => setCText(e.target.value)} />
+                            <div className="flex gap-2 mt-2">
+                              <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs focus:ring-1 focus:ring-green-500 outline-none" placeholder="Write a comment (+3 pts)..." value={cText} onChange={(e) => setCText(e.target.value)} />
                               <button onClick={() => addComment(item.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
                             </div>
                           )}
@@ -443,15 +485,15 @@ export default function FeedPage() {
                   );
                 })()}
               </div>
-            )}
 
-            {(idx + 1) % 3 === 0 && (
-              <div className="mt-4">
-                <AdBanner slot="timeline" />
-              </div>
-            )}
-          </div>
-        ))}
+              {(idx + 1) % 3 === 0 && (
+                <div className="mt-4">
+                  <AdBanner slot="timeline" />
+                </div>
+              )}
+            </div>
+          );
+        })}
         {timeline.length === 0 && (
           <p className="text-center text-gray-500 py-10">
             {tab === "following" ? "Follow farmers to see their posts here! 👥" : "No posts yet — be the first to share! 🌾"}
