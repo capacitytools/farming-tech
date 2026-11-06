@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Link2 } from "lucide-react"; // 🚨 Added for the Affiliate icon
 
 export default async function AdminDashboard() {
   const supabase = createClient();
@@ -47,7 +48,8 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Wallet Control</h3>
           <p className="text-sm text-gray-600">{payouts.count || 0} payout requests</p>
         </Link>
-        <Link href="/admin/ads-manager" className="glass-card p-4 rounded-2xl border-2 border-amber-300">          <div className="text-3xl mb-2">📢</div>
+        <Link href="/admin/ads-manager" className="glass-card p-4 rounded-2xl border-2 border-amber-300">          
+          <div className="text-3xl mb-2">📢</div>
           <h3 className="font-bold">Ads Command Center</h3>
           <p className="text-sm text-gray-600">{adReqs.count || 0} ad requests</p>
         </Link>
@@ -86,17 +88,21 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Analytics</h3>
           <p className="text-sm text-gray-600">Views, sales & ranks</p>
         </Link>
-        <Link href="/admin/blogs/ai-writer" className="glass-card p-4 rounded-2xl border-2 border-purple-200">
-          <div className="text-3xl mb-2">🤖</div>
-          <h3 className="font-bold">AI Writer</h3>
-          <p className="text-sm text-gray-600">Veteran blog writer</p>
+        
+        {/* 🚨 UPDATED LINK: Now goes to the new Prompt Studio */}
+        <Link href="/admin/article-engine" className="glass-card p-4 rounded-2xl border-2 border-purple-400">
+          <div className="text-3xl mb-2">🪄</div>
+          <h3 className="font-bold">Prompt Studio</h3>
+          <p className="text-sm text-gray-600">AI Image Prompts</p>
         </Link>
+
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📝</div>
           <h3 className="font-bold">Blog Posts</h3>
           <p className="text-sm text-gray-600">{blogs.count || 0} posts</p>
         </Link>
-        <Link href="/admin/comments" className="glass-card p-4 rounded-2xl">          <div className="text-3xl mb-2">💬</div>
+        <Link href="/admin/comments" className="glass-card p-4 rounded-2xl">          
+          <div className="text-3xl mb-2">💬</div>
           <h3 className="font-bold">Comments</h3>
           <p className="text-sm text-gray-600">{comments.count || 0} to moderate</p>
         </Link>
@@ -120,6 +126,14 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Tribes</h3>
           <p className="text-sm text-gray-600">{tribes.count || 0} communities</p>
         </Link>
+        
+        {/* 🚨 NEW: Affiliate Links Button */}
+        <Link href="/admin/affiliates" className="glass-card p-4 rounded-2xl border-2 border-blue-300">
+          <div className="text-3xl mb-2">🔗</div>
+          <h3 className="font-bold">Affiliate Links</h3>
+          <p className="text-sm text-gray-600">Track external sales</p>
+        </Link>
+
         <Link href="/admin/ads" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">💰</div>
           <h3 className="font-bold">Adsterra Ads</h3>
