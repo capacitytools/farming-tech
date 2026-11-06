@@ -10,7 +10,7 @@ export default function PromptStudioPage() {
   const [customBrandName, setCustomBrandName] = useState('');
   const [customBrandUrl, setCustomBrandUrl] = useState('');
 
-  // Form State (Defaults to Manual Entry to prevent database loading issues)
+  // Form State
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
   const [details, setDetails] = useState('');
@@ -84,7 +84,8 @@ OUTPUT FORMAT (You MUST follow this exactly):
 Description: ${desc}
 Key Details: ${details || 'None provided'}`;
 
-    const models = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.8-pro'];
+    // Updated Model List to Guaranteed Stable Models
+    const models = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-pro'];
     let text = '';
     const errs: string[] = [];
 
