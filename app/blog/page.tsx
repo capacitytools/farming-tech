@@ -33,16 +33,14 @@ export default async function BlogHomePage({ searchParams }: { searchParams: { c
     .select('id,slug,title,excerpt,meta_description,cover_image_url,cover_ratio,category,created_at,views_count,status,indexable')
     .eq('status', 'published')
     .order('created_at', { ascending: false })
-    .limit(80); // Increased limit slightly so we don't lose real posts after deduplication
+    .limit(80); 
     
   if (cat) query = query.eq('category', cat);
   if (q) query = query.ilike('title', '%' + q + '%');
   
   const { data } = await query;
   
-  // 🚨 THE DEDUPLICATION FIX
-  // We use a Map to ensure each title only appears once.
-  // It keeps the first one it sees (which is the newest due to our order clause).
+  // THE DEDUPLICATION FIX
   const uniquePostsMap = new Map();
   (data || []).forEach((post: any) => {
     if (post.indexable !== false) {
@@ -83,19 +81,26 @@ export default async function BlogHomePage({ searchParams }: { searchParams: { c
       <div className="p-4 space-y-3">
         {posts.map((b: any) => (
           <Link key={b.id || b.slug} href={'/blog/' + b.slug} className="glass-card bg-white dark:bg-forest-900 p-3 rounded-2xl flex gap-3 active:scale-[0.99]">
-            <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-forest-100 relative" style={{ aspectRatio: b.cover_ratio === '4:5' ? '4 / 5' : '2 / 3' }}>
+            <div className="w-24 shrink-0 overflow-hidden rounded-xl bg-forest-100 relative flex items-center justify-center" style={{ aspectRatio: b.cover_ratio === '4:5' ? '4 / 5' : '2 / 3' }}>
+              
+              {/* SAFETY CHECK FOR BROKEN IMAGES */}
               {b.cover_image_url ? (
                 <Image 
                   src={b.cover_image_url} 
-                  alt={b.title} 
+                  alt={`Image for ${b.title}`} 
                   fill 
                   sizes="96px"
                   className="object-cover" 
+                  onError={(e) => {
+                    // If the image is broken, hide it so the background placeholder shows
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-2xl">📰</div>
+                <span className="text-2xl">📰</span>
               )}
             </div>
+            
             <div className="flex-1 min-w-0">
               <p className="text-[9px] font-bold text-forest-600 uppercase">{b.category || 'Farming'}</p>
               <p className="text-sm font-extrabold text-forest-900 dark:text-white line-clamp-2 mt-0.5">{b.title}</p>
