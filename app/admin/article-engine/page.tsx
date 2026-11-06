@@ -36,12 +36,11 @@ export default function PromptStudioPage() {
       setAdmin(p?.role === 'admin' || p?.role === 'editor');
     }
 
-    // Fetch published blogs so admins can use them, but public users don't need this
+    // Grab ALL blogs so the dropdown is never empty
     if (admin) {
       const { data: b } = await supabase
         .from('blogs')
         .select('id,title,meta_description,excerpt,content')
-        .eq('status', 'published')
         .order('created_at', { ascending: false });
       setBlogs(b || []);
     }
