@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import {
   LayoutDashboard, FileText, Image as ImageIcon, Users,
-  Settings, ShoppingBag, GraduationCap, ScanLine, Sprout,
+  Settings, ShoppingBag, GraduationCap, ScanLine, Sprout, Link2
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -16,6 +16,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin/blogs', label: 'Blog / SEO Posts', icon: FileText },
       { href: '/admin/media', label: 'Media Library', icon: ImageIcon },
+      { href: '/admin/affiliates', label: 'Affiliate Links', icon: Link2 }, // 🚨 NEW
     ],
   },
   {
