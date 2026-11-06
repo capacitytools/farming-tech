@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farming-tech.vercel.app';
+// 🚨 FIXED: Hardcoded the new primary domain
+const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -8,7 +9,14 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/wallet', '/inbox', '/login'],
+        // Block private areas from being crawled
+        disallow: [
+          '/admin', 
+          '/wallet', 
+          '/inbox', 
+          '/login',
+          '/api/' // Block API routes
+        ],
       },
     ],
     sitemap: SITE + '/sitemap.xml',
