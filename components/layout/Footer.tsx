@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Phone, Mail, Facebook, Instagram, Youtube } from 'lucide-react';
 
 // Real social links — update here if any of these ever change
@@ -5,6 +6,15 @@ const SOCIAL_LINKS = [
   { icon: Facebook, href: 'https://www.facebook.com/share/1DLbDWeBd3/', label: 'Facebook' },
   { icon: Instagram, href: 'https://www.instagram.com/myfarmtech', label: 'Instagram' },
   { icon: Youtube, href: 'https://youtube.com/@animalstipss', label: 'YouTube' },
+];
+
+const LEGAL_LINKS = [
+  { label: 'About Us', href: '/about' },
+  { label: 'Contact Us', href: '/contact' },
+  { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Terms & Conditions', href: '/terms' },
+  { label: 'Disclaimer', href: '/disclaimer' },
+  { label: 'Editorial Policy', href: '/editorial' },
 ];
 
 export default function Footer() {
@@ -36,7 +46,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="flex justify-center gap-3 mb-4">
+      <div className="flex justify-center gap-3 mb-6">
         {SOCIAL_LINKS.map((s) => (
           <a
             key={s.label}
@@ -44,11 +54,27 @@ export default function Footer() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={s.label}
-            className="w-10 h-10 rounded-full bg-forest-50 dark:bg-forest-800 flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-forest-50 dark:bg-forest-800 flex items-center justify-center hover:bg-forest-100 transition-colors"
           >
             <s.icon className="w-4.5 h-4.5 text-forest-600 dark:text-forest-200" />
           </a>
         ))}
+      </div>
+
+      {/* 🚨 NEW: LEGAL & TRUST LINKS 🚨 */}
+      <div className="mb-6">
+        <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Legal & Trust</p>
+        <div className="grid grid-cols-2 gap-y-2 gap-x-4 max-w-sm mx-auto text-center">
+          {LEGAL_LINKS.map((link) => (
+            <Link 
+              key={link.href} 
+              href={link.href} 
+              className="text-[11px] font-semibold text-forest-600 dark:text-forest-300 hover:text-forest-900 dark:hover:text-white hover:underline transition-colors"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       <p className="text-center text-xs text-forest-400">
