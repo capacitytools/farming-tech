@@ -35,6 +35,9 @@ export default function HomeExperience({ d }: { d: any }) {
   const [homeComments, setHomeComments] = useState<any>({});
   const [homeCText, setHomeCText] = useState("");
   const [homeLikes, setHomeLikes] = useState<any>({});
+  
+  // STATE FOR EXPANDING POSTS
+  const [expandedPosts, setExpandedPosts] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     setPersona(localStorage.getItem("persona"));
@@ -136,11 +139,17 @@ export default function HomeExperience({ d }: { d: any }) {
       x: `https://twitter.com/intent/tweet?text=${en(text)}&url=${en(url)}`,
       pin: `https://pinterest.com/pin/create/button/?url=${en(url)}&media=${en(media)}&description=${en(text)}`,
     };
-    if (net === "copy") navigator.clipboard.writeText(url);
-    else if (net === "status") {
+    if (net === "copy") {
+       navigator.clipboard.writeText(url);
+       alert("Link copied to clipboard!");
+    } else if (net === "status") {
       navigator.clipboard.writeText(text + " " + url);
       window.open("https://wa.me/", "_blank");
     } else window.open(links[net], "_blank");
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedPosts(prev => ({ ...prev, [id]: !prev[id] }));
   }
 
   const P = persona ? PERSONAS[persona] : null;
@@ -277,14 +286,13 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* SHINING EBOOK BANNER */}
       <EbookBanner count={d.ebooks.length} />
 
-      {/* 🚨 NEW: AGRICULTURAL KNOWLEDGE CENTER (MAGAZINE LAYOUT) 🚨 */}
+      {/* 🚨 AGRICULTURAL KNOWLEDGE CENTER 🚨 */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-extrabold text-forest-800 dark:text-white">🌾 Agricultural Knowledge</h2>
           <Link href="/blog" className="text-xs font-semibold text-forest-600">View all →</Link>
         </div>
 
-        {/* CATEGORY PILLS */}
         <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide">
           {['Poultry', 'Rabbits', 'Livestock', 'Fish', 'Crops', 'Business'].map(cat => (
              <Link key={cat} href={'/blog?cat=' + cat} className="whitespace-nowrap px-3 py-1.5 bg-white dark:bg-forest-900 rounded-full text-[10px] font-bold text-forest-700 shadow-sm border border-gray-100 dark:border-forest-800">
@@ -293,7 +301,6 @@ export default function HomeExperience({ d }: { d: any }) {
           ))}
         </div>
 
-        {/* POPULAR / TRENDING GRID */}
         {d.popularBlogs && d.popularBlogs.length > 0 && (
           <div className="grid grid-cols-2 gap-3 mb-4">
             {d.popularBlogs.slice(0, 2).map((b: any, i: number) => (
@@ -312,7 +319,6 @@ export default function HomeExperience({ d }: { d: any }) {
           </div>
         )}
 
-        {/* LATEST ARTICLES LIST */}
         <div className="space-y-3">
           {d.blogs.map((b: any) => (
             <Link key={b.slug} href={"/blog/" + b.slug} className="glass-card bg-white dark:bg-forest-900 p-3 rounded-2xl flex gap-3 items-center shadow-sm border border-gray-100 dark:border-forest-800">
@@ -332,62 +338,98 @@ export default function HomeExperience({ d }: { d: any }) {
           ))}
         </div>
       </div>
-      {/* 🚨 END AGRICULTURAL KNOWLEDGE CENTER 🚨 */}
 
-      {/* FOR YOU with FULL SHARE + LIVE LINKS */}
+      {/* 🚨 FOR YOU / TOP POSTS FEED 🚨 */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
           <span className="text-[10px] text-gray-500 font-semibold">🤖 smart-ranked</span>
         </div>
         <div className="space-y-3">
-          {hotVisible.map((p: any, i: number) => (
-            <div key={p.id} className="glass-card p-3 rounded-2xl">
-              <div className="flex items-center gap-2 mb-1">
-                <Link href={"/farmer/" + p.author_id}>
-                  {p.author_avatar ? (
-                    <img src={p.author_avatar} className="w-8 h-8 rounded-full object-cover" alt="" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">{(p.author_name || "?")[0]}</div>
-                  )}
-                </Link>
-                <Link href={"/farmer/" + p.author_id} className="font-bold text-sm text-forest-800 hover:underline">{p.author_name || "Farmer"}</Link>
-                {p.author_verified && <span className="text-sky-500 text-xs">✅</span>}
-                <span className="ml-auto text-[10px] font-bold text-amber-600">#{i + 1} 🔥</span>
-              </div>
-              <p className="text-sm text-gray-800 line-clamp-3 whitespace-pre-line">{rich(p.content)}</p>
-              {p.image_url && (
-                <Link href="/feed"><img src={p.image_url} alt="" className="mt-2 w-full h-40 object-cover rounded-xl" /></Link>
-              )}
-              <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600">
-                <button onClick={() => homeLike(p.id)} className="active:scale-90">❤️ {homeLikes[p.id] ?? p.likes ?? 0}</button>
-                <button onClick={() => toggleHomeComments(p.id)} className="text-green-700 active:scale-90">💬 Comment</button>
-                <button onClick={() => homeRepost(p)} className="text-amber-700 active:scale-90">🔁 Share</button>
-              </div>
-              <div className="flex items-center gap-3 mt-2 text-xs font-bold text-gray-600 flex-wrap">
-                <span className="text-[9px] text-gray-400">Share via:</span>
-                <button onClick={() => homeShare(p, "wa")} title="WhatsApp">📤</button>
-                <button onClick={() => homeShare(p, "status")} title="WhatsApp Status">🟢</button>
-                <button onClick={() => homeShare(p, "fb")} title="Facebook">f</button>
-                <button onClick={() => homeShare(p, "x")} title="X / Twitter">𝕏</button>
-                <button onClick={() => homeShare(p, "pin")} title="Pinterest">📌</button>
-                <button onClick={() => homeShare(p, "copy")} title="Copy link">🔗</button>
-              </div>
-              {homeOpenC === p.id && (
-                <div className="mt-2 space-y-2">
-                  {(homeComments[p.id] || []).map((c: any) => (
-                    <div key={c.id} className="bg-white/70 p-2 rounded-xl text-xs">
-                      <Link href={"/farmer/" + c.user_id} className="font-bold hover:underline">{c.profiles?.full_name || "Farmer"}:</Link> {rich(c.content)}
+          {hotVisible.map((p: any, i: number) => {
+            const isExpanded = expandedPosts[p.id];
+            const content = p.content || '';
+            const isLong = content.length > 150;
+
+            return (
+              <div key={p.id} className="glass-card p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
+                
+                {/* CLICKABLE AUTHOR HEADER */}
+                <div className="flex items-center gap-2 mb-2">
+                  <Link href={"/farmer/" + p.author_id} className="flex items-center gap-2 hover:opacity-80">
+                    {p.author_avatar ? (
+                      <img src={p.author_avatar} className="w-9 h-9 rounded-full object-cover border border-gray-200" alt="" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-green-200 flex items-center justify-center text-sm font-bold text-green-800">{(p.author_name || "?")[0]}</div>
+                    )}
+                    <div>
+                      <div className="flex items-center gap-1">
+                        <p className="font-bold text-sm text-forest-900 dark:text-white leading-none">{p.author_name || "Farmer"}</p>
+                        {p.author_verified && <span className="text-sky-500 text-[10px]">✅</span>}
+                      </div>
+                      <p className="text-[9px] text-gray-500 mt-0.5">Click to view profile</p>
                     </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs" placeholder="Write a comment..." value={homeCText} onChange={(e) => setHomeCText(e.target.value)} />
-                    <button onClick={() => addHomeComment(p.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
-                  </div>
+                  </Link>
+                  <span className="ml-auto text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">#{i + 1} 🔥</span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* COLLAPSIBLE CONTENT */}
+                <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
+                  {isExpanded || !isLong ? rich(content) : rich(content.slice(0, 150) + '...')}
+                </div>
+                {isLong && (
+                  <button onClick={() => toggleExpand(p.id)} className="text-green-700 text-xs font-bold mt-1 mb-2 hover:underline">
+                    {isExpanded ? "See less" : "...See more"}
+                  </button>
+                )}
+
+                {p.image_url && (
+                  <div className="mt-2 rounded-xl overflow-hidden border border-gray-100">
+                    <img src={p.image_url} alt="Post media" className="w-full object-cover max-h-64" />
+                  </div>
+                )}
+
+                {/* ENGAGEMENT BAR */}
+                <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
+                  <button onClick={() => homeLike(p.id)} className="flex items-center gap-1 active:scale-90 text-red-500">
+                    ❤️ {homeLikes[p.id] ?? p.likes ?? 0}
+                  </button>
+                  <button onClick={() => toggleHomeComments(p.id)} className="flex items-center gap-1 text-green-700 active:scale-90">
+                    💬 Comment
+                  </button>
+                  <button onClick={() => homeRepost(p)} className="flex items-center gap-1 text-amber-700 active:scale-90">
+                    🔁 Repost
+                  </button>
+                </div>
+
+                {/* 🚨 CLEAN SHARE ROW 🚨 */}
+                <div className="flex items-center gap-2 mt-2 bg-gray-50 dark:bg-forest-950 p-1.5 rounded-lg overflow-x-auto scrollbar-hide">
+                  <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider pl-1 shrink-0">Share:</span>
+                  <button onClick={() => homeShare(p, "wa")} className="text-lg bg-white p-1 rounded-md shadow-sm">📤</button>
+                  <button onClick={() => homeShare(p, "status")} className="text-lg bg-white p-1 rounded-md shadow-sm">🟢</button>
+                  <button onClick={() => homeShare(p, "fb")} className="text-lg bg-white p-1 rounded-md shadow-sm">f</button>
+                  <button onClick={() => homeShare(p, "x")} className="text-lg bg-white p-1 rounded-md shadow-sm">𝕏</button>
+                  <button onClick={() => homeShare(p, "pin")} className="text-lg bg-white p-1 rounded-md shadow-sm">📌</button>
+                  <button onClick={() => homeShare(p, "copy")} className="text-lg bg-white p-1 rounded-md shadow-sm">🔗</button>
+                </div>
+
+                {/* COMMENTS SECTION */}
+                {homeOpenC === p.id && (
+                  <div className="mt-3 space-y-2 border-t pt-2 border-gray-100">
+                    {(homeComments[p.id] || []).map((c: any) => (
+                      <div key={c.id} className="bg-gray-50 dark:bg-forest-950 p-2 rounded-xl text-xs">
+                        <Link href={"/farmer/" + c.user_id} className="font-bold hover:underline">{c.profiles?.full_name || "Farmer"}:</Link> {rich(c.content)}
+                      </div>
+                    ))}
+                    <div className="flex gap-2 mt-2">
+                      <input className="flex-1 p-2 rounded-xl border border-gray-200 bg-white/70 text-xs focus:ring-1 focus:ring-green-500 outline-none" placeholder="Write a comment..." value={homeCText} onChange={(e) => setHomeCText(e.target.value)} />
+                      <button onClick={() => addHomeComment(p.id)} className="bg-green-600 text-white px-3 rounded-xl text-xs font-bold">Send</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {hotLocked.length > 0 && (
             <div className="relative">
