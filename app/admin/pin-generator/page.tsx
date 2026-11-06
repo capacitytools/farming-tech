@@ -14,7 +14,6 @@ const PIN_STYLES = [
     key: 'bold-band',
     label: '1. Bold Bottom Band',
     desc: 'Title on a solid forest-green band across the bottom third. Highest CTR style.',
-    // Text overlay via Cloudinary: bottom band + white title text
     build: (text: string) =>
       'c_fill,w_' +
       PIN_W +
