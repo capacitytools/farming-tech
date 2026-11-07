@@ -4,6 +4,9 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Helper function to pause execution
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
 export async function POST(req: Request) {
   try {
     const { ownerId, subject, message, replyTo, emails } = await req.json();
@@ -17,7 +20,7 @@ export async function POST(req: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    // 🚨 1. VERIFY USER IS ADMIN OR VERIFIED 🚨
+    // 1. VERIFY USER IS ADMIN OR VERIFIED
     const { data: profile } = await supabase.from('profiles').select('role, verified').eq('id', ownerId).single();
     
     if (profile?.role !== 'admin' && profile?.verified !== true) {
@@ -66,28 +69,40 @@ export async function POST(req: Request) {
         </div>
       </div>`;
 
-    // 4. Send
-    const sendPromises = (emails || []).map((email: string) => 
-      resend.emails.send({
-        from: 'Farming Tech & Business <hello@newsletter.farmingtechbusiness.com>', 
-        to: email,
-        reply_to: replyTo || undefined, // 🚨 FIXED: replyTo changed to reply_to
-        subject: subject,
-        html: htmlBody,
-      })
-    );
+    // 🚨 4. THE FIX: SEND ONE BY ONE WITH A DELAY 🚨
+    let sentCount = 0;
+    const errors = [];
 
-    await Promise.all(sendPromises);
+    for (const email of (emails || [])) {
+      try {
+        await resend.emails.send({
+          from: 'Farming Tech & Business <hello@newsletter.farmingtechbusiness.com>', 
+          to: email,
+          reply_to: replyTo || undefined,
+          subject: subject,
+          html: htmlBody,
+        });
+        sentCount++;
+        // Pause for 600ms (Resend limit is 2 per second, this keeps us under it)
+        await delay(600); 
+      } catch (err: any) {
+        errors.push(`${email}: ${err.message}`);
+      }
+    }
 
-    // 5. Log
-    if (emails && emails.length > 0) {
+    // 5. Log the successful sends
+    if (sentCount > 0) {
       await supabase.from('newsletter_send_logs').insert({
         owner_id: ownerId,
-        recipients_count: emails.length,
+        recipients_count: sentCount,
       });
     }
 
-    return NextResponse.json({ success: true, count: emails.length });
+    return NextResponse.json({ 
+      success: true, 
+      count: sentCount,
+      failed: errors.length
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
