@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import TopBar from '@/components/layout/TopBar';
 import BottomNav from '@/components/BottomNav';
-import Footer from '@/components/layout/Footer'; // 🚨 Added Footer import
+import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: 'Farming Tech & Business',
@@ -21,11 +22,19 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
+      {/* 🚨 GOOGLE ADSENSE SCRIPT IN THE HEAD 🚨 */}
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8616746404460464"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
+      </head>
       <body>
         <TopBar />
         <main className="mx-auto max-w-md min-h-screen">
           {children}
-          {/* 🚨 Added Footer here so it shows on every page */}
           <Footer />
         </main>
         <BottomNav />
