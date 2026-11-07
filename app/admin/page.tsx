@@ -95,11 +95,17 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-600">AI Image Prompts</p>
         </Link>
 
-        {/* 🚨 NEW: Bulk Pinterest Generator 🚨 */}
         <Link href="/admin/pinterest-bulk" className="glass-card p-4 rounded-2xl border-2 border-red-300">
           <div className="text-3xl mb-2">📌</div>
           <h3 className="font-bold">Bulk Pinterest</h3>
           <p className="text-sm text-gray-600">Generate pins in bulk</p>
+        </Link>
+
+        {/* 🚨 NEW: AI Interlinker 🚨 */}
+        <Link href="/admin/interlinker" className="glass-card p-4 rounded-2xl border-2 border-blue-400">
+          <div className="text-3xl mb-2">🔗</div>
+          <h3 className="font-bold">AI Interlinker</h3>
+          <p className="text-sm text-gray-600">Fix orphaned articles</p>
         </Link>
 
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
