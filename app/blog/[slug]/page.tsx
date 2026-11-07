@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import BlogViewBumper from '@/components/BlogViewBumper';
+import AdBanner from '@/components/AdBanner'; // 🚨 IMPORTED AD BANNER
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
@@ -100,7 +101,7 @@ function blocks(content: string) {
     else if (s.startsWith('## ')) { flushList(); out.push({ t: 'h2', text: s.slice(3) }); }
     else if (s.startsWith('# ')) { flushList(); out.push({ t: 'h2', text: s.slice(2) }); }
     else if (s.startsWith('- ') || s.startsWith('* ')) { list.push(s.slice(2)); }
-    else if (s.match(/^\[product:(.+?)\]$/)) { flushList(); out.push({ t: 'product', slug: s.match(/^\[product:(.+?)\]$/)?.[1] }); } // 🚨 CATCH PRODUCT TAGS
+    else if (s.match(/^\[product:(.+?)\]$/)) { flushList(); out.push({ t: 'product', slug: s.match(/^\[product:(.+?)\]$/)?.[1] }); }
     else { flushList(); out.push({ t: 'p', text: s }); }
   }
   flushList();
@@ -140,6 +141,9 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
     'datePublished': b.created_at, 'publisher': { '@type': 'Organization', 'name': 'Farming Tech & Business' },
     'mainEntityOfPage': SITE + '/blog/' + b.slug,
   });
+
+  // 🚨 CHECK WHERE TO INJECT THE AD (AFTER 3RD PARAGRAPH) 🚨
+  let paragraphCount = 0;
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
@@ -181,13 +185,12 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
           if (blk.t === 'h3') return <h3 key={i} className="text-base font-bold text-forest-700 pt-2">{inline(blk.text)}</h3>;
           if (blk.t === 'ul') return <ul key={i} className="list-disc pl-5 space-y-1 text-sm text-gray-800">{blk.items.map((it: string, j: number) => <li key={j}>{inline(it)}</li>)}</ul>;
           
-          // 🚨 RENDER PRODUCT CARD
           if (blk.t === 'product') {
             const prod = affiliateProducts[blk.slug];
             if (!prod) return null;
             return (
               <div key={i} className="my-6 bg-white border-2 border-green-500 rounded-2xl p-4 shadow-lg flex flex-col items-center text-center">
-                <img src={prod.image_url} alt={prod.title} className="w-32 h-32 object-contain mb-3" />
+                {prod.image_url && <img src={prod.image_url} alt={prod.title} className="w-32 h-32 object-contain mb-3" />}
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Recommended Gear</p>
                 <p className="text-sm font-extrabold text-forest-900 leading-tight mb-3">{prod.title}</p>
                 <a href={'/go/' + prod.slug} target="_blank" className="bg-green-600 text-white px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-md active:scale-95 transition-transform w-full">
@@ -208,9 +211,26 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
               </div>
             );
           }
-          return <p key={i} className="text-sm text-gray-800 leading-relaxed text-justify">{inline(blk.text)}</p>;
+
+          // 🚨 AD INJECTION ZONE 🚨
+          paragraphCount++;
+          return (
+            <div key={i}>
+              <p className="text-sm text-gray-800 leading-relaxed text-justify">{inline(blk.text)}</p>
+              {paragraphCount === 3 && (
+                <div className="my-6">
+                  <AdBanner slot="blog_in_article" />
+                </div>
+              )}
+            </div>
+          );
         })}
       </article>
+
+      {/* 🚨 BOTTOM AD ZONE 🚨 */}
+      <div className="px-4 mt-8 mb-4">
+        <AdBanner slot="blog_bottom" />
+      </div>
 
       {/* AUTHOR BOX */}
       <div className="px-4 mt-8">
