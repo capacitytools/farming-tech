@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Link2 } from "lucide-react";
 
 export default async function AdminDashboard() {
   const supabase = createClient();
@@ -93,6 +92,13 @@ export default async function AdminDashboard() {
           <div className="text-3xl mb-2">🪄</div>
           <h3 className="font-bold">Prompt Studio</h3>
           <p className="text-sm text-gray-600">AI Image Prompts</p>
+        </Link>
+
+        {/* 🚨 NEW: DOC IMPORTER 🚨 */}
+        <Link href="/admin/doc-importer" className="glass-card p-4 rounded-2xl border-2 border-purple-300">
+          <div className="text-3xl mb-2">📄</div>
+          <h3 className="font-bold">Doc Importer</h3>
+          <p className="text-sm text-gray-600">Google Docs to SEO</p>
         </Link>
 
         <Link href="/admin/pinterest-bulk" className="glass-card p-4 rounded-2xl border-2 border-red-300">
