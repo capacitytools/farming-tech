@@ -134,6 +134,7 @@ export default function ProfilePage() {
   }
 
   const isAdmin = profile?.role === 'admin';
+  const isVerified = profile?.verified === true;
 
   return (
     <div className="pb-24 max-w-2xl mx-auto">
@@ -212,8 +213,11 @@ export default function ProfilePage() {
             <Link href="/achievements" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">🏅 Achievements</Link>
             <Link href="/inbox" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">📬 Inbox</Link>
             <Link href={`/farmer/${user.id}`} className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">👀 Public Page</Link>
-            {/* 🚨 NEW: MY NEWSLETTER BUTTON 🚨 */}
-            <Link href="/dashboard/newsletter" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700 border-2 border-forest-300 col-span-2">📧 My Newsletter</Link>
+            
+            {/* 🚨 VIP GATE: ONLY SHOW TO VERIFIED/ADMIN 🚨 */}
+            {(isAdmin || isVerified) && (
+              <Link href="/dashboard/newsletter" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700 border-2 border-forest-300 col-span-2 shadow-sm">📧 My Newsletter Studio</Link>
+            )}
           </div>
         </>
       )}
