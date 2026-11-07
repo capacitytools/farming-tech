@@ -175,3 +175,25 @@ export default async function AdminDashboard() {
     </div>
   );
 }
+// ... (Imports and admin check remain the same)
+
+        <Link href="/admin/affiliates" className="glass-card p-4 rounded-2xl border-2 border-blue-300">
+          <div className="text-3xl mb-2">🔗</div>
+          <h3 className="font-bold">Affiliate Links</h3>
+          <p className="text-sm text-gray-600">Track external sales</p>
+        </Link>
+        
+        {/* 🚨 NEW: MASTER FILE BUTTON 🚨 */}
+        <Link href="/admin/master-file" className="glass-card p-4 rounded-2xl border-2 border-orange-400">
+          <div className="text-3xl mb-2">🗂️</div>
+          <h3 className="font-bold">Master File</h3>
+          <p className="text-sm text-gray-600">Users & Subscribers</p>
+        </Link>
+
+        <Link href="/admin/ads" className="glass-card p-4 rounded-2xl">
+          <div className="text-3xl mb-2">💰</div>
+          <h3 className="font-bold">Adsterra Ads</h3>
+          <p className="text-sm text-gray-600">Manage ad scripts</p>
+        </Link>
+
+// ... (rest of the file remains the same)
