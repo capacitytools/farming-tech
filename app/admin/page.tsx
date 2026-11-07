@@ -101,11 +101,17 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-600">Generate pins in bulk</p>
         </Link>
 
-        {/* 🚨 NEW: AI Interlinker 🚨 */}
         <Link href="/admin/interlinker" className="glass-card p-4 rounded-2xl border-2 border-blue-400">
           <div className="text-3xl mb-2">🔗</div>
           <h3 className="font-bold">AI Interlinker</h3>
           <p className="text-sm text-gray-600">Fix orphaned articles</p>
+        </Link>
+
+        {/* 🚨 NEW: Blog Search 🚨 */}
+        <Link href="/admin/search-blogs" className="glass-card p-4 rounded-2xl border-2 border-green-500">
+          <div className="text-3xl mb-2">🔍</div>
+          <h3 className="font-bold">Search Blogs</h3>
+          <p className="text-sm text-gray-600">Find keywords & links</p>
         </Link>
 
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
