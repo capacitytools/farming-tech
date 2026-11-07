@@ -13,6 +13,7 @@ export default function AffiliateManagerPage() {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [destinationUrl, setDestinationUrl] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function load() {
@@ -37,18 +38,17 @@ export default function AffiliateManagerPage() {
 
   async function createLink(e: any) {
     e.preventDefault();
-    if (!title || !slug || !destinationUrl) return flash('All fields are required.');
+    if (!title || !slug || !destinationUrl) return flash('Title, Slug and URL are required.');
     setBusy(true);
 
     const supabase = createClient();
-    
-    // Clean the slug (remove spaces, uppercase)
     const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
     const { error } = await supabase.from('affiliate_links').insert({
       title,
       slug: cleanSlug,
       destination_url: destinationUrl,
+      image_url: imageUrl,
     });
 
     if (error) {
@@ -58,6 +58,7 @@ export default function AffiliateManagerPage() {
       setTitle('');
       setSlug('');
       setDestinationUrl('');
+      setImageUrl('');
       load();
     }
     setBusy(false);
@@ -76,67 +77,83 @@ export default function AffiliateManagerPage() {
     flash('🔗 Link copied to clipboard!');
   }
 
+  function copyShortcode(slug: string) {
+    navigator.clipboard.writeText(`[product:${slug}]`);
+    flash('📝 Shortcode copied! Paste into your article.');
+  }
+
   if (!loaded) return <p className="text-center p-10">Loading...</p>;
   if (!admin) return <p className="text-center p-10">Admin access only.</p>;
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-forest-800">💰 Affiliate Link Manager</h1>
-        <p className="text-xs text-gray-500">Create tracked links for Jumia, Amazon, or any farming supplier. Every click is logged.</p>
+        <h1 className="text-2xl font-extrabold text-forest-800">💰 Affiliate Manager</h1>
+        <p className="text-xs text-gray-500">Create tracked links and product shortcodes for your articles.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
       {/* CREATE FORM */}
       <form onSubmit={createLink} className="glass-card p-4 rounded-2xl space-y-3">
-        <p className="text-sm font-extrabold text-forest-700">1. CREATE A NEW TRACKING LINK</p>
+        <p className="text-sm font-extrabold text-forest-700">1. CREATE A NEW PRODUCT LINK</p>
         
         <div>
-          <label className="text-[10px] font-bold text-gray-500 uppercase">Product/Offer Name</label>
-          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mt-1" placeholder="e.g., Automatic Rabbit Cage on Jumia" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <label className="text-[10px] font-bold text-gray-500 uppercase">Product Name</label>
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mt-1" placeholder="e.g., 256-500 Egg Incubator" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-gray-500 uppercase">Short Link (Slug)</label>
           <div className="flex items-center mt-1">
             <span className="bg-gray-100 p-2 border border-r-0 border-gray-200 rounded-l-xl text-xs text-gray-500">/go/</span>
-            <input className="w-full p-2 rounded-r-xl border border-gray-200 bg-white/70 text-sm" placeholder="rabbit-cage" value={slug} onChange={(e) => setSlug(e.target.value)} />
+            <input className="w-full p-2 rounded-r-xl border border-gray-200 bg-white/70 text-sm" placeholder="egg-incubator" value={slug} onChange={(e) => setSlug(e.target.value)} />
           </div>
         </div>
 
         <div>
-          <label className="text-[10px] font-bold text-gray-500 uppercase">Destination URL (Affiliate Link)</label>
-          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mt-1" placeholder="https://jumia.com.ng/..." value={destinationUrl} onChange={(e) => setDestinationUrl(e.target.value)} />
+          <label className="text-[10px] font-bold text-gray-500 uppercase">AliExpress Affiliate URL</label>
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mt-1" placeholder="https://s.click.aliexpress.com/..." value={destinationUrl} onChange={(e) => setDestinationUrl(e.target.value)} />
+        </div>
+
+        <div>
+          <label className="text-[10px] font-bold text-gray-500 uppercase">Product Image URL</label>
+          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mt-1" placeholder="https://ae01.alicdn.com/... (Right click image -> Copy image address)" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
         </div>
 
         <button type="submit" disabled={busy} className="w-full bg-purple-600 text-white py-3 rounded-xl font-extrabold text-sm disabled:opacity-50">
-          {busy ? 'Creating...' : '➕ CREATE TRACKING LINK'}
+          {busy ? 'Creating...' : '➕ CREATE PRODUCT LINK'}
         </button>
       </form>
 
       {/* LIST OF LINKS */}
       <div className="space-y-3">
-        <p className="text-sm font-extrabold text-forest-700">2. YOUR ACTIVE LINKS ({links.length})</p>
+        <p className="text-sm font-extrabold text-forest-700">2. YOUR PRODUCTS ({links.length})</p>
         
         {links.length === 0 ? (
           <p className="text-xs text-gray-500 text-center py-4">No links yet. Create one above.</p>
         ) : links.map((link) => (
-          <div key={link.id} className="glass-card p-4 rounded-2xl space-y-2 border border-gray-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-bold text-forest-900">{link.title}</p>
-                <p className="text-[10px] text-gray-500 break-all">{link.destination_url}</p>
+          <div key={link.id} className="glass-card p-4 rounded-2xl space-y-3 border border-gray-100">
+            
+            {/* Product Preview Card */}
+            <div className="flex gap-3">
+              {link.image_url ? (
+                <img src={link.image_url} alt={link.title} className="w-16 h-16 object-contain rounded-lg border border-gray-100 bg-white" />
+              ) : (
+                <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">📦</div>
+              )}
+              <div className="flex-1">
+                <p className="text-xs font-bold text-forest-900 line-clamp-2">{link.title}</p>
+                <p className="text-[10px] text-amber-600 font-bold mt-1">👁️ {link.clicks} clicks</p>
               </div>
-              <button onClick={() => deleteLink(link.id)} className="text-red-500 text-xs font-bold px-2 py-1 bg-red-50 rounded-lg">Delete</button>
+              <button onClick={() => deleteLink(link.id)} className="text-red-500 text-xs font-bold px-2 py-1 bg-red-50 rounded-lg h-fit">Delete</button>
             </div>
             
-            <div className="flex items-center justify-between bg-gray-50 p-2 rounded-xl mt-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-forest-600 font-bold">/go/{link.slug}</span>
-                <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-extrabold">👁️ {link.clicks} clicks</span>
-              </div>
-              <button onClick={() => copyLink(link.slug)} className="bg-forest-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm">
-                📋 Copy Link
+            <div className="flex gap-2">
+              <button onClick={() => copyShortcode(link.slug)} className="flex-1 bg-forest-600 text-white px-3 py-2 rounded-xl text-[10px] font-bold shadow-sm">
+                📝 Copy Shortcode [product:{link.slug}]
+              </button>
+              <button onClick={() => copyLink(link.slug)} className="flex-1 bg-gray-800 text-white px-3 py-2 rounded-xl text-[10px] font-bold shadow-sm">
+                🔗 Copy Direct Link
               </button>
             </div>
           </div>
