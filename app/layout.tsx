@@ -13,6 +13,10 @@ export const metadata: Metadata = {
     icon: '/icon-192.png',
     apple: '/icon-192.png',
   },
+  // 🚨 ADSENSE META TAG FOR VERIFICATION 🚨
+  other: {
+    'google-adsense-account': 'ca-pub-8616746404460464',
+  },
 };
 
 export const viewport: Viewport = {
@@ -22,8 +26,8 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      {/* 🚨 GOOGLE ADSENSE SCRIPT IN THE HEAD 🚨 */}
       <head>
+        {/* 🚨 ADSENSE SCRIPT FOR ADS 🚨 */}
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8616746404460464"
