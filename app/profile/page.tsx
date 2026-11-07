@@ -6,9 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadToCloudinary } from '@/lib/upload';
 
 const ADMIN_TOOLS = [
-  // 🚨 NEW: Full Admin Console Shortcut
   { href: '/admin', icon: '🛡️', label: 'Full Admin Console' },
-  
   { href: '/admin/analytics', icon: '📊', label: 'Analytics & Visitors' },
   { href: '/admin/traffic', icon: '🛰️', label: 'Traffic Intelligence' },
   { href: '/admin/customers', icon: '📇', label: 'Customer Spreadsheet' },
@@ -214,6 +212,8 @@ export default function ProfilePage() {
             <Link href="/achievements" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">🏅 Achievements</Link>
             <Link href="/inbox" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">📬 Inbox</Link>
             <Link href={`/farmer/${user.id}`} className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">👀 Public Page</Link>
+            {/* 🚨 NEW: MY NEWSLETTER BUTTON 🚨 */}
+            <Link href="/dashboard/newsletter" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700 border-2 border-forest-300 col-span-2">📧 My Newsletter</Link>
           </div>
         </>
       )}
