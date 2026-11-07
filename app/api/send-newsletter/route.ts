@@ -69,9 +69,9 @@ export async function POST(req: Request) {
     // 4. Send
     const sendPromises = (emails || []).map((email: string) => 
       resend.emails.send({
-        from: 'Farming Tech & Business <hello@farmingtechbusiness.com>', 
+        from: 'Farming Tech & Business <hello@newsletter.farmingtechbusiness.com>', 
         to: email,
-        replyTo: replyTo || undefined,
+        reply_to: replyTo || undefined, // 🚨 FIXED: replyTo changed to reply_to
         subject: subject,
         html: htmlBody,
       })
