@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Link2 } from "lucide-react"; // 🚨 Added for the Affiliate icon
+import { Link2 } from "lucide-react";
 
 export default async function AdminDashboard() {
   const supabase = createClient();
@@ -89,11 +89,17 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-600">Views, sales & ranks</p>
         </Link>
         
-        {/* 🚨 UPDATED LINK: Now goes to the new Prompt Studio */}
         <Link href="/admin/article-engine" className="glass-card p-4 rounded-2xl border-2 border-purple-400">
           <div className="text-3xl mb-2">🪄</div>
           <h3 className="font-bold">Prompt Studio</h3>
           <p className="text-sm text-gray-600">AI Image Prompts</p>
+        </Link>
+
+        {/* 🚨 NEW: Bulk Pinterest Generator 🚨 */}
+        <Link href="/admin/pinterest-bulk" className="glass-card p-4 rounded-2xl border-2 border-red-300">
+          <div className="text-3xl mb-2">📌</div>
+          <h3 className="font-bold">Bulk Pinterest</h3>
+          <p className="text-sm text-gray-600">Generate pins in bulk</p>
         </Link>
 
         <Link href="/admin/blogs" className="glass-card p-4 rounded-2xl">
@@ -127,7 +133,6 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-600">{tribes.count || 0} communities</p>
         </Link>
         
-        {/* 🚨 NEW: Affiliate Links Button */}
         <Link href="/admin/affiliates" className="glass-card p-4 rounded-2xl border-2 border-blue-300">
           <div className="text-3xl mb-2">🔗</div>
           <h3 className="font-bold">Affiliate Links</h3>
