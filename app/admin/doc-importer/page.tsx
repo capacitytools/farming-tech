@@ -6,101 +6,86 @@ import Link from 'next/link';
 export default function DocImporterPage() {
   const [rawText, setRawText] = useState('');
   const [converted, setConverted] = useState('');
-  
-  // SEO Audit State
   const [audit, setAudit] = useState<any>(null);
 
-  function convertAndAudit() {
-    if (!rawText.trim()) return;
+  function processAndFix() {
+    if (!rawText.trim()) return alert('Please paste your text first.');
 
-    // 1. Convert HTML to Markdown
-    const doc = new DOMParser().parseFromString(rawText, 'text/html');
-    let md = '';
-    let wordCount = 0;
-    let linkCount = 0;
-    let h2Count = 0;
-    let longParagraphs = 0;
-
-    const elements = doc.body.children;
-    for (let i = 0; i < elements.length; i++) {
-      const el = elements[i];
-      const tag = el.tagName.toLowerCase();
-
-      if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
-        md += `## ${el.textContent?.trim()}\n\n`;
-        if (tag === 'h2') h2Count++;
-      } else if (tag === 'ul') {
-        const items = el.querySelectorAll('li');
-        items.forEach(li => { md += `- ${li.textContent?.trim()}\n`; });
-        md += '\n';
-      } else if (tag === 'ol') {
-        const items = el.querySelectorAll('li');
-        items.forEach((li, idx) => { md += `${idx + 1}. ${li.textContent?.trim()}\n`; });
-        md += '\n';
-      } else if (tag === 'p') {
-        let pText = el.innerHTML;
-        // Count links
-        const links = pText.match(/<a /g);
-        if (links) linkCount += links.length;
-
-        // Convert HTML to markdown
-        pText = pText.replace(/<a[^>]+href="([^"]+)"[^>]*>(.*?)<\/a>/g, '[$2]($1)');
-        pText = pText.replace(/<strong[^>]*>(.*?)<\/strong>/g, '**$1**');
-        pText = pText.replace(/<em[^>]*>(.*?)<\/em>/g, '*$1*');
-        
-        const temp = document.createElement('div');
-        temp.innerHTML = pText;
-        
-        if (temp.textContent?.trim()) {
-          md += `${temp.innerHTML.trim()}\n\n`;
-          // Audit: count words and check paragraph length
-          const pWords = temp.textContent.trim().split(/\s+/).length;
-          wordCount += pWords;
-          if (pWords > 100) longParagraphs++;
-        }
-      }
+    // 1. Clean up basic text (handles both plain text and HTML)
+    let cleanText = rawText;
+    
+    // If it's HTML from Google Docs, strip the basic tags but keep line breaks
+    if (cleanText.includes('<p>') || cleanText.includes('<h')) {
+      cleanText = cleanText
+        .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/g, '\n\n## $1\n\n') // Convert headings
+        .replace(/<p[^>]*>(.*?)<\/p>/g, '\n$1\n') // Convert paragraphs
+        .replace(/<br\s*\/?>/gi, '\n') // Convert breaks
+        .replace(/<[^>]+>/g, ''); // Strip all other HTML tags
     }
 
-    md = md.replace(/\n{3,}/g, '\n\n');
-    setConverted(md.trim());
+    // 2. Format it into Markdown
+    let formatted = cleanText
+      .replace(/\n{3,}/g, '\n\n') // Remove extra blank lines
+      .trim();
 
-    // 2. Calculate SEO Score
+    // Automatically bold common headers if they are missing ##
+    const lines = formatted.split('\n');
+    const fixedLines = lines.map((line: string) => {
+      const trimLine = line.trim();
+      // If the line is short, has no punctuation at the end, and no ##, make it a header
+      if (trimLine.length > 0 && trimLine.length < 60 && !trimLine.endsWith('.') && !trimLine.endsWith('?') && !trimLine.startsWith('#')) {
+        return `## ${trimLine}`;
+      }
+      return line;
+    });
+
+    formatted = fixedLines.join('\n');
+    setConverted(formatted);
+
+    // 3. Calculate SEO Score
+    const wordCount = formatted.split(/\s+/).filter(w => w.length > 0).length;
+    const h2Count = (formatted.match(/## /g) || []).length;
+    const linkCount = (formatted.match(/\[.*?\]\(.*?\)/g) || []).length;
+    const boldCount = (formatted.match(/\*\*.*?\*\*/g) || []).length;
+    const paragraphs = formatted.split('\n\n');
+    const longParagraphs = paragraphs.filter(p => p.split(/\s+/).length > 100).length;
+
     const checks = [];
     let score = 0;
 
-    // Word Count (Ideal: 600+)
-    if (wordCount >= 600) { score += 20; checks.push({ label: 'Length (600+ words)', pass: true }); }
-    else { checks.push({ label: `Length (${wordCount} words, aim for 600+)`, pass: false }); }
+    // Length (600+)
+    if (wordCount >= 600) { score += 20; checks.push({ label: 'Length (600+ words)', pass: true, action: 'Perfect.' }); }
+    else { checks.push({ label: `Length (${wordCount} words)`, pass: false, action: `Add ${600 - wordCount} more words.` }); }
 
-    // Headings (Ideal: 2+ H2s)
-    if (h2Count >= 2) { score += 20; checks.push({ label: 'Subheadings (2+ H2s)', pass: true }); }
-    else { checks.push({ label: `Subheadings (${h2Count} found, aim for 2+)`, pass: false }); }
+    // Subheadings (2+)
+    if (h2Count >= 2) { score += 20; checks.push({ label: 'Subheadings (2+)', pass: true, action: 'Perfect.' }); }
+    else { checks.push({ label: 'Subheadings', pass: false, action: 'Add at least 2 sections (##).' }); }
 
-    // Links (Ideal: 1+ internal/external)
-    if (linkCount >= 1) { score += 20; checks.push({ label: 'Links (1+ found)', pass: true }); }
-    else { checks.push({ label: 'Links (Add 1 internal or affiliate link)', pass: false }); }
+    // Links (1+)
+    if (linkCount >= 1) { score += 20; checks.push({ label: 'Links', pass: true, action: 'Perfect.' }); }
+    else { checks.push({ label: 'Links', pass: false, action: 'Add 1 link like [text](url).' }); }
 
-    // Readability (Ideal: Short paragraphs)
-    if (longParagraphs === 0) { score += 20; checks.push({ label: 'Readability (Paragraphs are short)', pass: true }); }
-    else { checks.push({ label: `Readability (${longParagraphs} paragraphs are too long)`, pass: false }); }
+    // Readability
+    if (longParagraphs === 0) { score += 20; checks.push({ label: 'Readability', pass: true, action: 'Perfect.' }); }
+    else { checks.push({ label: 'Readability', pass: false, action: `Break up ${longParagraphs} long paragraphs.` }); }
 
-    // Formatting (At least some bold text)
-    if (md.includes('**')) { score += 20; checks.push({ label: 'Formatting (Bold text used)', pass: true }); }
-    else { checks.push({ label: 'Formatting (Use bold text for key terms)', pass: false }); }
+    // Formatting
+    if (boldCount >= 2) { score += 20; checks.push({ label: 'Formatting (Bold)', pass: true, action: 'Perfect.' }); }
+    else { checks.push({ label: 'Formatting', pass: false, action: 'Bold at least 2 key terms with **text**.' }); }
 
     setAudit({ score, checks, wordCount });
   }
 
   function copyToClipboard() {
     navigator.clipboard.writeText(converted);
-    alert('✅ Markdown copied! Ready to paste into the Article Engine.');
+    alert('✅ Text copied! Now paste it into the Article Engine.');
   }
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-forest-800">📄 Doc Importer & Auditor</h1>
-        <p className="text-xs text-gray-500">Paste your Google Doc to convert it and get an instant SEO score.</p>
+        <h1 className="text-2xl font-extrabold text-forest-800">📄 Doc Importer & Auto-Fixer</h1>
+        <p className="text-xs text-gray-500">Paste your Google Doc. We will format it and score it.</p>
       </div>
 
       <div className="glass-card p-4 rounded-2xl space-y-4">
@@ -108,32 +93,33 @@ export default function DocImporterPage() {
           <label className="text-xs font-bold text-gray-500 uppercase">1. Paste from Google Docs</label>
           <textarea 
             className="w-full p-3 rounded-xl border border-gray-200 mt-2 text-sm h-40 outline-none focus:ring-2 focus:ring-forest-500" 
-            placeholder="Paste your formatted text here..."
+            placeholder="Paste your text here..."
             value={rawText}
             onChange={(e) => setRawText(e.target.value)}
           />
         </div>
 
-        <button onClick={convertAndAudit} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold text-sm shadow-md">
-          🪄 Convert & Audit Article
+        <button onClick={processAndFix} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold text-sm shadow-md">
+          🪄 Convert & Fix Article
         </button>
 
         {audit && (
           <div className="mt-6 border-t border-gray-200 pt-4 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-extrabold text-forest-800">SEO Readiness Score</p>
+              <p className="text-sm font-extrabold text-forest-800">SEO Readiness</p>
               <p className={`text-2xl font-extrabold ${audit.score >= 80 ? 'text-green-600' : audit.score >= 50 ? 'text-amber-500' : 'text-red-500'}`}>
                 {audit.score}/100
               </p>
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3 bg-gray-50 p-3 rounded-xl">
               {audit.checks.map((c: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className={c.pass ? 'text-green-500' : 'text-red-500'}>
-                    {c.pass ? '✅' : '❌'}
-                  </span>
-                  <span className={c.pass ? 'text-gray-700' : 'text-red-600 font-bold'}>{c.label}</span>
+                <div key={i} className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className={c.pass ? 'text-green-500' : 'text-red-500'}>{c.pass ? '✅' : '❌'}</span>
+                    <span className={c.pass ? 'text-gray-700 font-bold' : 'text-red-600 font-bold'}>{c.label}</span>
+                  </div>
+                  {!c.pass && <p className="text-[10px] text-gray-500 ml-6">👉 {c.action}</p>}
                 </div>
               ))}
             </div>
@@ -142,14 +128,15 @@ export default function DocImporterPage() {
 
         {converted && (
           <div className="space-y-2 mt-4">
-            <label className="text-xs font-bold text-gray-500 uppercase">2. Your Clean Markdown</label>
+            <label className="text-xs font-bold text-gray-500 uppercase">2. Your Fixed Markdown</label>
+            <p className="text-[10px] text-gray-400 mb-2">We automatically added ## to your headers. You just need to add your links.</p>
             <textarea 
               className="w-full p-3 rounded-xl border-2 border-green-500 bg-green-50 text-sm h-60 font-mono outline-none" 
               readOnly
               value={converted}
             />
             <button onClick={copyToClipboard} className="w-full bg-green-600 text-white py-3 rounded-xl font-extrabold text-sm shadow-md">
-              📋 Copy for Article Engine
+              📋 Copy to Article Engine
             </button>
           </div>
         )}
