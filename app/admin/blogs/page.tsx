@@ -94,7 +94,7 @@ export default function BlogControlRoom() {
           🧠 OPEN THE AI ARTICLE & SEO ENGINE →
         </Link>
 
-        {/* 🚨 NEW: QUICK POST LINK 🚨 */}
+        {/* 🚨 UPDATED: Points directly to the new Quick Post page 🚨 */}
         <Link href="/admin/quick-post" className="block w-full bg-amber-100 text-amber-900 border-2 border-amber-400 p-3 rounded-2xl font-bold text-center text-sm active:scale-95 transition-transform">
           ⚡ Quick Post (Fast Publish)
         </Link>
