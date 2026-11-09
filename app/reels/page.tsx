@@ -67,12 +67,24 @@ export default function ReelsPage() {
     setBusy(false);
   }
 
+  // 🚨 THE ULTIMATE YOUTUBE LINK PARSER 🚨
+  function getYouTubeId(url: string) {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : '';
+  }
+
   async function publishVideo() {
     if (!youtubeUrl) return alert('YouTube URL is required.');
+    
+    // Extract ID first
+    const ytId = getYouTubeId(youtubeUrl);
+    if (!ytId) return alert('Invalid YouTube URL. Please check the link and try again.');
+
     setBusy(true);
     const supabase = createClient();
 
-    // 🚨 TRY youtube_url FIRST, FALLBACK TO video_url 🚨
     const payload: any = {
       author_id: user.id,
       context: 'reels', 
@@ -82,16 +94,11 @@ export default function ReelsPage() {
       product_title: productTitle || null,
       product_link: productLink || null,
       product_image: productImage || null,
+      youtube_id: ytId, // 🚨 FIXED: Saves the ID
+      youtube_url: youtubeUrl, // 🚨 FIXED: Saves the URL
     };
 
-    // We check which column your database actually has
-    let { error } = await supabase.from('videos').insert({ ...payload, youtube_url: youtubeUrl });
-    
-    if (error && error.message.includes('youtube_url')) {
-      // If youtube_url doesn't exist, try video_url
-      const retry = await supabase.from('videos').insert({ ...payload, video_url: youtubeUrl });
-      error = retry.error;
-    }
+    const { error } = await supabase.from('videos').insert(payload);
 
     if (error) {
       alert('Error saving video: ' + error.message);
@@ -101,14 +108,6 @@ export default function ReelsPage() {
       load();
     }
     setBusy(false);
-  }
-
-  // 🚨 THE ULTIMATE YOUTUBE LINK PARSER 🚨
-  function getYouTubeId(url: string) {
-    if (!url) return '';
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : '';
   }
 
   function shareVideo(video: any, platform: string) {
@@ -205,17 +204,16 @@ export default function ReelsPage() {
       {/* MAGAZINE VIDEO FEED */}
       <div className="p-4 space-y-8">
         {videos.map(video => {
-          // 🚨 HANDLES BOTH youtube_url AND video_url 🚨
-          const url = video.youtube_url || video.video_url || '';
-          const ytId = getYouTubeId(url);
+          // 🚨 SMART FALLBACK: Looks for ID, then URL 🚨
+          const finalYtId = video.youtube_id || getYouTubeId(video.youtube_url || video.video_url || '');
           
           return (
             <div key={video.id} className="bg-forest-900 rounded-3xl shadow-2xl overflow-hidden border-4 border-forest-700">
               
               <div className="relative w-full aspect-[9/16] bg-black">
-                {ytId ? (
+                {finalYtId ? (
                   <iframe 
-                    src={`https://www.youtube.com/embed/${ytId}?modestbranding=1&rel=0`} 
+                    src={`https://www.youtube.com/embed/${finalYtId}?modestbranding=1&rel=0`} 
                     className="absolute inset-0 w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowFullScreen
