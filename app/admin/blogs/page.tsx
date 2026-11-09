@@ -56,7 +56,6 @@ export default function BlogControlRoom() {
     flash('🔗 Link copied to clipboard!');
   }
 
-  // 🚨 NEW: PINTEREST AUTO-FILL 🚨
   function shareToPinterest(blog: any) {
     if (!blog.cover_image_url) {
       alert('You need a cover image to pin this article!');
@@ -66,15 +65,12 @@ export default function BlogControlRoom() {
     const description = blog.meta_description || blog.excerpt || blog.title;
     const media = blog.cover_image_url;
     
-    // Pinterest Pin Builder URL
     const pinterestUrl = `https://www.pinterest.com/pin-builder/?url=${encodeURIComponent(articleUrl)}&media=${encodeURIComponent(media)}&description=${encodeURIComponent(description)}`;
     window.open(pinterestUrl, '_blank');
   }
 
-  // 🚨 NEW: FACEBOOK SHARE 🚨
   function shareToFacebook(blog: any) {
     const articleUrl = `https://www.farmingtechbusiness.com/blog/${blog.slug}`;
-    // Facebook Sharer URL
     const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
     window.open(facebookUrl, '_blank');
   }
@@ -84,17 +80,27 @@ export default function BlogControlRoom() {
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
+      
+      {/* 🚨 RESTORED HEADER & BUTTONS 🚨 */}
       <div>
         <h1 className="text-2xl font-extrabold text-forest-800">📰 Blog Control Room</h1>
         <p className="text-xs text-gray-500">Manage, view, and share your articles.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      <div className="space-y-4 mt-4">
+      <Link href="/admin/article-engine" className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg text-center text-sm active:scale-95 transition-transform">
+        🧠 OPEN THE AI ARTICLE & SEO ENGINE →
+      </Link>
+
+      <Link href="/admin/article-engine" className="block w-full bg-amber-100 text-amber-900 border-2 border-amber-400 p-3 rounded-2xl font-bold text-center text-sm active:scale-95 transition-transform">
+        ✍️ Quick Post (Write a new article)
+      </Link>
+
+      {/* BLOG LIST */}
+      <div className="space-y-4 mt-6">
         {blogs.map((b) => (
           <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex flex-col gap-3 border border-gray-100 shadow-sm">
             
-            {/* ARTICLE INFO */}
             <div className="flex gap-3 items-center">
               <div className="w-16 h-16 shrink-0 bg-gray-100 rounded-xl overflow-hidden relative">
                 {b.cover_image_url && <img src={b.cover_image_url} alt={b.title} className="w-full h-full object-cover" />}
@@ -110,7 +116,6 @@ export default function BlogControlRoom() {
               </div>
             </div>
 
-            {/* PRIMARY ACTIONS (View & Copy) */}
             <div className="flex gap-2">
               <Link 
                 href={`/blog/${b.slug}`} 
@@ -127,7 +132,6 @@ export default function BlogControlRoom() {
               </button>
             </div>
 
-            {/* 🚨 NEW: SOCIAL SHARING ROW 🚨 */}
             <div className="flex gap-2 bg-gray-50 p-2 rounded-xl">
               <p className="text-[10px] font-bold text-gray-400 self-center uppercase tracking-widest pl-1">Share:</p>
               <button 
@@ -144,7 +148,6 @@ export default function BlogControlRoom() {
               </button>
             </div>
 
-            {/* EDIT / DELETE / STATUS */}
             <div className="flex gap-2">
               <button 
                 onClick={() => toggleStatus(b.id, b.status)} 
@@ -154,7 +157,7 @@ export default function BlogControlRoom() {
               </button>
               
               <Link 
-                href={`/admin/article-engine?edit=${b.id}`} 
+                href={`/admin/article-engine`} 
                 className="w-12 bg-gray-100 text-gray-700 rounded-xl text-lg flex items-center justify-center active:scale-95"
               >
                 ✏️
