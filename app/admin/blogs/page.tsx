@@ -57,14 +57,10 @@ export default function BlogControlRoom() {
   }
 
   function shareToPinterest(blog: any) {
-    if (!blog.cover_image_url) {
-      alert('You need a cover image to pin this article!');
-      return;
-    }
+    if (!blog.cover_image_url) return alert('You need a cover image to pin this article!');
     const articleUrl = `https://www.farmingtechbusiness.com/blog/${blog.slug}`;
     const description = blog.meta_description || blog.excerpt || blog.title;
     const media = blog.cover_image_url;
-    
     const pinterestUrl = `https://www.pinterest.com/pin-builder/?url=${encodeURIComponent(articleUrl)}&media=${encodeURIComponent(media)}&description=${encodeURIComponent(description)}`;
     window.open(pinterestUrl, '_blank');
   }
@@ -81,26 +77,22 @@ export default function BlogControlRoom() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
       
-      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-extrabold text-forest-800">📰 Blog Control Room</h1>
         <p className="text-xs text-gray-500">Manage, view, and share your articles.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      {/* ACTION BUTTONS */}
       <div className="space-y-2">
         <Link href="/admin/article-engine" className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg text-center text-sm active:scale-95 transition-transform">
           🧠 OPEN THE AI ARTICLE & SEO ENGINE →
         </Link>
 
-        {/* 🚨 UPDATED: Points directly to the new Quick Post page 🚨 */}
         <Link href="/admin/quick-post" className="block w-full bg-amber-100 text-amber-900 border-2 border-amber-400 p-3 rounded-2xl font-bold text-center text-sm active:scale-95 transition-transform">
           ⚡ Quick Post (Fast Publish)
         </Link>
       </div>
 
-      {/* BLOG LIST */}
       <div className="space-y-4 mt-6">
         {blogs.map((b) => (
           <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex flex-col gap-3 border border-gray-100 shadow-sm">
@@ -138,16 +130,10 @@ export default function BlogControlRoom() {
 
             <div className="flex gap-2 bg-gray-50 p-2 rounded-xl">
               <p className="text-[10px] font-bold text-gray-400 self-center uppercase tracking-widest pl-1">Share:</p>
-              <button 
-                onClick={() => shareToPinterest(b)} 
-                className="flex-1 bg-red-600 text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-sm"
-              >
+              <button onClick={() => shareToPinterest(b)} className="flex-1 bg-red-600 text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-sm">
                 📌 Auto-Pin
               </button>
-              <button 
-                onClick={() => shareToFacebook(b)} 
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-sm"
-              >
+              <button onClick={() => shareToFacebook(b)} className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-sm">
                 f Share to FB
               </button>
             </div>
@@ -160,8 +146,9 @@ export default function BlogControlRoom() {
                 {b.status === 'published' ? 'Set as Draft' : 'Publish Now'}
               </button>
               
+              {/* 🚨 UPDATED: Now links to the new Edit Page 🚨 */}
               <Link 
-                href={`/admin/article-engine`} 
+                href={`/admin/blogs/edit/${b.id}`} 
                 className="w-12 bg-gray-100 text-gray-700 rounded-xl text-lg flex items-center justify-center active:scale-95"
               >
                 ✏️
