@@ -1,81 +1,109 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { uploadToCloudinary } from '@/lib/upload';
 
-const CATS = ["Animal", "Plants", "Business", "Tech", "Training", "Other"];
+const CATEGORIES = [
+  'Livestock & Poultry',
+  'Farm Equipment',
+  'AgriTech & AI',
+  'Crops & Aquaculture',
+  'Agribusiness',
+  'Gadgets & Tools'
+];
 
-function toSec(v: string) {
-  if (!v) return 0;
-  if (/^\d+$/.test(v)) return Number(v);
-  const m = v.match(/^(\d+):([0-5]?\d)$/);
-  if (m) return Number(m[1]) * 60 + Number(m[2]);
-  return 0;
-}
+export default function VideoComposer({ context, initialAspect, onDone }: { context: string, initialAspect: string, onDone: () => void }) {
+  const [title, setTitle] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [category, setCategory] = useState('Farm Equipment');
+  
+  // Product Card State
+  const [productTitle, setProductTitle] = useState('');
+  const [productLink, setProductLink] = useState('');
+  const [productImage, setProductImage] = useState('');
+  
+  const [busy, setBusy] = useState(false);
 
-export default function VideoComposer({ context, tribeId, onDone, initialAspect }: { context: string; tribeId?: string; onDone: () => void; initialAspect?: string }) {
-  const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
-  const [category, setCategory] = useState("Animal");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
-  const [aspect, setAspect] = useState(initialAspect || "landscape");
-  const [msg, setMsg] = useState("");
-
-  function ytId(u: string) {
-    const m = u.match(/(?:youtu\.be\/|v=|shorts\/|embed\/)([A-Za-z0-9_-]{11})/);
-    return m ? m[1] : null;
+  async function handleImageUpload(e: any) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setBusy(true);
+      const url = await uploadToCloudinary(file, 'products');
+      setProductImage(url);
+    } catch (err: any) {
+      alert('Upload failed: ' + err.message);
+    }
+    setBusy(false);
   }
 
-  async function submit(e: any) {
-    e.preventDefault();
-    setMsg("");
-    const id = ytId(url);
-    if (!id) return setMsg("Paste a valid YouTube link (watch, share or shorts link).");
+  async function saveVideo() {
+    if (!youtubeUrl) return alert('YouTube URL is required.');
+    setBusy(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return setMsg("Log in first.");
-    const { error } = await supabase.from("videos").insert({
-      youtube_id: id, title, description, tags, category,
-      start_sec: toSec(start), end_sec: toSec(end), aspect,
-      author_id: user.id, context, tribe_id: tribeId || null,
+    if (!user) return;
+
+    const { error } = await supabase.from('videos').insert({
+      author_id: user.id,
+      context,
+      aspect_ratio: initialAspect,
+      title,
+      youtube_url: youtubeUrl,
+      category,
+      product_title: productTitle || null,
+      product_link: productLink || null,
+      product_image: productImage || null,
     });
-    if (error) setMsg("Error: " + error.message);
+
+    if (error) alert('Error saving video: ' + error.message);
     else onDone();
+    
+    setBusy(false);
   }
 
-  const input = "w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm";
-
   return (
-    <form onSubmit={submit} className="glass-card p-4 rounded-2xl space-y-2 border-2 border-forest-300">
-      <p className="text-xs font-bold text-forest-700">🎬 Post a YouTube video or Reel</p>
-      <input className={input} placeholder="YouTube / Shorts link *" required value={url} onChange={(e) => setUrl(e.target.value)} />
-
+    <div className="glass-card p-4 rounded-2xl space-y-4 border border-gray-200">
+      <h3 className="font-extrabold text-forest-800">Add New Video/Reel</h3>
+      
+      {/* 1. YOUTUBE LINK */}
       <div>
-        <p className="text-xs font-bold text-gray-600 mb-1">📐 Video format</p>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setAspect("landscape")} className={`flex-1 py-2 rounded-xl text-xs font-bold ${aspect === "landscape" ? "bg-forest-600 text-white" : "bg-gray-200"}`}>📺 16:9 Normal</button>
-          <button type="button" onClick={() => setAspect("portrait")} className={`flex-1 py-2 rounded-xl text-xs font-bold ${aspect === "portrait" ? "bg-purple-600 text-white" : "bg-gray-200"}`}>📱 9:16 Reel</button>
-        </div>
-        <p className="text-[9px] text-gray-400 mt-1">{aspect === "portrait" ? "Reels appear in the vertical Reels / Videos feed (use a YouTube Shorts link for best look)." : "Normal videos play wide in the Timeline."}</p>
+        <label className="text-[10px] font-bold text-gray-500 uppercase">YouTube Video URL *</label>
+        <input className="w-full p-2 rounded-xl border border-gray-200 text-sm mt-1" placeholder="https://youtube.com/watch?v=..." value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} />
       </div>
 
-      <input className={input} placeholder="Video title" value={title} onChange={(e) => setTitle(e.target.value)} />
-      <textarea className={input} rows={2} placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+      {/* 2. TITLE & CATEGORY */}
       <div className="grid grid-cols-2 gap-2">
-        <input className={input} placeholder="Start e.g. 1:30 (optional)" value={start} onChange={(e) => setStart(e.target.value)} />
-        <input className={input} placeholder="End e.g. 2:45 (optional)" value={end} onChange={(e) => setEnd(e.target.value)} />
+        <div>
+          <label className="text-[10px] font-bold text-gray-500 uppercase">Video Title</label>
+          <input className="w-full p-2 rounded-xl border border-gray-200 text-sm mt-1" placeholder="e.g. Best Incubator" value={title} onChange={e => setTitle(e.target.value)} />
+        </div>
+        <div>
+          <label className="text-[10px] font-bold text-gray-500 uppercase">Category</label>
+          <select className="w-full p-2 rounded-xl border border-gray-200 text-sm mt-1" value={category} onChange={e => setCategory(e.target.value)}>
+            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        <input className={input} placeholder="Tags (rabbit, health)" value={tags} onChange={(e) => setTags(e.target.value)} />
-        <select className={input} value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATS.map((c) => <option key={c}>{c}</option>)}
-        </select>
+
+      {/* 3. PRODUCT CARD (OPTIONAL) */}
+      <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 space-y-2">
+        <p className="text-xs font-bold text-amber-800">🛍️ Attach a Product Card (Optional)</p>
+        <input className="w-full p-2 rounded-lg border border-amber-200 text-xs" placeholder="Product Name (e.g., 256 Egg Incubator)" value={productTitle} onChange={e => setProductTitle(e.target.value)} />
+        <input className="w-full p-2 rounded-lg border border-amber-200 text-xs" placeholder="Affiliate Link (e.g., farmingtechbusiness.com/go/incubator)" value={productLink} onChange={e => setProductLink(e.target.value)} />
+        <div className="flex items-center gap-2">
+          <label className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+            📷 Upload Product Image
+            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+          </label>
+          {productImage && <img src={productImage} className="h-8 w-8 rounded object-cover" alt="Product" />}
+        </div>
       </div>
-      {msg && <p className="text-xs text-red-600">{msg}</p>}
-      <button className="w-full bg-forest-600 text-white py-2 rounded-xl text-sm font-bold">🎬 Publish {aspect === "portrait" ? "Reel" : "Video"}</button>
-    </form>
+
+      <button onClick={saveVideo} disabled={busy} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold text-sm">
+        {busy ? 'Saving...' : '🚀 PUBLISH VIDEO'}
+      </button>
+    </div>
   );
 }
