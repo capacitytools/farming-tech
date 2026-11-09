@@ -21,6 +21,7 @@ export default function ReelsPage() {
   const [activeCat, setActiveCat] = useState('All');
   const [showComposer, setShowComposer] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [msg, setMsg] = useState('');
 
   // Composer State
   const [title, setTitle] = useState('');
@@ -47,6 +48,11 @@ export default function ReelsPage() {
   }
 
   useEffect(() => { load(); }, [activeCat]);
+
+  function flash(t: string) {
+    setMsg(t);
+    setTimeout(() => setMsg(''), 3000);
+  }
 
   async function handleImageUpload(e: any) {
     const file = e.target.files?.[0];
@@ -88,12 +94,29 @@ export default function ReelsPage() {
     setBusy(false);
   }
 
-  // 🚨 Helper to safely extract YouTube ID without crashing
+  // 🚨 THE ULTIMATE YOUTUBE LINK PARSER 🚨
   function getYouTubeId(url: string) {
     if (!url) return '';
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    // Handles youtube.com, youtu.be, shorts, embeds, etc.
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : '';
+  }
+
+  // 🚨 SHARE FUNCTION (Links back to YOUR site) 🚨
+  function shareVideo(video: any, platform: string) {
+    // This is the secret: We share YOUR url, not YouTube's url.
+    const myBrandUrl = `https://www.farmingtechbusiness.com/reels`; 
+    const text = `Watch this Agri-Reel on Farming Tech & Business: ${video.title || 'Amazing farm video'} 🌾`;
+    
+    if (platform === 'wa') {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + myBrandUrl)}`, '_blank');
+    } else if (platform === 'fb') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(myBrandUrl)}`, '_blank');
+    } else if (platform === 'copy') {
+      navigator.clipboard.writeText(myBrandUrl);
+      flash('🔗 Link copied to your platform!');
+    }
   }
 
   if (!loaded) return <p className="text-center p-10">Loading Reels...</p>;
@@ -114,6 +137,7 @@ export default function ReelsPage() {
             {showComposer ? '✕ Close Uploader' : '📹 Upload New Video / Reel'}
           </button>
         )}
+        {msg && <p className="text-xs font-bold text-amber-300 mt-2 bg-black/30 p-2 rounded-lg">{msg}</p>}
       </div>
 
       {/* UPLOAD FORM */}
@@ -173,57 +197,69 @@ export default function ReelsPage() {
       </div>
 
       {/* MAGAZINE VIDEO FEED */}
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-8">
         {videos.map(video => {
           const ytId = getYouTubeId(video.youtube_url);
           
           return (
-            <div key={video.id} className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+            <div key={video.id} className="bg-forest-900 rounded-3xl shadow-2xl overflow-hidden border-4 border-forest-700">
               
-              {/* VIDEO PLAYER */}
+              {/* 🚨 BRANDED VIDEO PLAYER FRAME 🚨 */}
               <div className="relative w-full aspect-[9/16] bg-black">
                 {ytId ? (
                   <iframe 
-                    src={`https://www.youtube.com/embed/${ytId}`} 
+                    src={`https://www.youtube.com/embed/${ytId}?modestbranding=1&rel=0`} // 🚨 Hides YouTube branding where possible
                     className="absolute inset-0 w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowFullScreen
                   />
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-white text-xs">Invalid Video Link</div>
+                  <div className="absolute inset-0 flex items-center justify-center text-white text-xs">Video Unavailable</div>
                 )}
               </div>
 
-              {/* VIDEO INFO */}
-              <div className="p-4">
-                <p className="text-[10px] font-bold text-forest-600 uppercase tracking-widest mb-1">{video.category}</p>
-                <h2 className="text-lg font-extrabold text-forest-900 leading-tight">{video.title || 'Agri-Reel'}</h2>
+              {/* BRANDED INFO SECTION */}
+              <div className="p-4 bg-gradient-to-b from-forest-900 to-forest-800">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-1">{video.category}</p>
+                    <h2 className="text-lg font-extrabold text-white leading-tight">{video.title || 'Agri-Reel'}</h2>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-forest-900">FTB</div>
+                </div>
                 
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-2 mt-3 border-t border-forest-700 pt-3">
                   {video.profiles?.avatar_url ? (
-                    <img src={video.profiles.avatar_url} className="w-8 h-8 rounded-full border border-gray-200" alt="" />
+                    <img src={video.profiles.avatar_url} className="w-7 h-7 rounded-full border border-forest-500" alt="" />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-xs font-bold text-green-800">
+                    <div className="w-7 h-7 rounded-full bg-forest-700 flex items-center justify-center text-[10px] font-bold text-white">
                       {video.profiles?.full_name?.[0] || 'F'}
                     </div>
                   )}
-                  <p className="text-xs font-bold text-gray-700">{video.profiles?.full_name || 'Farmer'}</p>
+                  <p className="text-xs font-bold text-forest-200">{video.profiles?.full_name || 'Farmer'}</p>
+                  
+                  {/* 🚨 SHARE BUTTONS 🚨 */}
+                  <div className="ml-auto flex gap-2">
+                    <button onClick={() => shareVideo(video, 'wa')} className="text-lg bg-forest-800 p-1.5 rounded-lg shadow-sm hover:bg-forest-700">📤</button>
+                    <button onClick={() => shareVideo(video, 'fb')} className="text-lg bg-forest-800 p-1.5 rounded-lg shadow-sm hover:bg-forest-700">f</button>
+                    <button onClick={() => shareVideo(video, 'copy')} className="text-lg bg-forest-800 p-1.5 rounded-lg shadow-sm hover:bg-forest-700">🔗</button>
+                  </div>
                 </div>
               </div>
 
               {/* SHOPPABLE PRODUCT CARD */}
               {video.product_title && video.product_link && (
-                <div className="m-4 mt-0 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-center gap-3">
+                <div className="m-4 mt-0 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-center gap-3 shadow-lg">
                   {video.product_image ? (
-                    <img src={video.product_image} className="w-16 h-16 object-cover rounded-lg bg-white" alt={video.product_title} />
+                    <img src={video.product_image} className="w-14 h-14 object-cover rounded-lg bg-white" alt={video.product_title} />
                   ) : (
-                    <div className="w-16 h-16 bg-amber-200 rounded-lg flex items-center justify-center text-2xl">🛍️</div>
+                    <div className="w-14 h-14 bg-amber-200 rounded-lg flex items-center justify-center text-2xl">🛍️</div>
                   )}
                   <div className="flex-1">
-                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-1">Featured Product</p>
-                    <p className="text-xs font-extrabold text-amber-900 leading-tight mb-2 line-clamp-2">{video.product_title}</p>
-                    <a href={video.product_link} target="_blank" rel="noopener noreferrer" className="block bg-amber-500 text-white text-center py-2 rounded-lg text-xs font-bold shadow-sm active:scale-95">
-                      Check Price & Buy →
+                    <p className="text-[9px] font-bold text-amber-600 uppercase tracking-wider mb-0.5">Featured Product</p>
+                    <p className="text-xs font-extrabold text-amber-900 leading-tight mb-1.5 line-clamp-2">{video.product_title}</p>
+                    <a href={video.product_link} target="_blank" rel="noopener noreferrer" className="block bg-amber-500 text-white text-center py-1.5 rounded-lg text-[10px] font-extrabold shadow-sm active:scale-95">
+                      Buy Now →
                     </a>
                   </div>
                 </div>
