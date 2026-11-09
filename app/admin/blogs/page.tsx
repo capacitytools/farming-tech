@@ -81,20 +81,24 @@ export default function BlogControlRoom() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
       
-      {/* 🚨 RESTORED HEADER & BUTTONS 🚨 */}
+      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-extrabold text-forest-800">📰 Blog Control Room</h1>
         <p className="text-xs text-gray-500">Manage, view, and share your articles.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      <Link href="/admin/article-engine" className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg text-center text-sm active:scale-95 transition-transform">
-        🧠 OPEN THE AI ARTICLE & SEO ENGINE →
-      </Link>
+      {/* ACTION BUTTONS */}
+      <div className="space-y-2">
+        <Link href="/admin/article-engine" className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg text-center text-sm active:scale-95 transition-transform">
+          🧠 OPEN THE AI ARTICLE & SEO ENGINE →
+        </Link>
 
-      <Link href="/admin/article-engine" className="block w-full bg-amber-100 text-amber-900 border-2 border-amber-400 p-3 rounded-2xl font-bold text-center text-sm active:scale-95 transition-transform">
-        ✍️ Quick Post (Write a new article)
-      </Link>
+        {/* 🚨 NEW: QUICK POST LINK 🚨 */}
+        <Link href="/admin/quick-post" className="block w-full bg-amber-100 text-amber-900 border-2 border-amber-400 p-3 rounded-2xl font-bold text-center text-sm active:scale-95 transition-transform">
+          ⚡ Quick Post (Fast Publish)
+        </Link>
+      </div>
 
       {/* BLOG LIST */}
       <div className="space-y-4 mt-6">
