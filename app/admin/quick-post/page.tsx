@@ -20,7 +20,6 @@ export default function QuickPostPage() {
   const [ebooks, setEbooks] = useState<any[]>([]);
   const [selectedEbook, setSelectedEbook] = useState('');
 
-  // Fetch admin status and ebooks for the dropdown
   useEffect(() => {
     async function init() {
       const supabase = createClient();
@@ -69,7 +68,7 @@ export default function QuickPostPage() {
       content,
       category,
       cover_image_url: coverImage,
-      status: 'published', // 🚨 Always publishes immediately
+      status: 'published', // 🚨 Publishes immediately
       product_cta: selectedEbook || null, // Links the ebook
       author_name: 'Farming Tech & Business',
       indexable: true,
