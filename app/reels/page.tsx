@@ -1,114 +1,132 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
-import AdBanner from "@/components/AdBanner";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
+import VideoComposer from '@/components/VideoComposer';
+import AdBanner from '@/components/AdBanner';
+
+const CATEGORIES = [
+  'All',
+  'Livestock & Poultry',
+  'Farm Equipment',
+  'AgriTech & AI',
+  'Crops & Aquaculture',
+  'Agribusiness',
+  'Gadgets & Tools'
+];
 
 export default function ReelsPage() {
   const [user, setUser] = useState<any>(null);
-  const [reels, setReels] = useState<any[]>([]);
-  const [likes, setLikes] = useState<any[]>([]);
-  const [following, setFollowing] = useState<string[]>([]);
+  const [videos, setVideos] = useState<any[]>([]);
+  const [activeCat, setActiveCat] = useState('All');
+  const [showComposer, setShowComposer] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   async function load() {
     const supabase = createClient();
     const { data: { user: u } } = await supabase.auth.getUser();
     setUser(u);
-    const { data } = await supabase.rpc("ranked_reels", { uid: u?.id || null });
-    setReels(data || []);
-    if (u) {
-      const { data: l } = await supabase.from("video_likes").select("id, video_id").eq("user_id", u.id);
-      setLikes(l || []);
-      const { data: f } = await supabase.from("follows").select("following_id").eq("follower_id", u.id);
-      setFollowing((f || []).map((x: any) => x.following_id));
+
+    let query = supabase.from('videos').select('*, profiles(full_name, avatar_url)').order('created_at', { ascending: false });
+    if (activeCat !== 'All') {
+      query = query.eq('category', activeCat);
     }
+    
+    const { data } = await query;
+    setVideos(data || []);
     setLoaded(true);
   }
-  useEffect(() => {
-    load();
-  }, []);
 
-  async function toggleLike(id: string) {
-    if (!user) return alert("Log in to like videos.");
-    const supabase = createClient();
-    const mine = likes.find((l) => l.video_id === id);
-    if (mine) await supabase.from("video_likes").delete().eq("id", mine.id);
-    else await supabase.from("video_likes").insert({ video_id: id, user_id: user.id });
-    load();
-  }
+  useEffect(() => { load(); }, [activeCat]);
 
-  async function toggleFollow(id: string) {
-    if (!user) return alert("Log in to follow farmers.");
-    const supabase = createClient();
-    if (following.includes(id)) await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", id);
-    else await supabase.from("follows").insert({ follower_id: user.id, following_id: id });
-    load();
-  }
+  if (!loaded) return <p className="text-center p-10">Loading...</p>;
 
-  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading…</p>;
   return (
-    <div className="p-4 pb-24 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-1">🎬 Reels / Videos</h1>
-      <p className="text-gray-600 text-xs mb-4">Every farmer's reels (9:16) & videos (16:9) · smart-ranked · scroll & discover!</p>
-
-      <div className="space-y-4">
-        {reels.map((r, idx) => {
-          const myLike = likes.find((l) => l.video_id === r.id);
-          const iFollow = following.includes(r.author_id);
-          const portrait = r.aspect === "portrait";
-          return (
-            <div key={r.id}>
-              <div className="rounded-2xl overflow-hidden border-2 border-forest-600 bg-black">
-                <div className="bg-forest-700 text-white px-3 py-1.5 flex items-center gap-2">
-                  <span className="text-xs">🌾</span>
-                  <p className="text-[10px] font-extrabold tracking-wide">FARMING TECH & BUSINESS · {portrait ? "REELS" : "VIDEOS"}</p>
-                </div>
-                <div className="flex justify-center bg-black">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${r.youtube_id}`}
-                    title={r.title || "video"}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className={portrait ? "w-full aspect-[9/16] max-h-[72vh]" : "w-full aspect-video"}
-                  />
-                </div>
-                <div className="bg-gradient-to-t from-black to-forest-900 p-3 text-white">
-                  <div className="flex items-center gap-2">
-                    <Link href={`/farmer/${r.author_id}`}>
-                      {r.author_avatar ? (
-                        <img src={r.author_avatar} className="w-9 h-9 rounded-full object-cover border-2 border-white" alt="" />
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center font-bold">{(r.author_name || "?")[0]}</div>
-                      )}
-                    </Link>
-                    <div className="flex-1 min-w-0">
-                      <Link href={`/farmer/${r.author_id}`} className="font-bold text-sm hover:underline">{r.author_name || "Farmer"}</Link>
-                      {r.author_verified && <span className="ml-1 text-sky-400 text-xs">✅</span>}
-                    </div>
-                    <button onClick={() => toggleFollow(r.author_id)} className={`text-xs font-bold px-3 py-1.5 rounded-full ${iFollow ? "bg-gray-600" : "bg-green-500 text-black"}`}>
-                      {iFollow ? "Following" : "+ Follow"}
-                    </button>
-                  </div>
-                  {r.title && <p className="text-xs text-gray-200 mt-2 line-clamp-2">{r.title}</p>}
-                  <div className="flex items-center gap-4 mt-2 text-xs font-bold">
-                    <button onClick={() => toggleLike(r.id)} className={myLike ? "text-red-500" : "text-white"}>❤️ {r.likes}</button>
-                    <span className="text-white">💬 {r.comments}</span>
-                    <Link href="/ads/submit" className="ml-auto text-amber-400 text-[9px]">📢 Advertise here</Link>
-                  </div>                </div>
-              </div>
-              {idx % 2 === 1 && (
-                <div className="mt-4">
-                  <AdBanner type="native" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {reels.length === 0 && (
-          <p className="text-center text-gray-500 py-10">No videos yet — post one from the Timeline! 🎬</p>
+    <div className="pb-24 max-w-2xl mx-auto">
+      {/* HEADER */}
+      <div className="bg-forest-900 text-white p-4 rounded-b-3xl">
+        <h1 className="text-2xl font-extrabold mb-2">🎬 Agri-Reels</h1>
+        <p className="text-xs text-forest-200">Watch, learn, and buy farm equipment.</p>
+        
+        {user && (
+          <button onClick={() => setShowComposer(!showComposer)} className="mt-3 bg-amber-400 text-forest-900 px-4 py-2 rounded-xl text-xs font-bold shadow-md">
+            {showComposer ? 'Close Composer' : '+ Upload Video'}
+          </button>
         )}
+      </div>
+
+      {/* COMPOSER */}
+      {showComposer && user && (
+        <div className="p-4 bg-gray-50 border-b border-gray-200">
+          <VideoComposer context="feed" initialAspect="portrait" onDone={() => { setShowComposer(false); load(); }} />
+        </div>
+      )}
+
+      {/* CATEGORIES */}
+      <div className="flex gap-2 overflow-x-auto p-4 border-b border-gray-200 bg-white">
+        {CATEGORIES.map(cat => (
+          <button 
+            key={cat} 
+            onClick={() => setActiveCat(cat)}
+            className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-colors ${activeCat === cat ? 'bg-forest-600 text-white' : 'bg-gray-100 text-gray-600'}`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* VIDEO FEED */}
+      <div className="p-4 space-y-6">
+        {videos.map(video => (
+          <div key={video.id} className="bg-white rounded-3xl shadow-md border border-gray-100 overflow-hidden">
+            
+            {/* VIDEO PLAYER (Assuming you have a VideoCard component, if not, use an iframe) */}
+            <div className="relative w-full aspect-[9/16] bg-black">
+              <iframe 
+                src={`https://www.youtube.com/embed/${video.youtube_url.split('v=')[1]?.split('&')[0] || video.youtube_url.split('/').pop()}`} 
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowFullScreen
+              />
+            </div>
+
+            {/* VIDEO INFO */}
+            <div className="p-4">
+              <p className="text-xs font-bold text-forest-600 uppercase mb-1">{video.category}</p>
+              <h2 className="text-lg font-extrabold text-forest-900">{video.title || 'Farm Video'}</h2>
+              
+              <div className="flex items-center gap-2 mt-2">
+                {video.profiles?.avatar_url && <img src={video.profiles.avatar_url} className="w-6 h-6 rounded-full" alt="" />}
+                <p className="text-xs font-bold text-gray-700">{video.profiles?.full_name || 'Farmer'}</p>
+              </div>
+            </div>
+
+            {/* 🚨 PRODUCT AD CARD 🚨 */}
+            {video.product_title && video.product_link && (
+              <div className="m-4 mt-0 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-center gap-3">
+                {video.product_image ? (
+                  <img src={video.product_image} className="w-16 h-16 object-cover rounded-lg bg-white" alt={video.product_title} />
+                ) : (
+                  <div className="w-16 h-16 bg-amber-200 rounded-lg flex items-center justify-center text-2xl">🛍️</div>
+                )}
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-1">Featured Product</p>
+                  <p className="text-sm font-extrabold text-amber-900 leading-tight mb-2">{video.product_title}</p>
+                  <a href={video.product_link} target="_blank" rel="noopener noreferrer" className="block bg-amber-500 text-white text-center py-2 rounded-lg text-xs font-bold shadow-sm active:scale-95">
+                    Check Price & Buy →
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* ADSENSE AD SLOT (Between videos) */}
+            <div className="p-4 border-t border-gray-100">
+              <AdBanner slot="reels_infeed" />
+            </div>
+          </div>
+        ))}
+        {videos.length === 0 && <p className="text-center text-gray-500 py-10">No videos in this category yet.</p>}
       </div>
     </div>
   );
