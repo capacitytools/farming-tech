@@ -18,10 +18,9 @@ export default function BlogControlRoom() {
       setAdmin(p?.role === 'admin' || p?.role === 'editor');
     }
 
-    // Fetch ALL blogs (drafts and published) for the admin view
     const { data: b } = await supabase
       .from('blogs')
-      .select('id,title,slug,category,cover_image_url,status,views_count')
+      .select('id,title,slug,category,cover_image_url,status,views_count,meta_description,excerpt')
       .order('created_at', { ascending: false });
 
     setBlogs(b || []);
@@ -57,6 +56,29 @@ export default function BlogControlRoom() {
     flash('🔗 Link copied to clipboard!');
   }
 
+  // 🚨 NEW: PINTEREST AUTO-FILL 🚨
+  function shareToPinterest(blog: any) {
+    if (!blog.cover_image_url) {
+      alert('You need a cover image to pin this article!');
+      return;
+    }
+    const articleUrl = `https://www.farmingtechbusiness.com/blog/${blog.slug}`;
+    const description = blog.meta_description || blog.excerpt || blog.title;
+    const media = blog.cover_image_url;
+    
+    // Pinterest Pin Builder URL
+    const pinterestUrl = `https://www.pinterest.com/pin-builder/?url=${encodeURIComponent(articleUrl)}&media=${encodeURIComponent(media)}&description=${encodeURIComponent(description)}`;
+    window.open(pinterestUrl, '_blank');
+  }
+
+  // 🚨 NEW: FACEBOOK SHARE 🚨
+  function shareToFacebook(blog: any) {
+    const articleUrl = `https://www.farmingtechbusiness.com/blog/${blog.slug}`;
+    // Facebook Sharer URL
+    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`;
+    window.open(facebookUrl, '_blank');
+  }
+
   if (!loaded) return <p className="text-center p-10">Loading...</p>;
   if (!admin) return <p className="text-center p-10">Admin access only.</p>;
 
@@ -68,9 +90,9 @@ export default function BlogControlRoom() {
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      <div className="space-y-3 mt-4">
+      <div className="space-y-4 mt-4">
         {blogs.map((b) => (
-          <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex flex-col gap-2 border border-gray-100 shadow-sm">
+          <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex flex-col gap-3 border border-gray-100 shadow-sm">
             
             {/* ARTICLE INFO */}
             <div className="flex gap-3 items-center">
@@ -88,9 +110,8 @@ export default function BlogControlRoom() {
               </div>
             </div>
 
-            {/* ACTION BUTTONS */}
-            <div className="flex gap-2 mt-1">
-              {/* View Live */}
+            {/* PRIMARY ACTIONS (View & Copy) */}
+            <div className="flex gap-2">
               <Link 
                 href={`/blog/${b.slug}`} 
                 target="_blank"
@@ -98,8 +119,6 @@ export default function BlogControlRoom() {
               >
                 👁️ View Live
               </Link>
-
-              {/* Copy Link */}
               <button 
                 onClick={() => copyLink(b.slug)} 
                 className="flex-1 bg-purple-50 text-purple-700 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform"
@@ -108,8 +127,25 @@ export default function BlogControlRoom() {
               </button>
             </div>
 
+            {/* 🚨 NEW: SOCIAL SHARING ROW 🚨 */}
+            <div className="flex gap-2 bg-gray-50 p-2 rounded-xl">
+              <p className="text-[10px] font-bold text-gray-400 self-center uppercase tracking-widest pl-1">Share:</p>
+              <button 
+                onClick={() => shareToPinterest(b)} 
+                className="flex-1 bg-red-600 text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-sm"
+              >
+                📌 Auto-Pin
+              </button>
+              <button 
+                onClick={() => shareToFacebook(b)} 
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform shadow-sm"
+              >
+                f Share to FB
+              </button>
+            </div>
+
             {/* EDIT / DELETE / STATUS */}
-            <div className="flex gap-2 mt-1">
+            <div className="flex gap-2">
               <button 
                 onClick={() => toggleStatus(b.id, b.status)} 
                 className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 ${b.status === 'published' ? 'border-amber-300 text-amber-700 bg-amber-50' : 'border-green-300 text-green-700 bg-green-50'}`}
