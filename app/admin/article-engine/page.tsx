@@ -84,7 +84,6 @@ OUTPUT FORMAT (You MUST follow this exactly):
 Description: ${desc}
 Key Details: ${details || 'None provided'}`;
 
-    // Updated Model List to Guaranteed Stable Models
     const models = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-pro'];
     let text = '';
     const errs: string[] = [];
@@ -114,7 +113,6 @@ Key Details: ${details || 'None provided'}`;
       return;
     }
 
-    // Parse the output safely
     try {
       const pinPart = text.split('---PINTEREST---')[1]?.split('---FACEBOOK---')[0] || '';
       const fbPart = text.split('---FACEBOOK---')[1] || '';
@@ -147,7 +145,6 @@ Key Details: ${details || 'None provided'}`;
 
       <div className="glass-card p-4 rounded-2xl space-y-4">
         
-        {/* BRAND SETTINGS */}
         <div className="border-b border-gray-200 pb-4 mb-4">
           <p className="text-sm font-extrabold text-forest-700 mb-2">1. YOUR BRANDING</p>
           <select
@@ -207,7 +204,6 @@ Key Details: ${details || 'None provided'}`;
         </button>
       </div>
 
-      {/* PINTEREST RESULTS */}
       {pinterestPrompts.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-extrabold text-forest-800 flex items-center gap-2">
@@ -230,7 +226,6 @@ Key Details: ${details || 'None provided'}`;
         </div>
       )}
 
-      {/* FACEBOOK RESULTS */}
       {facebookPrompts.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-lg font-extrabold text-forest-800 flex items-center gap-2">
