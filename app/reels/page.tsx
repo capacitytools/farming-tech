@@ -72,17 +72,26 @@ export default function ReelsPage() {
     setBusy(true);
     const supabase = createClient();
 
-    const { error } = await supabase.from('videos').insert({
+    // 🚨 TRY youtube_url FIRST, FALLBACK TO video_url 🚨
+    const payload: any = {
       author_id: user.id,
       context: 'reels', 
       aspect_ratio: 'portrait',
-      title,
-      youtube_url: youtubeUrl,
+      title: title || 'Agri-Reel',
       category,
       product_title: productTitle || null,
       product_link: productLink || null,
       product_image: productImage || null,
-    });
+    };
+
+    // We check which column your database actually has
+    let { error } = await supabase.from('videos').insert({ ...payload, youtube_url: youtubeUrl });
+    
+    if (error && error.message.includes('youtube_url')) {
+      // If youtube_url doesn't exist, try video_url
+      const retry = await supabase.from('videos').insert({ ...payload, video_url: youtubeUrl });
+      error = retry.error;
+    }
 
     if (error) {
       alert('Error saving video: ' + error.message);
@@ -97,15 +106,12 @@ export default function ReelsPage() {
   // 🚨 THE ULTIMATE YOUTUBE LINK PARSER 🚨
   function getYouTubeId(url: string) {
     if (!url) return '';
-    // Handles youtube.com, youtu.be, shorts, embeds, etc.
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : '';
   }
 
-  // 🚨 SHARE FUNCTION (Links back to YOUR site) 🚨
   function shareVideo(video: any, platform: string) {
-    // This is the secret: We share YOUR url, not YouTube's url.
     const myBrandUrl = `https://www.farmingtechbusiness.com/reels`; 
     const text = `Watch this Agri-Reel on Farming Tech & Business: ${video.title || 'Amazing farm video'} 🌾`;
     
@@ -199,16 +205,17 @@ export default function ReelsPage() {
       {/* MAGAZINE VIDEO FEED */}
       <div className="p-4 space-y-8">
         {videos.map(video => {
-          const ytId = getYouTubeId(video.youtube_url);
+          // 🚨 HANDLES BOTH youtube_url AND video_url 🚨
+          const url = video.youtube_url || video.video_url || '';
+          const ytId = getYouTubeId(url);
           
           return (
             <div key={video.id} className="bg-forest-900 rounded-3xl shadow-2xl overflow-hidden border-4 border-forest-700">
               
-              {/* 🚨 BRANDED VIDEO PLAYER FRAME 🚨 */}
               <div className="relative w-full aspect-[9/16] bg-black">
                 {ytId ? (
                   <iframe 
-                    src={`https://www.youtube.com/embed/${ytId}?modestbranding=1&rel=0`} // 🚨 Hides YouTube branding where possible
+                    src={`https://www.youtube.com/embed/${ytId}?modestbranding=1&rel=0`} 
                     className="absolute inset-0 w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                     allowFullScreen
@@ -218,11 +225,10 @@ export default function ReelsPage() {
                 )}
               </div>
 
-              {/* BRANDED INFO SECTION */}
               <div className="p-4 bg-gradient-to-b from-forest-900 to-forest-800">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-1">{video.category}</p>
+                    <p className="text-[9px] font-bold text-amber-400 uppercase tracking-widest mb-1">{video.category || 'General'}</p>
                     <h2 className="text-lg font-extrabold text-white leading-tight">{video.title || 'Agri-Reel'}</h2>
                   </div>
                   <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-bold text-forest-900">FTB</div>
@@ -238,7 +244,6 @@ export default function ReelsPage() {
                   )}
                   <p className="text-xs font-bold text-forest-200">{video.profiles?.full_name || 'Farmer'}</p>
                   
-                  {/* 🚨 SHARE BUTTONS 🚨 */}
                   <div className="ml-auto flex gap-2">
                     <button onClick={() => shareVideo(video, 'wa')} className="text-lg bg-forest-800 p-1.5 rounded-lg shadow-sm hover:bg-forest-700">📤</button>
                     <button onClick={() => shareVideo(video, 'fb')} className="text-lg bg-forest-800 p-1.5 rounded-lg shadow-sm hover:bg-forest-700">f</button>
@@ -247,7 +252,6 @@ export default function ReelsPage() {
                 </div>
               </div>
 
-              {/* SHOPPABLE PRODUCT CARD */}
               {video.product_title && video.product_link && (
                 <div className="m-4 mt-0 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-center gap-3 shadow-lg">
                   {video.product_image ? (
