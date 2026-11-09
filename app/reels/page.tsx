@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { uploadToCloudinary } from '@/lib/upload';
-import AdBanner from '@/components/AdBanner';
 
 const CATEGORIES = [
   'All',
@@ -69,7 +68,7 @@ export default function ReelsPage() {
 
     const { error } = await supabase.from('videos').insert({
       author_id: user.id,
-      context: 'reels', // 🚨 Marks it for the Reels page
+      context: 'reels', 
       aspect_ratio: 'portrait',
       title,
       youtube_url: youtubeUrl,
@@ -84,9 +83,17 @@ export default function ReelsPage() {
     } else {
       setShowComposer(false);
       setTitle(''); setYoutubeUrl(''); setProductTitle(''); setProductLink(''); setProductImage('');
-      load(); // Refresh the feed
+      load();
     }
     setBusy(false);
+  }
+
+  // 🚨 Helper to safely extract YouTube ID without crashing
+  function getYouTubeId(url: string) {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : '';
   }
 
   if (!loaded) return <p className="text-center p-10">Loading Reels...</p>;
@@ -94,7 +101,7 @@ export default function ReelsPage() {
   return (
     <div className="pb-24 max-w-2xl mx-auto bg-gray-50 min-h-screen">
       
-      {/* MAGAZINE HEADER */}
+      {/* HEADER */}
       <div className="bg-gradient-to-br from-forest-700 to-forest-900 text-white p-5 rounded-b-3xl shadow-md">
         <h1 className="text-2xl font-extrabold">🎬 Agri-Reels</h1>
         <p className="text-[11px] text-forest-200 mt-0.5">Watch, learn, and shop farm equipment.</p>
@@ -109,7 +116,7 @@ export default function ReelsPage() {
         )}
       </div>
 
-      {/* 🚨 UPLOAD FORM 🚨 */}
+      {/* UPLOAD FORM */}
       {showComposer && user && (
         <div className="p-4 bg-white shadow-inner border-b border-gray-200">
           <div className="space-y-3">
@@ -168,20 +175,23 @@ export default function ReelsPage() {
       {/* MAGAZINE VIDEO FEED */}
       <div className="p-4 space-y-6">
         {videos.map(video => {
-          // Extract YouTube ID safely
-          const ytId = video.youtube_url.split('v=')[1]?.split('&')[0] || video.youtube_url.split('/').pop();
+          const ytId = getYouTubeId(video.youtube_url);
           
           return (
             <div key={video.id} className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
               
               {/* VIDEO PLAYER */}
               <div className="relative w-full aspect-[9/16] bg-black">
-                <iframe 
-                  src={`https://www.youtube.com/embed/${ytId}`} 
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                  allowFullScreen
-                />
+                {ytId ? (
+                  <iframe 
+                    src={`https://www.youtube.com/embed/${ytId}`} 
+                    className="absolute inset-0 w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-white text-xs">Invalid Video Link</div>
+                )}
               </div>
 
               {/* VIDEO INFO */}
@@ -201,7 +211,7 @@ export default function ReelsPage() {
                 </div>
               </div>
 
-              {/* 🚨 SHOPPABLE PRODUCT CARD 🚨 */}
+              {/* SHOPPABLE PRODUCT CARD */}
               {video.product_title && video.product_link && (
                 <div className="m-4 mt-0 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-center gap-3">
                   {video.product_image ? (
@@ -218,11 +228,6 @@ export default function ReelsPage() {
                   </div>
                 </div>
               )}
-
-              {/* ADSENSE AD SLOT */}
-              <div className="p-4 border-t border-gray-100 bg-gray-50">
-                <AdBanner slot="reels_infeed" />
-              </div>
             </div>
           );
         })}
