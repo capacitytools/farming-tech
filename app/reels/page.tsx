@@ -69,10 +69,10 @@ export default function ReelsPage() {
 
   // 🚨 THE ULTIMATE YOUTUBE LINK PARSER 🚨
   function getYouTubeId(url: string) {
-    if (!url) return '';
+    if (!url) return null;
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : '';
+    return (match && match[2].length === 11) ? match[2] : null;
   }
 
   async function publishVideo() {
@@ -80,11 +80,11 @@ export default function ReelsPage() {
     
     // Extract ID first
     const ytId = getYouTubeId(youtubeUrl);
-    if (!ytId) return alert('Invalid YouTube URL. Please check the link and try again.');
 
     setBusy(true);
     const supabase = createClient();
 
+    // 🚨 Safe payload: if no ID, it sends null (which the database now allows)
     const payload: any = {
       author_id: user.id,
       context: 'reels', 
@@ -94,8 +94,8 @@ export default function ReelsPage() {
       product_title: productTitle || null,
       product_link: productLink || null,
       product_image: productImage || null,
-      youtube_id: ytId, // 🚨 FIXED: Saves the ID
-      youtube_url: youtubeUrl, // 🚨 FIXED: Saves the URL
+      youtube_id: ytId, // Will be null if parser fails
+      youtube_url: youtubeUrl, 
     };
 
     const { error } = await supabase.from('videos').insert(payload);
