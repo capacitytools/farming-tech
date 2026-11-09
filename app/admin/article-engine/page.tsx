@@ -2,91 +2,113 @@
 
 import { useState } from 'react';
 
-export default function PromptStudioPage() {
+export default function ArticleEnginePage() {
   const [msg, setMsg] = useState('');
   
-  // Brand State
+  // Branding State
   const [brandType, setBrandType] = useState<'default' | 'custom'>('default');
   const [customBrandName, setCustomBrandName] = useState('');
   const [customBrandUrl, setCustomBrandUrl] = useState('');
 
-  // Form State
+  // Article State
   const [title, setTitle] = useState('');
-  const [desc, setDesc] = useState('');
-  const [details, setDetails] = useState('');
-
-  // Output State
-  const [pinterestPrompts, setPinterestPrompts] = useState<string[]>([]);
-  const [facebookPrompts, setFacebookPrompts] = useState<string[]>([]);
+  const [content, setContent] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
+  const [metaDesc, setMetaDesc] = useState('');
+  const [slug, setSlug] = useState('');
+  const [coverImage, setCoverImage] = useState('');
+  const [status, setStatus] = useState('published');
+  
+  // AI State
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiPrompts, setAiPrompts] = useState<string[]>([]);
+  const [audit, setAudit] = useState<any>(null);
 
   function flash(t: string) {
     setMsg(t);
     setTimeout(() => setMsg(''), 3000);
   }
 
-  async function generatePrompts() {
-    if (!title || !desc) return flash('Title and Description are required.');
+  // 1. THE SEO AUDITOR
+  function runAudit() {
+    if (!content) return flash('Please write some content first.');
     
-    // Determine brand text
+    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
+    const h2Count = (content.match(/## /g) || []).length;
+    const linkCount = (content.match(/\[.*?\]\(.*?\)/g) || []).length;
+    const paragraphs = content.split('\n\n');
+    const longParagraphs = paragraphs.filter(p => p.split(/\s+/).length > 100).length;
+    
+    const checks = [];
+    let score = 0;
+
+    // Title check
+    if (title.length >= 30 && title.length <= 65) { score += 10; checks.push({ label: 'Title Length (Good)', pass: true, action: '' }); }
+    else { checks.push({ label: 'Title Length', pass: false, action: 'Aim for 30-65 characters.' }); }
+
+    // Word count
+    if (wordCount >= 600) { score += 20; checks.push({ label: 'Word Count (600+)', pass: true, action: '' }); }
+    else { checks.push({ label: `Word Count (${wordCount})`, pass: false, action: `Add ${600 - wordCount} more words.` }); }
+
+    // Headings
+    if (h2Count >= 2) { score += 20; checks.push({ label: 'Headings (2+ H2s)', pass: true, action: '' }); }
+    else { checks.push({ label: 'Headings', pass: false, action: 'Add 2+ headings using ##.' }); }
+
+    // Links
+    if (linkCount >= 2) { score += 20; checks.push({ label: 'Links (2+)', pass: true, action: '' }); }
+    else { checks.push({ label: 'Links', pass: false, action: 'Add 2+ internal/external links.' }); }
+
+    // Readability
+    if (longParagraphs === 0) { score += 15; checks.push({ label: 'Readability', pass: true, action: '' }); }
+    else { checks.push({ label: 'Readability', pass: false, action: `${longParagraphs} paragraphs are too long.` }); }
+
+    // Formatting (Bold)
+    if (content.includes('**')) { score += 15; checks.push({ label: 'Formatting (Bold)', pass: true, action: '' }); }
+    else { checks.push({ label: 'Formatting', pass: false, action: 'Use **bold** for key terms.' }); }
+
+    setAudit({ score, checks });
+    flash('Audit complete!');
+  }
+
+  // 2. THE PROMPT GENERATOR
+  async function generatePrompts() {
+    if (!title) return flash('Enter a title first.');
+    
     const finalBrandName = brandType === 'default' ? 'Farming Tech & Business' : customBrandName;
     const finalBrandUrl = brandType === 'default' ? 'www.farmingtechbusiness.com' : customBrandUrl;
     
-    if (!finalBrandName || !finalBrandUrl) return flash('Please fill in your Brand Name and Website.');
-
     let key = localStorage.getItem('ftb_gemini_key') || '';
     if (!key) {
-      const p = window.prompt('Paste your free Google Gemini API key (get it at aistudio.google.com/apikey):');
+      const p = window.prompt('Paste your Google Gemini API key:');
       if (!p) return;
       key = p.trim();
       localStorage.setItem('ftb_gemini_key', key);
     }
 
     setAiBusy(true);
-    setPinterestPrompts([]);
-    setFacebookPrompts([]);
-    flash('Veteran Strategist is running viral research... 20-40 seconds.');
+    setAiPrompts([]);
+    flash('Generating image prompts...');
 
-    const systemPrompt = `You are a world-class visual strategist and AI prompt engineer with 15 years of experience dominating Pinterest and Facebook. Your clients generate 5,000+ daily organic traffic from visual search alone. 
-
-Your task is to analyze the user's topic and generate 7 hyper-detailed, highly optimized image generation prompts (for Midjourney v6/DALL-E 3). 
-You must simulate a deep scan of the top 10-20 viral accounts in this niche. What are the winning angles? What lighting, colors, and compositions are getting the highest saves and clicks right now?
-
-RULES FOR ALL PROMPTS:
-1. Absolute photorealism, 8k resolution, professional editorial photography.
-2. Vary the styles: One bright and airy, one cinematic and moody, one close-up macro, one wide lifestyle shot. Vary the color palettes based on what performs best in this niche.
-3. THE BRANDING RULE: At the bottom of the image, there must be a clean, elegant, highly legible text overlay that reads exactly: "${finalBrandName} | ${finalBrandUrl}". 
-4. TYPOGRAPHY: The text must be in a modern, professional sans-serif or elegant serif font, colored white or gold, placed perfectly in the bottom margin. It must be perfectly spelled. Double-check the spelling character by character before generating.
-
-PINTEREST (Vertical 2:3 - aspect ratio 2:3):
-- Provide exactly 4 distinct prompts.
-
-FACEBOOK/INSTAGRAM (Vertical 4:5 - aspect ratio 4:5):
-- Provide exactly 3 distinct prompts.
-
-OUTPUT FORMAT (You MUST follow this exactly):
----PINTEREST---
-[Prompt 1 text]
-[PROMPT_SEPARATOR]
-[Prompt 2 text]
-[PROMPT_SEPARATOR]
-[Prompt 3 text]
-[PROMPT_SEPARATOR]
-[Prompt 4 text]
----FACEBOOK---
-[Prompt 1 text]
-[PROMPT_SEPARATOR]
-[Prompt 2 text]
-[PROMPT_SEPARATOR]
-[Prompt 3 text]`;
-
-    const userPrompt = `Topic: ${title}
-Description: ${desc}
-Key Details: ${details || 'None provided'}`;
+    const systemPrompt = `You are a world-class visual strategist. Generate 4 viral Pinterest prompts (2:3) and 3 Facebook prompts (4:5) for the topic provided. 
+    The prompts must demand photorealistic, 8k quality images. Include this exact text at the bottom of the image in the prompt: "${finalBrandName} | ${finalBrandUrl}".
+    Output format:
+    ---PINTEREST---
+    [Prompt 1]
+    [SEPARATOR]
+    [Prompt 2]
+    [SEPARATOR]
+    [Prompt 3]
+    [SEPARATOR]
+    [Prompt 4]
+    ---FACEBOOK---
+    [Prompt 1]
+    [SEPARATOR]
+    [Prompt 2]
+    [SEPARATOR]
+    [Prompt 3]`;
 
     const models = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.5-pro'];
     let text = '';
-    const errs: string[] = [];
 
     for (let i = 0; i < models.length; i++) {
       try {
@@ -95,20 +117,17 @@ Key Details: ${details || 'None provided'}`;
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ parts: [{ text: userPrompt }] }],
+            contents: [{ parts: [{ text: `Topic: ${title}\nDescription: ${metaDesc}` }] }],
           }),
         });
         const data = await res.json();
         text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         if (text) break;
-        errs.push(models[i] + ': ' + (data?.error?.message || 'empty response'));
-      } catch (err: any) {
-        errs.push(models[i] + ': ' + (err && err.message ? err.message : 'network error'));
-      }
+      } catch (err) {}
     }
 
     if (!text) {
-      alert('AI failed:\n' + errs.join('\n'));
+      alert('AI failed to generate prompts.');
       setAiBusy(false);
       return;
     }
@@ -116,138 +135,124 @@ Key Details: ${details || 'None provided'}`;
     try {
       const pinPart = text.split('---PINTEREST---')[1]?.split('---FACEBOOK---')[0] || '';
       const fbPart = text.split('---FACEBOOK---')[1] || '';
-
-      const pinPrompts = pinPart.split('[PROMPT_SEPARATOR]').map((s: string) => s.trim()).filter(Boolean);
-      const fbPrompts = fbPart.split('[PROMPT_SEPARATOR]').map((s: string) => s.trim()).filter(Boolean);
-
-      setPinterestPrompts(pinPrompts);
-      setFacebookPrompts(fbPrompts);
-      flash('7 Master Prompts generated!');
+      const allPrompts = [...pinPart.split('[SEPARATOR]'), ...fbPart.split('[SEPARATOR]')].map(s => s.trim()).filter(Boolean);
+      setAiPrompts(allPrompts);
+      flash('Prompts ready!');
     } catch (e) {
-      alert('Error parsing AI response. Try again.');
+      alert('Error parsing AI response.');
     }
-    
     setAiBusy(false);
   }
 
   function copyPrompt(text: string) {
     navigator.clipboard.writeText(text);
-    flash('Prompt copied to clipboard!');
+    flash('Prompt copied!');
+  }
+
+  // 3. PUBLISH FUNCTION
+  async function publishArticle() {
+    if (!title || !content) return flash('Title and content are required.');
+    if (audit && audit.score < 80 && !window.confirm('Your SEO score is below 80. Publish anyway?')) return;
+    
+    flash('Publishing... (Connect this to your Supabase insert function)');
+    // Note: You will need to add your Supabase insert logic here later!
   }
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-forest-800">🪄 Viral Prompt Engineer</h1>
-        <p className="text-xs text-gray-500">Generate 4 Pinterest + 3 Facebook image prompts built for viral traffic.</p>
+        <h1 className="text-2xl font-extrabold text-forest-800">🧠 AI Article & SEO Engine</h1>
+        <p className="text-xs text-gray-500">Write, audit, and generate images for your article.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      <div className="glass-card p-4 rounded-2xl space-y-4">
+      {/* 1. ARTICLE WRITING */}
+      <div className="glass-card p-4 rounded-2xl space-y-3 border border-gray-100">
+        <p className="text-sm font-extrabold text-forest-700">1. Write Your Article</p>
         
-        <div className="border-b border-gray-200 pb-4 mb-4">
-          <p className="text-sm font-extrabold text-forest-700 mb-2">1. YOUR BRANDING</p>
-          <select
-            className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mb-2 font-bold"
-            value={brandType}
-            onChange={(e) => setBrandType(e.target.value as 'default' | 'custom')}
-          >
-            <option value="default">Farming Tech & Business (Default)</option>
-            <option value="custom">Custom Brand...</option>
-          </select>
-          
-          {brandType === 'custom' && (
-            <div className="space-y-2 mt-2">
-              <input
-                className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm"
-                placeholder="Your Brand Name (e.g., AgriSmart)"
-                value={customBrandName}
-                onChange={(e) => setCustomBrandName(e.target.value)}
-              />
-              <input
-                className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm"
-                placeholder="Your Website (e.g., www.agrismart.com)"
-                value={customBrandUrl}
-                onChange={(e) => setCustomBrandUrl(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
+        <input 
+          className="w-full p-2 rounded-xl border border-gray-200 text-sm font-bold" 
+          placeholder="Article Title *" 
+          value={title} 
+          onChange={(e) => { setTitle(e.target.value); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-')); }} 
+        />
+        
+        <input 
+          className="w-full p-2 rounded-xl border border-gray-200 text-xs bg-gray-50" 
+          placeholder="URL Slug (auto-generated)" 
+          value={slug} 
+          onChange={(e) => setSlug(e.target.value)} 
+        />
 
-        <div>
-          <p className="text-sm font-extrabold text-forest-700 mb-2">2. ARTICLE DETAILS</p>
-          
-          <input
-            className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mb-2"
-            placeholder="Title / Topic * (e.g., How to Start Rabbit Farming)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-          <textarea
-            className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm mb-2"
-            rows={2}
-            placeholder="Short Description * (e.g., Learn how to build cages, feed rabbits, and make profit in Nigeria.)"
-            value={desc}
-            onChange={(e) => setDesc(e.target.value)}
-          />
-          <textarea
-            className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm"
-            rows={2}
-            placeholder="Key Details (optional - e.g., specific animals, colors, settings)"
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-          />
-        </div>
-
-        <button onClick={generatePrompts} disabled={aiBusy} className="w-full bg-purple-600 text-white py-4 rounded-xl font-extrabold shadow-lg disabled:opacity-50 text-sm">
-          {aiBusy ? 'Scanning Trends & Engineering...' : '🪄 GENERATE 7 MASTER PROMPTS'}
-        </button>
+        <textarea 
+          className="w-full p-3 rounded-xl border border-gray-200 text-sm h-64 font-mono" 
+          placeholder="Paste your Google Doc text here..." 
+          value={content} 
+          onChange={(e) => setContent(e.target.value)} 
+        />
       </div>
 
-      {pinterestPrompts.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-extrabold text-forest-800 flex items-center gap-2">
-            📌 Pinterest Prompts (2:3)
-          </h2>
-          {pinterestPrompts.map((p, i) => (
-            <div key={i} className="glass-card p-4 rounded-2xl space-y-2 border-l-4 border-red-500 bg-red-50/20">
-              <p className="text-xs font-bold text-red-800">Variation {i + 1}</p>
-              <textarea
-                className="w-full p-2 rounded-xl border border-red-200 bg-white/90 text-xs font-mono"
-                rows={4}
-                value={p}
-                readOnly
-              />
-              <button onClick={() => copyPrompt(p)} className="w-full bg-red-600 text-white py-2 rounded-xl text-xs font-bold shadow">
-                📋 Copy Pinterest Prompt {i + 1}
-              </button>
-            </div>
-          ))}
+      {/* 2. SEO AUDIT */}
+      <div className="glass-card p-4 rounded-2xl space-y-3 border-2 border-blue-300">
+        <div className="flex justify-between items-center">
+          <p className="text-sm font-extrabold text-blue-800">2. SEO Audit</p>
+          <button onClick={runAudit} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Check Score</button>
         </div>
-      )}
-
-      {facebookPrompts.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-extrabold text-forest-800 flex items-center gap-2">
-            📘 Facebook/Instagram Prompts (4:5)
-          </h2>
-          {facebookPrompts.map((p, i) => (
-            <div key={i} className="glass-card p-4 rounded-2xl space-y-2 border-l-4 border-blue-500 bg-blue-50/20">
-              <p className="text-xs font-bold text-blue-800">Variation {i + 1}</p>
-              <textarea
-                className="w-full p-2 rounded-xl border border-blue-200 bg-white/90 text-xs font-mono"
-                rows={4}
-                value={p}
-                readOnly
-              />
-              <button onClick={() => copyPrompt(p)} className="w-full bg-blue-600 text-white py-2 rounded-xl text-xs font-bold shadow">
-                📋 Copy Facebook Prompt {i + 1}
-              </button>
+        
+        {audit && (
+          <div className="mt-2 space-y-2">
+            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-blue-100">
+              <span className="font-extrabold text-gray-700">Score</span>
+              <span className={`text-2xl font-extrabold ${audit.score >= 80 ? 'text-green-600' : 'text-red-500'}`}>{audit.score}/100</span>
             </div>
-          ))}
-        </div>
-      )}
+            {audit.checks.map((c: any, i: number) => (
+              <div key={i} className="flex flex-col text-xs bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span>{c.pass ? '✅' : '❌'}</span>
+                  <span className={c.pass ? 'text-gray-700' : 'text-red-600 font-bold'}>{c.label}</span>
+                </div>
+                {!c.pass && <p className="text-gray-500 mt-1 ml-6">👉 {c.action}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
+      {/* 3. IMAGE PROMPTS */}
+      <div className="glass-card p-4 rounded-2xl space-y-3 border-2 border-purple-300">
+        <p className="text-sm font-extrabold text-purple-800">3. Image Prompts</p>
+        
+        <select className="w-full p-2 rounded-xl border border-gray-200 text-sm mb-2" value={brandType} onChange={(e) => setBrandType(e.target.value as any)}>
+          <option value="default">Farming Tech & Business Branding</option>
+          <option value="custom">Custom Brand...</option>
+        </select>
+
+        {brandType === 'custom' && (
+          <div className="flex gap-2 mb-2">
+            <input className="flex-1 p-2 rounded-xl border border-gray-200 text-sm" placeholder="Brand Name" onChange={(e) => setCustomBrandName(e.target.value)} />
+            <input className="flex-1 p-2 rounded-xl border border-gray-200 text-sm" placeholder="Brand URL" onChange={(e) => setCustomBrandUrl(e.target.value)} />
+          </div>
+        )}
+
+        <button onClick={generatePrompts} disabled={aiBusy} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold text-sm">
+          {aiBusy ? 'Generating...' : '🪄 Generate Prompts'}
+        </button>
+
+        {aiPrompts.map((p, i) => (
+          <div key={i} className="mt-2 bg-purple-50 p-3 rounded-xl border border-purple-200">
+            <textarea className="w-full bg-transparent text-xs font-mono outline-none" rows={3} readOnly value={p} />
+            <button onClick={() => copyPrompt(p)} className="w-full mt-2 bg-white text-purple-700 py-1 rounded-lg text-xs font-bold border border-purple-200">📋 Copy</button>
+          </div>
+        ))}
+      </div>
+
+      {/* 4. PUBLISH */}
+      <div className="glass-card p-4 rounded-2xl space-y-3 border-2 border-green-400 bg-green-50">
+        <p className="text-sm font-extrabold text-green-900">4. Ready to Publish?</p>
+        <button onClick={publishArticle} className="w-full bg-green-600 text-white py-4 rounded-xl font-extrabold shadow-md active:scale-95 transition-transform">
+          🚀 PUBLISH ARTICLE
+        </button>
+      </div>
     </div>
   );
 }
