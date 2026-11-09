@@ -3,23 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { uploadToCloudinary, withRatio } from '@/lib/upload';
 
-function slugify(t: string) {
-  return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-export default function AdminBlogsPage() {
+export default function BlogControlRoom() {
   const [admin, setAdmin] = useState(false);
-  const [blogs, setBlogs] = useState<any[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ title: '', category: 'Farming', content: '' });
-  const [cover, setCover] = useState('');
-  const [coverRatio, setCoverRatio] = useState<'2:3' | '4:5'>('2:3');
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [blogs, setBlogs] = useState<any[]>([]);
+  const [msg, setMsg] = useState('');
 
   async function load() {
     const supabase = createClient();
@@ -28,135 +17,123 @@ export default function AdminBlogsPage() {
       const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).single();
       setAdmin(p?.role === 'admin' || p?.role === 'editor');
     }
-    const { data } = await supabase.from('blogs').select('*').order('created_at', { ascending: false });
-    setBlogs(data || []);
+
+    // Fetch ALL blogs (drafts and published) for the admin view
+    const { data: b } = await supabase
+      .from('blogs')
+      .select('id,title,slug,category,cover_image_url,status,views_count')
+      .order('created_at', { ascending: false });
+
+    setBlogs(b || []);
     setLoaded(true);
   }
 
   useEffect(() => { load(); }, []);
 
-  async function uploadCoverFn(e: any) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setCover(await uploadToCloudinary(file, 'blog-covers'));
-    } catch (err: any) {
-      alert('Upload failed');
-    }
-  }
-
-  async function save(e: any) {
-    e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) return alert('Title and content are required.');
-    setBusy(true);
-    const supabase = createClient();
-    const payload: any = {
-      title: form.title.trim(),
-      category: form.category.trim() || 'Farming',
-      content: form.content,
-      cover_image_url: cover ? withRatio(cover, coverRatio) : null,
-      cover_ratio: coverRatio,
-      slug: slugify(form.title) + (editId ? '' : '-' + Date.now().toString().slice(-4)),
-    };
-    if (editId) await supabase.from('blogs').update(payload).eq('id', editId);
-    else await supabase.from('blogs').insert(payload);
-    setMsg(editId ? 'Post updated!' : 'Published! It also flows to your Facebook page via the RSS feed.');
-    setForm({ title: '', category: 'Farming', content: '' });
-    setCover('');
-    setEditId(null);
-    setShowForm(false);
+  function flash(t: string) {
+    setMsg(t);
     setTimeout(() => setMsg(''), 3000);
-    await load();
-    setBusy(false);
   }
 
-  async function blastPost(b: any) {
+  async function deleteBlog(id: string) {
+    if (!window.confirm('Delete this post permanently?')) return;
     const supabase = createClient();
-    try {
-      await supabase.from('announcements').insert({
-        title: '📰 ' + b.title,
-        body: (b.content || '').slice(0, 120) + '...',
-        link: '/blog/' + b.slug,
-        emoji: '📰',
-      });
-      alert('Blasted! Every member now sees this post at the top of every page.');
-    } catch {
-      alert('Megaphone table not ready yet — run the Megaphone SQL first.');
-    }
+    const { error } = await supabase.from('blogs').delete().eq('id', id);
+    if (error) alert('Error deleting: ' + error.message);
+    else load();
   }
 
-  function startEdit(b: any) {
-    setEditId(b.id);
-    setForm({ title: b.title, category: b.category || 'Farming', content: b.content });
-    setCover(b.cover_image_url || '');
-    setCoverRatio(b.cover_ratio === '4:5' ? '4:5' : '2:3');
-    setShowForm(true);
-    window.scrollTo({ top: 0 });
-  }
-
-  async function remove(id: string) {
-    if (!window.confirm('Delete this blog post forever?')) return;
+  async function toggleStatus(id: string, currentStatus: string) {
     const supabase = createClient();
-    await supabase.from('blogs').delete().eq('id', id);
-    load();
+    const newStatus = currentStatus === 'published' ? 'draft' : 'published';
+    const { error } = await supabase.from('blogs').update({ status: newStatus }).eq('id', id);
+    if (error) alert('Error updating status: ' + error.message);
+    else load();
   }
 
-  if (!loaded) return <p className="text-center text-gray-500 py-10">Loading...</p>;
-  if (!admin) return <p className="text-center text-gray-500 py-10">Admin or Editor access only.</p>;
+  function copyLink(slug: string) {
+    const url = `https://www.farmingtechbusiness.com/blog/${slug}`;
+    navigator.clipboard.writeText(url);
+    flash('🔗 Link copied to clipboard!');
+  }
+
+  if (!loaded) return <p className="text-center p-10">Loading...</p>;
+  if (!admin) return <p className="text-center p-10">Admin access only.</p>;
 
   return (
-    <div className="p-4 pb-24 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-2xl font-extrabold">📰 Blog Control Room</h1>
-        <button onClick={() => { setShowForm(!showForm); setEditId(null); setForm({ title: '', category: 'Farming', content: '' }); setCover(''); }} className="text-xs font-bold bg-forest-600 text-white px-3 py-2 rounded-full">➕ Quick Post</button>
+    <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
+      <div>
+        <h1 className="text-2xl font-extrabold text-forest-800">📰 Blog Control Room</h1>
+        <p className="text-xs text-gray-500">Manage, view, and share your articles.</p>
+        {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
-      <p className="text-xs text-gray-500 mb-3">Publish, edit, blast and delete. For the full AI writer + SEO pack use the Engine below.</p>
 
-      <Link href="/admin/article-engine" className="block bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-extrabold text-center mb-3 active:scale-[0.98]">
-        🧠 OPEN THE AI ARTICLE & SEO ENGINE →
-      </Link>
-      <Link href="/admin/team" className="block bg-amber-100 text-amber-800 p-3 rounded-2xl font-extrabold text-center mb-4 text-xs active:scale-[0.98]">
-        👥 TEAM & ROLES — add editors who publish for you
-      </Link>
-
-      {msg && <p className="text-xs font-bold text-green-700 mb-3">{msg}</p>}
-
-      {showForm && (
-        <form onSubmit={save} className="glass-card p-4 rounded-2xl space-y-2 mb-6 border-2 border-forest-300">
-          <p className="text-sm font-bold text-forest-700">{editId ? '✏️ Edit Post' : '📝 Quick Blog Post'}</p>
-          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Title (catchy!)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <input className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" placeholder="Category (Farming / Tech / Business)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-          <label className="block text-xs font-semibold text-green-700 cursor-pointer">🖼️ Cover image
-            <input type="file" accept="image/*" className="hidden" onChange={uploadCoverFn} />
-          </label>
-          {cover && (
-            <>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setCoverRatio('2:3')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${coverRatio === '2:3' ? 'bg-forest-600 text-white' : 'bg-gray-100 text-gray-600'}`}>2:3 portrait</button>
-                <button type="button" onClick={() => setCoverRatio('4:5')} className={`flex-1 py-2 rounded-xl text-xs font-bold ${coverRatio === '4:5' ? 'bg-forest-600 text-white' : 'bg-gray-100 text-gray-600'}`}>4:5 portrait</button>
-              </div>
-              <img src={withRatio(cover, coverRatio)} alt="" className="w-28 object-cover rounded-xl" style={{ aspectRatio: coverRatio === '4:5' ? '4 / 5' : '2 / 3' }} />
-            </>
-          )}
-          <textarea className="w-full p-2 rounded-xl border border-gray-200 bg-white/70 text-sm" rows={10} placeholder="Write the full article here... (blank lines between paragraphs)" value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} />
-          <button className="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-50" disabled={busy}>{busy ? 'Saving...' : '🚀 Publish'}</button>
-        </form>
-      )}
-
-      <div className="space-y-2">
+      <div className="space-y-3 mt-4">
         {blogs.map((b) => (
-          <div key={b.id} className="glass-card p-3 rounded-2xl flex items-center gap-2">
-            {b.cover_image_url ? <img src={b.cover_image_url} alt="" className="w-12 h-12 object-cover rounded-lg" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">📰</div>}
-            <div className="flex-1 min-w-0">
-              <Link href={'/blog/' + b.slug} className="text-sm font-bold line-clamp-1 hover:underline">{b.title}</Link>
-              <p className="text-[10px] text-gray-500">{b.category} · 👁 {b.views_count || 0} · {b.status || 'published'}</p>
+          <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex flex-col gap-2 border border-gray-100 shadow-sm">
+            
+            {/* ARTICLE INFO */}
+            <div className="flex gap-3 items-center">
+              <div className="w-16 h-16 shrink-0 bg-gray-100 rounded-xl overflow-hidden relative">
+                {b.cover_image_url && <img src={b.cover_image_url} alt={b.title} className="w-full h-full object-cover" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-extrabold text-forest-900 line-clamp-2 leading-tight">{b.title}</p>
+                <p className="text-[10px] text-gray-500 mt-1 font-semibold">
+                  {b.category} · 👁️ {b.views_count || 0} · 
+                  <span className={`ml-1 font-bold ${b.status === 'published' ? 'text-green-600' : 'text-amber-500'}`}>
+                    {b.status}
+                  </span>
+                </p>
+              </div>
             </div>
-            <button onClick={() => blastPost(b)} className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-2 rounded-xl">📢</button>
-            <button onClick={() => startEdit(b)} className="text-xs font-bold text-forest-700 bg-forest-50 px-2 py-2 rounded-xl">✏️</button>
-            <button onClick={() => remove(b.id)} className="text-xs font-bold text-red-500 bg-red-50 px-2 py-2 rounded-xl">🗑</button>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex gap-2 mt-1">
+              {/* View Live */}
+              <Link 
+                href={`/blog/${b.slug}`} 
+                target="_blank"
+                className="flex-1 bg-blue-50 text-blue-700 py-2 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-1 active:scale-95 transition-transform"
+              >
+                👁️ View Live
+              </Link>
+
+              {/* Copy Link */}
+              <button 
+                onClick={() => copyLink(b.slug)} 
+                className="flex-1 bg-purple-50 text-purple-700 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 active:scale-95 transition-transform"
+              >
+                🔗 Copy Link
+              </button>
+            </div>
+
+            {/* EDIT / DELETE / STATUS */}
+            <div className="flex gap-2 mt-1">
+              <button 
+                onClick={() => toggleStatus(b.id, b.status)} 
+                className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 ${b.status === 'published' ? 'border-amber-300 text-amber-700 bg-amber-50' : 'border-green-300 text-green-700 bg-green-50'}`}
+              >
+                {b.status === 'published' ? 'Set as Draft' : 'Publish Now'}
+              </button>
+              
+              <Link 
+                href={`/admin/article-engine?edit=${b.id}`} 
+                className="w-12 bg-gray-100 text-gray-700 rounded-xl text-lg flex items-center justify-center active:scale-95"
+              >
+                ✏️
+              </Link>
+              
+              <button 
+                onClick={() => deleteBlog(b.id)} 
+                className="w-12 bg-red-50 text-red-500 rounded-xl text-lg flex items-center justify-center active:scale-95"
+              >
+                🗑️
+              </button>
+            </div>
+
           </div>
         ))}
-        {blogs.length === 0 && <p className="text-sm text-gray-500 text-center py-8">No posts yet — publish your first insight!</p>}
       </div>
     </div>
   );
