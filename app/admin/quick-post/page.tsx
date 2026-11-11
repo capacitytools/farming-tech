@@ -25,7 +25,7 @@ export default function QuickPostPage() {
   
   // Selections
   const [selectedEbook, setSelectedEbook] = useState('');
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]); // Array for multiple products
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   useEffect(() => {
     async function init() {
@@ -53,7 +53,6 @@ export default function QuickPostPage() {
     setBusy(false);
   }
 
-  // Toggle product selection
   function toggleProduct(id: string) {
     if (selectedProducts.includes(id)) {
       setSelectedProducts(selectedProducts.filter(p => p !== id));
@@ -77,8 +76,8 @@ export default function QuickPostPage() {
       cover_image_url: coverImage,
       status: 'published',
       product_cta: selectedEbook || null,
-      linked_products: selectedProducts, // 🚨 Saves the array of product IDs
-      video_url: videoUrl || null,       // 🚨 Saves the video
+      linked_products: selectedProducts,
+      video_url: videoUrl || null,
       author_name: 'Farming Tech & Business',
       indexable: true,
     });
@@ -95,33 +94,41 @@ export default function QuickPostPage() {
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-forest-800">⚡ Quick Post</h1>
-        <p className="text-xs text-gray-500">Publish articles with products, videos, and ebooks.</p>
+        <h1 className="text-2xl font-extrabold text-forest-800">🚀 Quick Post (Publish)</h1>
+        <p className="text-xs text-gray-500">Add images, products, and publish your clean article.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
       <div className="glass-card p-4 rounded-2xl space-y-4 border border-gray-100 shadow-sm">
         
-        <input className="w-full p-3 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="Article Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        
-        <select className="w-full p-3 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-        </select>
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Article Title</label>
+          <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="e.g. Broiler vs Noiler" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
 
-        <textarea className="w-full p-3 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste your formatted article here..." value={content} onChange={(e) => setContent(e.target.value)} />
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
+          <select className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Article Body (Paste Clean Text)</label>
+          <textarea className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste the article you copied from the AI Engine here..." value={content} onChange={(e) => setContent(e.target.value)} />
+        </div>
 
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Cover Image</label>
           <div className="mt-1 flex items-center gap-3">
-            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
+            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-200">
               📷 Upload Image
               <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             </label>
-            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md" />}
+            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md border border-gray-200" />}
           </div>
         </div>
 
-        {/* 🚨 SELECT MULTIPLE PRODUCTS 🚨 */}
         <div className="bg-amber-50 p-3 rounded-xl border-2 border-amber-200 space-y-2">
           <p className="text-sm font-extrabold text-amber-800">🛍️ Select Products to Advertise</p>
           <p className="text-[10px] text-amber-600 mb-2">Tap to select as many as you want.</p>
@@ -139,7 +146,6 @@ export default function QuickPostPage() {
           </div>
         </div>
 
-        {/* VIDEO & EBOOK */}
         <div className="grid grid-cols-1 gap-2">
           <input className="w-full p-3 rounded-xl border border-gray-200 text-sm" placeholder="YouTube Video URL (Optional)" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
           
@@ -149,7 +155,7 @@ export default function QuickPostPage() {
           </select>
         </div>
 
-        <button onClick={publishPost} disabled={busy} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold shadow-md mt-2">
+        <button onClick={publishPost} disabled={busy} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold shadow-md active:scale-95 transition-transform disabled:opacity-50 mt-4">
           {busy ? 'Publishing...' : '🚀 PUBLISH ARTICLE'}
         </button>
       </div>
