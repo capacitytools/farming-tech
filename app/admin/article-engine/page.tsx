@@ -2,155 +2,123 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { uploadToCloudinary } from '@/lib/upload';
 
-const CATEGORIES = ['Farming', 'Poultry', 'Rabbits', 'Livestock', 'Fish', 'Business'];
-
-export default function QuickPostPage() {
+export default function ArticleEnginePage() {
   const router = useRouter();
-  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-
-  // Form State
+  
+  // Article State
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [category, setCategory] = useState('Farming');
-  const [coverImage, setCoverImage] = useState('');
-  const [ebooks, setEbooks] = useState<any[]>([]);
-  const [selectedEbook, setSelectedEbook] = useState('');
+  
+  // Audit State
+  const [audit, setAudit] = useState<any>(null);
 
-  // 🚨 NEW: Product Card State
-  const [productTitle, setProductTitle] = useState('');
-  const [productLink, setProductLink] = useState('');
-  const [productImage, setProductImage] = useState('');
-
-  async function handleImageUpload(e: any, type: 'cover' | 'product') {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setBusy(true);
-      const url = await uploadToCloudinary(file, type === 'cover' ? 'blog-covers' : 'products');
-      if (type === 'cover') setCoverImage(url);
-      else setProductImage(url);
-    } catch (err: any) {
-      alert('Upload failed: ' + err.message);
-    }
-    setBusy(false);
+  function flash(t: string) {
+    setMsg(t);
+    setTimeout(() => setMsg(''), 3000);
   }
 
-  async function publishPost() {
-    if (!title || !content) return alert('Title and Content are required.');
+  // 🚨 THE SEO AUDITOR 🚨
+  function runAudit() {
+    if (!content) return flash('Please write some content first.');
     
-    setBusy(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
+    const h2Count = (content.match(/## /g) || []).length;
+    const linkCount = (content.match(/\[.*?\]\(.*?\)/g) || []).length;
+    const paragraphs = content.split('\n\n');
+    const longParagraphs = paragraphs.filter(p => p.split(/\s+/).length > 100).length;
+    
+    const checks = [];
+    let score = 0;
 
-    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
+    if (title.length >= 30 && title.length <= 65) { score += 10; checks.push({ label: 'Title Length (Good)', pass: true }); }
+    else { checks.push({ label: 'Title Length', pass: false, action: 'Aim for 30-65 characters.' }); }
 
-    const { error } = await supabase.from('blogs').insert({
-      title,
-      slug,
-      content,
-      category,
-      cover_image_url: coverImage,
-      status: 'published',
-      product_cta: selectedEbook || null, // E-book link
-      product_title: productTitle || null, // 🚨 New
-      product_link: productLink || null,   // 🚨 New
-      product_image: productImage || null, // 🚨 New
-      author_name: 'Farming Tech & Business',
-      indexable: true,
-    });
+    if (wordCount >= 600) { score += 20; checks.push({ label: 'Word Count (600+)', pass: true }); }
+    else { checks.push({ label: `Word Count (${wordCount})`, pass: false, action: `Add ${600 - wordCount} more words.` }); }
 
-    if (error) {
-      alert('Error publishing: ' + error.message);
-    } else {
-      setMsg('🚀 Article Published Successfully!');
-      setTimeout(() => router.push('/admin/blogs'), 1500);
-    }
-    setBusy(false);
+    if (h2Count >= 2) { score += 20; checks.push({ label: 'Headings (2+ H2s)', pass: true }); }
+    else { checks.push({ label: 'Headings', pass: false, action: 'Add 2+ headings using ##.' }); }
+
+    if (linkCount >= 2) { score += 20; checks.push({ label: 'Links (2+)', pass: true }); }
+    else { checks.push({ label: 'Links', pass: false, action: 'Add 2+ internal/external links.' }); }
+
+    if (longParagraphs === 0) { score += 15; checks.push({ label: 'Readability', pass: true }); }
+    else { checks.push({ label: 'Readability', pass: false, action: `${longParagraphs} paragraphs are too long.` }); }
+
+    if (content.includes('**')) { score += 15; checks.push({ label: 'Formatting (Bold)', pass: true }); }
+    else { checks.push({ label: 'Formatting', pass: false, action: 'Use **bold** for key terms.' }); }
+
+    setAudit({ score, checks });
+    flash('Audit complete!');
   }
 
-  // We need to load ebooks when the page opens
-  useState(() => {
-    async function loadEbooks() {
-      const supabase = createClient();
-      const { data } = await supabase.from('ebooks').select('id, title').eq('is_active', true);
-      setEbooks(data || []);
-    }
-    loadEbooks();
-  });
+  function copyCleanArticle() {
+    if (!content) return flash('No content to copy.');
+    navigator.clipboard.writeText(content);
+    flash('📋 Clean article copied!');
+  }
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-extrabold text-forest-800">⚡ Quick Post + Product</h1>
-        <p className="text-xs text-gray-500">Paste your formatted text, add a product, and publish.</p>
+        <h1 className="text-2xl font-extrabold text-forest-800">✍️ Article Writer</h1>
+        <p className="text-xs text-gray-500">Write, score, and copy your clean article.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      <div className="glass-card p-4 rounded-2xl space-y-4 border border-gray-100 shadow-sm">
+      {/* WRITING AREA */}
+      <div className="glass-card p-4 rounded-2xl space-y-3 border border-gray-100">
+        <input 
+          className="w-full p-3 rounded-xl border border-gray-200 text-sm font-bold outline-none focus:ring-2 focus:ring-forest-500" 
+          placeholder="Article Title *" 
+          value={title} 
+          onChange={(e) => setTitle(e.target.value)} 
+        />
+
+        <textarea 
+          className="w-full p-3 rounded-xl border border-gray-200 text-sm h-80 font-mono outline-none focus:ring-2 focus:ring-forest-500" 
+          placeholder="Paste your Google Doc text here..." 
+          value={content} 
+          onChange={(e) => setContent(e.target.value)} 
+        />
+      </div>
+
+      {/* SEO AUDIT */}
+      <div className="glass-card p-4 rounded-2xl space-y-3 border-2 border-blue-300">
+        <div className="flex justify-between items-center">
+          <p className="text-sm font-extrabold text-blue-800">SEO Audit</p>
+          <button onClick={runAudit} className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">Check Score</button>
+        </div>
         
-        {/* TITLE & CATEGORY */}
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Article Title</label>
-          <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="e.g. Broiler vs Noiler" value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
-          <select className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* CONTENT */}
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Article Body (Markdown)</label>
-          <textarea className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste your formatted AI text here..." value={content} onChange={(e) => setContent(e.target.value)} />
-        </div>
-
-        {/* COVER IMAGE */}
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Cover Image</label>
-          <div className="mt-1 flex items-center gap-3">
-            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-200">
-              📷 Upload Image
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'cover')} />
-            </label>
-            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md border border-gray-200" />}
+        {audit && (
+          <div className="mt-2 space-y-2">
+            <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-blue-100">
+              <span className="font-extrabold text-gray-700">Score</span>
+              <span className={`text-3xl font-extrabold ${audit.score >= 80 ? 'text-green-600' : 'text-red-500'}`}>{audit.score}/100</span>
+            </div>
+            {audit.checks.map((c: any, i: number) => (
+              <div key={i} className="flex flex-col text-xs bg-gray-50 p-2 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span>{c.pass ? '✅' : '❌'}</span>
+                  <span className={c.pass ? 'text-gray-700' : 'text-red-600 font-bold'}>{c.label}</span>
+                </div>
+                {!c.pass && <p className="text-gray-500 mt-1 ml-6">👉 {c.action}</p>}
+              </div>
+            ))}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* 🚨 THE NEW PRODUCT CARD SECTION 🚨 */}
-        <div className="bg-amber-50 p-3 rounded-xl border-2 border-amber-200 space-y-3">
-          <p className="text-sm font-extrabold text-amber-800">🛍️ Attach a Product Card (Optional)</p>
-          <p className="text-[10px] text-amber-600">Attach a product, tool, or e-book to the bottom of this article.</p>
-          
-          <input className="w-full p-2 rounded-lg border border-amber-200 text-xs" placeholder="Product Title (e.g. 256 Egg Incubator)" value={productTitle} onChange={e => setProductTitle(e.target.value)} />
-          
-          <input className="w-full p-2 rounded-lg border border-amber-200 text-xs" placeholder="Affiliate Link (e.g. https://your-site.com/go/incubator)" value={productLink} onChange={e => setProductLink(e.target.value)} />
-          
-          <div className="flex items-center gap-2">
-            <label className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
-              📷 Upload Product Image
-              <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, 'product')} />
-            </label>
-            {productImage && <img src={productImage} alt="Product" className="h-10 w-10 object-cover rounded-md border border-gray-200" />}
-          </div>
-        </div>
+      {/* ACTION BUTTONS */}
+      <div className="space-y-3">
+        <button onClick={copyCleanArticle} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold shadow-md active:scale-95 transition-transform flex justify-center items-center gap-2">
+          📋 COPY CLEAN ARTICLE
+        </button>
 
-        {/* EBOOK CTA */}
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Feature E-book (Optional)</label>
-          <select className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm outline-none" value={selectedEbook} onChange={(e) => setSelectedEbook(e.target.value)}>
-            <option value="">- No Ebook -</option>
-            {ebooks.map(eb => <option key={eb.id} value={eb.id}>{eb.title}</option>)}
-          </select>
-        </div>
-
-        <button onClick={publishPost} disabled={busy} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold shadow-md active:scale-95 transition-transform disabled:opacity-50 mt-4">
-          {busy ? 'Publishing...' : '🚀 PUBLISH ARTICLE'}
+        <button onClick={() => router.push('/admin/quick-post')} className="w-full bg-amber-400 text-forest-900 py-4 rounded-xl font-extrabold shadow-md active:scale-95 transition-transform flex justify-center items-center gap-2">
+          🚀 GO TO QUICK POST (Publish)
         </button>
       </div>
     </div>
