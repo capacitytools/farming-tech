@@ -24,14 +24,14 @@ export default function QuickPostPage() {
   const [videoUrl, setVideoUrl] = useState('');
   
   // Selections
-  const [selectedEbook, setSelectedEbook] = useState('');
+  const [selectedEbooks, setSelectedEbooks] = useState<string[]>([]); // 🚨 Array for ebooks
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   useEffect(() => {
     async function init() {
       const supabase = createClient();
       const [eb, pr] = await Promise.all([
-        supabase.from('ebooks').select('id, title').eq('is_active', true),
+        supabase.from('ebooks').select('id, title, cover_url').eq('is_active', true),
         supabase.from('affiliate_links').select('id, title, image_url')
       ]);
       setEbooks(eb.data || []);
@@ -51,6 +51,14 @@ export default function QuickPostPage() {
       alert('Upload failed: ' + err.message);
     }
     setBusy(false);
+  }
+
+  function toggleEbook(id: string) {
+    if (selectedEbooks.includes(id)) {
+      setSelectedEbooks(selectedEbooks.filter(p => p !== id));
+    } else {
+      setSelectedEbooks([...selectedEbooks, id]);
+    }
   }
 
   function toggleProduct(id: string) {
@@ -75,7 +83,7 @@ export default function QuickPostPage() {
       category,
       cover_image_url: coverImage,
       status: 'published',
-      product_cta: selectedEbook || null,
+      linked_ebooks: selectedEbooks, // 🚨 Save the array
       linked_products: selectedProducts,
       video_url: videoUrl || null,
       author_name: 'Farming Tech & Business',
@@ -101,38 +109,47 @@ export default function QuickPostPage() {
 
       <div className="glass-card p-4 rounded-2xl space-y-4 border border-gray-100 shadow-sm">
         
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Article Title</label>
-          <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="e.g. Broiler vs Noiler" value={title} onChange={(e) => setTitle(e.target.value)} />
-        </div>
+        <input className="w-full p-3 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="Article Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+        
+        <select className="w-full p-3 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
+          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+        </select>
 
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
-          <select className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="text-xs font-bold text-gray-500 uppercase">Article Body (Paste Clean Text)</label>
-          <textarea className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste the article you copied from the AI Engine here..." value={content} onChange={(e) => setContent(e.target.value)} />
-        </div>
+        <textarea className="w-full p-3 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste your formatted article here..." value={content} onChange={(e) => setContent(e.target.value)} />
 
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Cover Image</label>
           <div className="mt-1 flex items-center gap-3">
-            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-200">
+            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
               📷 Upload Image
               <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             </label>
-            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md border border-gray-200" />}
+            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md" />}
           </div>
         </div>
 
+        {/* 🚨 SELECT MULTIPLE EBOOKS 🚨 */}
+        <div className="bg-blue-50 p-3 rounded-xl border-2 border-blue-200 space-y-2">
+          <p className="text-sm font-extrabold text-blue-800">📚 Select E-books to Advertise</p>
+          <p className="text-[10px] text-blue-600 mb-2">Tap to select. The first will show mid-article, the second at the bottom.</p>
+          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+            {ebooks.map(eb => (
+              <div 
+                key={eb.id} 
+                onClick={() => toggleEbook(eb.id)}
+                className={`p-2 rounded-lg border flex items-center gap-2 cursor-pointer transition-colors ${selectedEbooks.includes(eb.id) ? 'bg-blue-200 border-blue-500' : 'bg-white border-blue-100'}`}
+              >
+                {eb.cover_url ? <img src={eb.cover_url} className="w-8 h-8 object-cover rounded" /> : <div className="w-8 h-8 bg-gray-200 rounded"></div>}
+                <p className="text-[10px] font-bold text-blue-900 line-clamp-2">{eb.title}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* SELECT MULTIPLE PRODUCTS */}
         <div className="bg-amber-50 p-3 rounded-xl border-2 border-amber-200 space-y-2">
           <p className="text-sm font-extrabold text-amber-800">🛍️ Select Products to Advertise</p>
-          <p className="text-[10px] text-amber-600 mb-2">Tap to select as many as you want.</p>
-          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
             {products.map(p => (
               <div 
                 key={p.id} 
@@ -146,16 +163,9 @@ export default function QuickPostPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2">
-          <input className="w-full p-3 rounded-xl border border-gray-200 text-sm" placeholder="YouTube Video URL (Optional)" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
-          
-          <select className="w-full p-3 rounded-xl border border-gray-200 text-sm" value={selectedEbook} onChange={(e) => setSelectedEbook(e.target.value)}>
-            <option value="">- Attach E-book (Optional) -</option>
-            {ebooks.map(eb => <option key={eb.id} value={eb.id}>{eb.title}</option>)}
-          </select>
-        </div>
+        <input className="w-full p-3 rounded-xl border border-gray-200 text-sm" placeholder="YouTube Video URL (Optional)" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
 
-        <button onClick={publishPost} disabled={busy} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold shadow-md active:scale-95 transition-transform disabled:opacity-50 mt-4">
+        <button onClick={publishPost} disabled={busy} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold shadow-md mt-2">
           {busy ? 'Publishing...' : '🚀 PUBLISH ARTICLE'}
         </button>
       </div>
