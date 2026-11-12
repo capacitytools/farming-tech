@@ -16,24 +16,28 @@ async function getBlog(slug: string) {
   const { data: b, error } = await supabase.from('blogs').select('*').eq('slug', slug).single();
   if (!b || error) return null;
 
-  // Fetch related articles
   const { data: rel } = await supabase.from('blogs').select('slug,title,category,cover_image_url').eq('category', b.category).neq('id', b.id).limit(3);
 
-  // 🚨 FETCH E-BOOK DETAILS (Title, Cover, Description) 🚨
-  let ebook: any = null;
-  if (b.product_cta) {
-    const res = await supabase.from('ebooks').select('id, title, cover_url, description, price').eq('id', b.product_cta).single();
-    ebook = res.data;
+  // Fetch E-books
+  let ebooks: any[] = [];
+  if (b.linked_ebooks && b.linked_ebooks.length > 0) {
+    const res = await supabase.from('ebooks').select('id, title, cover_url, description').in('id', b.linked_ebooks);
+    // Maintain the order the admin selected them in
+    ebooks = b.linked_ebooks.map((id: string) => res.data?.find(e => e.id === id)).filter(Boolean);
+  } else if (b.product_cta) {
+    // Fallback for older posts that only have one ebook
+    const res = await supabase.from('ebooks').select('id, title, cover_url, description').eq('id', b.product_cta).single();
+    if (res.data) ebooks.push(res.data);
   }
 
-  // Fetch selected Affiliate Products
+  // Fetch Products
   let products: any[] = [];
   if (b.linked_products && b.linked_products.length > 0) {
     const res = await supabase.from('affiliate_links').select('id,title,image_url,slug').in('id', b.linked_products);
     products = res.data || [];
   }
 
-  return { b, rel: rel || [], ebook, products };
+  return { b, rel: rel || [], ebooks, products };
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }) {
@@ -85,11 +89,35 @@ function blocks(content: string) {
 
 function slugify(text: string) { return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""); }
 
+// A reusable component for the E-book card
+function EbookCard({ ebook, index }: { ebook: any, index: number }) {
+  return (
+    <div className={`mx-4 my-8 bg-gradient-to-br from-forest-800 to-forest-900 text-white rounded-3xl overflow-hidden shadow-xl border border-forest-700 flex flex-col ${index > 0 ? 'opacity-95' : ''}`}>
+      {ebook.cover_url && (
+         <img src={ebook.cover_url} alt={ebook.title} className="w-full h-32 object-cover opacity-80" />
+      )}
+      <div className="p-5">
+        <p className="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1">Recommended E-Book</p>
+        <h3 className="text-xl font-extrabold leading-tight mb-2">{ebook.title}</h3>
+        <p className="text-xs text-forest-200 mb-4 line-clamp-2">
+          {ebook.description || "Get the complete, practical guide to mastering this agricultural business and maximizing your profit."}
+        </p>
+        <Link 
+          href={'/ebooks/' + ebook.id} 
+          className="block text-center bg-amber-400 text-forest-900 px-5 py-3 rounded-xl text-sm font-extrabold shadow-md active:scale-95 transition-transform"
+        >
+          GET THE E-BOOK NOW →
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export default async function BlogArticlePage({ params }: { params: { slug: string } }) {
   const d = await getBlog(params.slug);
   if (!d) return <div className="p-10 text-center">Article not found</div>;
 
-  const { b, rel, ebook, products } = d;
+  const { b, rel, ebooks, products } = d;
   const parsedBlocks = blocks(b.content);
   
   let paragraphCount = 0;
@@ -116,40 +144,31 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
           if (blk.t === "ul") return <ul key={i} className="list-disc pl-5 space-y-1 text-sm">{blk.items.map((it: string, j: number) => <li key={j}>{inline(it)}</li>)}</ul>;
           
           paragraphCount++;
+          
           return (
             <div key={i}>
               <p className="text-base text-gray-800 leading-relaxed text-justify">{inline(blk.text)}</p>
-              {paragraphCount === 3 && <div className="my-6"><AdBanner slot="blog_in_article" /></div>}
+              
+              {/* 🚨 E-BOOK 1 & AD INJECTION 🚨 */}
+              {paragraphCount === 3 && (
+                <>
+                  <div className="my-6"><AdBanner slot="blog_in_article" /></div>
+                  
+                  {/* Display the first ebook right here if it exists */}
+                  {ebooks.length > 0 && <EbookCard ebook={ebooks[0]} index={0} />}
+                </>
+              )}
             </div>
           );
         })}
       </article>
 
-      {/* 🚨 THE NEW E-BOOK CARD 🚨 */}
-      {ebook && (
-        <div className="mx-4 mt-10">
-          <div className="bg-gradient-to-br from-forest-800 to-forest-900 text-white rounded-3xl overflow-hidden shadow-xl border border-forest-700 flex flex-col">
-            {ebook.cover_url && (
-               <img src={ebook.cover_url} alt={ebook.title} className="w-full h-40 object-cover opacity-80" />
-            )}
-            <div className="p-5">
-              <p className="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1">Recommended E-Book</p>
-              <h3 className="text-xl font-extrabold leading-tight mb-2">{ebook.title}</h3>
-              <p className="text-xs text-forest-200 mb-4 line-clamp-2">
-                {ebook.description || "Get the complete, practical guide to mastering this agricultural business and maximizing your profit."}
-              </p>
-              <Link 
-                href={'/ebooks/' + ebook.id} 
-                className="block text-center bg-amber-400 text-forest-900 px-5 py-3 rounded-xl text-sm font-extrabold shadow-md active:scale-95 transition-transform"
-              >
-                GET THE E-BOOK NOW →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 🚨 E-BOOK 2 (AT THE BOTTOM) 🚨 */}
+      {ebooks.length > 1 && <EbookCard ebook={ebooks[1]} index={1} />}
+      {/* If there's a 3rd or 4th ebook, show them too */}
+      {ebooks.slice(2).map((eb, idx) => <EbookCard key={idx} ebook={eb} index={idx + 2} />)}
 
-      {/* MULTIPLE PRODUCTS DISPLAY */}
+      {/* PRODUCTS DISPLAY */}
       {products.length > 0 && (
         <div className="px-4 mt-8 space-y-3">
           <p className="text-sm font-extrabold text-gray-800 uppercase tracking-widest border-b-2 border-amber-400 pb-1 mb-3">Recommended Gear</p>
