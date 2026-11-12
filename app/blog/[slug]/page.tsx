@@ -19,10 +19,10 @@ async function getBlog(slug: string) {
   // Fetch related articles
   const { data: rel } = await supabase.from('blogs').select('slug,title,category,cover_image_url').eq('category', b.category).neq('id', b.id).limit(3);
 
-  // Fetch linked e-book
+  // 🚨 FETCH E-BOOK DETAILS (Title, Cover, Description) 🚨
   let ebook: any = null;
   if (b.product_cta) {
-    const res = await supabase.from('ebooks').select('id,title,cover_url').eq('id', b.product_cta).single();
+    const res = await supabase.from('ebooks').select('id, title, cover_url, description, price').eq('id', b.product_cta).single();
     ebook = res.data;
   }
 
@@ -125,7 +125,31 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
         })}
       </article>
 
-      {/* 🚨 MULTIPLE PRODUCTS DISPLAY 🚨 */}
+      {/* 🚨 THE NEW E-BOOK CARD 🚨 */}
+      {ebook && (
+        <div className="mx-4 mt-10">
+          <div className="bg-gradient-to-br from-forest-800 to-forest-900 text-white rounded-3xl overflow-hidden shadow-xl border border-forest-700 flex flex-col">
+            {ebook.cover_url && (
+               <img src={ebook.cover_url} alt={ebook.title} className="w-full h-40 object-cover opacity-80" />
+            )}
+            <div className="p-5">
+              <p className="text-[10px] font-extrabold text-amber-400 uppercase tracking-widest mb-1">Recommended E-Book</p>
+              <h3 className="text-xl font-extrabold leading-tight mb-2">{ebook.title}</h3>
+              <p className="text-xs text-forest-200 mb-4 line-clamp-2">
+                {ebook.description || "Get the complete, practical guide to mastering this agricultural business and maximizing your profit."}
+              </p>
+              <Link 
+                href={'/ebooks/' + ebook.id} 
+                className="block text-center bg-amber-400 text-forest-900 px-5 py-3 rounded-xl text-sm font-extrabold shadow-md active:scale-95 transition-transform"
+              >
+                GET THE E-BOOK NOW →
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MULTIPLE PRODUCTS DISPLAY */}
       {products.length > 0 && (
         <div className="px-4 mt-8 space-y-3">
           <p className="text-sm font-extrabold text-gray-800 uppercase tracking-widest border-b-2 border-amber-400 pb-1 mb-3">Recommended Gear</p>
@@ -148,16 +172,19 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
         </div>
       )}
 
-      {ebook && (
-        <div className="mx-4 mt-8">
-          <div className="bg-gradient-to-r from-forest-600 to-green-700 text-white p-5 rounded-3xl shadow-lg">
-            <p className="text-sm font-extrabold">Want to Go Deeper? 📚</p>
-            <Link href={'/ebooks/' + ebook.id} className="inline-block bg-amber-400 text-forest-900 px-5 py-2.5 rounded-xl text-xs font-extrabold mt-3">GET THE EBOOK →</Link>
-          </div>
-        </div>
-      )}
-
       <div className="mx-4 mt-8 mb-4"><AdBanner slot="blog_bottom" /></div>
+
+      <div className="px-4 mt-12 bg-forest-50 p-6 rounded-t-3xl">
+        <h2 className="text-lg font-extrabold text-forest-800 mb-4">Continue Learning</h2>
+        <div className="space-y-3">
+          {rel.map((r: any) => (
+            <Link key={r.slug} href={'/blog/' + r.slug} className="bg-white p-3 rounded-xl flex items-center gap-3 shadow-sm border border-gray-100">
+              {r.cover_image_url ? <img src={r.cover_image_url} alt="" className="w-12 h-12 rounded-lg object-cover" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center">📰</div>}
+              <p className="text-xs font-bold text-forest-900 line-clamp-2">{r.title}</p>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
