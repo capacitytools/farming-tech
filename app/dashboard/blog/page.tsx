@@ -42,13 +42,16 @@ export default function UserBlogDashboard() {
         <p className="text-[11px] text-forest-200 mt-0.5">Write, post, and make money.</p>
       </div>
 
-      {/* ACTION BUTTONS */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/dashboard/blog/new" className="bg-forest-600 text-white p-4 rounded-2xl font-bold text-center text-sm shadow-md">
-          ✍️ Create New Post
+      {/* 🚨 ACTION BUTTONS 🚨 */}
+      <div className="grid grid-cols-3 gap-2">
+        <Link href="/dashboard/blog/new" className="bg-forest-600 text-white p-3 rounded-2xl font-bold text-center text-xs shadow-md flex flex-col items-center justify-center gap-1">
+          <span className="text-xl">✍️</span> New Post
         </Link>
-        <Link href="/dashboard/affiliates" className="bg-amber-400 text-forest-900 p-4 rounded-2xl font-bold text-center text-sm shadow-md">
-          🔗 My Affiliate Links
+        <Link href="/dashboard/affiliates" className="bg-amber-400 text-forest-900 p-3 rounded-2xl font-bold text-center text-xs shadow-md flex flex-col items-center justify-center gap-1">
+          <span className="text-xl">🔗</span> Affiliates
+        </Link>
+        <Link href="/dashboard/blog/theme" className="bg-purple-600 text-white p-3 rounded-2xl font-bold text-center text-xs shadow-md flex flex-col items-center justify-center gap-1">
+          <span className="text-xl">🎨</span> Themes
         </Link>
       </div>
 
@@ -63,7 +66,7 @@ export default function UserBlogDashboard() {
             ) : (
               <div className="w-16 h-16 bg-forest-100 rounded-lg flex items-center justify-center text-2xl">📰</div>
             )}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-sm font-extrabold text-forest-900 line-clamp-1">{p.title}</p>
               <p className="text-[10px] text-green-600 font-bold">👁️ {p.views_count || 0} views</p>
               <div className="flex gap-2 mt-2">
