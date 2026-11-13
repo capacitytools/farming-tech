@@ -214,7 +214,12 @@ export default function ProfilePage() {
             <Link href="/inbox" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">📬 Inbox</Link>
             <Link href={`/farmer/${user.id}`} className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700">👀 Public Page</Link>
             
-            {/* 🚨 VIP GATE: ONLY SHOW TO VERIFIED/ADMIN 🚨 */}
+            {/* 🚨 NEW: MY BLOG DASHBOARD 🚨 */}
+            <Link href="/dashboard/blog" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700 border-2 border-forest-300 shadow-sm col-span-2">
+              📝 My Blog Dashboard
+            </Link>
+
+            {/* VIP GATE: ONLY SHOW TO VERIFIED/ADMIN */}
             {(isAdmin || isVerified) && (
               <Link href="/dashboard/newsletter" className="glass-card p-3 rounded-2xl text-center text-xs font-bold text-forest-700 border-2 border-forest-300 col-span-2 shadow-sm">📧 My Newsletter Studio</Link>
             )}
