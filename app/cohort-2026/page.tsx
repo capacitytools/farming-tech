@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function CohortLandingPage() {
-  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -29,16 +27,15 @@ export default function CohortLandingPage() {
       
       {/* HERO SECTION */}
       <div className="bg-gradient-to-br from-forest-800 to-forest-950 text-white px-6 py-12 rounded-b-[3rem] shadow-xl text-center relative overflow-hidden">
-        {/* Decorative Background Elements */}
         <div className="absolute top-0 left-0 w-40 h-40 bg-white/5 rounded-full blur-2xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-60 h-60 bg-gold-400/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
+        <div className="absolute bottom-0 right-0 w-60 h-60 bg-amber-400/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3"></div>
 
-        <span className="inline-block bg-gold-500 text-forest-900 text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6 shadow-sm">
+        <span className="inline-block bg-amber-400 text-forest-900 text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full mb-6 shadow-sm">
           Free Practical Masterclass
         </span>
         
         <h1 className="text-4xl font-extrabold leading-tight mb-4 tracking-tight">
-          Make Your First <span className="text-gold-400">$500</span> as a Farmer, Writer, or Creator.
+          Make Your First <span className="text-amber-400">$500</span> as a Farmer, Writer, or Creator.
         </h1>
         
         <p className="text-sm text-forest-200 font-medium max-w-md mx-auto mb-6">
@@ -51,12 +48,12 @@ export default function CohortLandingPage() {
         </div>
       </div>
 
-      {/* THE 3 IMAGES (Visual Proof/Speakers) */}
+      {/* 🚨 THE 3 IMAGES 🚨 */}
       <div className="px-4 -mt-6 relative z-10">
         <div className="grid grid-cols-3 gap-2">
-          <img src="https://res.cloudinary.com/jnvtguiz/image/upload/v1/placeholder1.jpg" alt="Farmer" className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white" />
-          <img src="https://res.cloudinary.com/jnvtguiz/image/upload/v1/placeholder2.jpg" alt="AI Tech" className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white mt-4" />
-          <img src="https://res.cloudinary.com/jnvtguiz/image/upload/v1/placeholder3.jpg" alt="Writer" className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white" />
+          <img src="https://res.cloudinary.com/jnvtguiz/image/upload/v1794591974/1794590663528.jpg" alt="Masterclass" className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white" />
+          <img src="https://res.cloudinary.com/jnvtguiz/image/upload/v1794591974/1794590768599.jpg" alt="Masterclass" className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white mt-4" />
+          <img src="https://res.cloudinary.com/jnvtguiz/image/upload/v1794591974/1794590856192.jpg" alt="Masterclass" className="w-full h-32 object-cover rounded-2xl shadow-lg border-2 border-white" />
         </div>
       </div>
 
