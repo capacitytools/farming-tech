@@ -36,7 +36,6 @@ export default function HomeExperience({ d }: { d: any }) {
   const [homeCText, setHomeCText] = useState("");
   const [homeLikes, setHomeLikes] = useState<any>({});
   
-  // STATE FOR EXPANDING POSTS
   const [expandedPosts, setExpandedPosts] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
@@ -195,8 +194,21 @@ export default function HomeExperience({ d }: { d: any }) {
         </div>
       </div>
 
+      {/* 🚨 COHORT BANNER 🚨 */}
+      <div className="px-4 mt-4">
+        <Link href="/cohort-2026" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform border-2 border-amber-300">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">🎓</span>
+            <div className="flex-1">
+              <p className="font-extrabold text-sm">Free Masterclass: Make Your First $500</p>
+              <p className="text-[11px] text-amber-100 font-medium mt-0.5">No followers needed. Register for the Nov 21st class →</p>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* LIVE ACTIVITY TICKER */}
-      <div className="bg-black overflow-hidden py-2">
+      <div className="bg-black overflow-hidden py-2 mt-4">
         <p className="ftb-marquee text-xs font-bold text-green-400 px-4">{tickerItems.join("   ···   ")}</p>
       </div>
 
@@ -286,7 +298,7 @@ export default function HomeExperience({ d }: { d: any }) {
       {/* SHINING EBOOK BANNER */}
       <EbookBanner count={d.ebooks.length} />
 
-      {/* 🚨 AGRICULTURAL KNOWLEDGE CENTER 🚨 */}
+      {/* AGRICULTURAL KNOWLEDGE CENTER */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl font-extrabold text-forest-800 dark:text-white">🌾 Agricultural Knowledge</h2>
@@ -339,7 +351,7 @@ export default function HomeExperience({ d }: { d: any }) {
         </div>
       </div>
 
-      {/* 🚨 FOR YOU / TOP POSTS FEED 🚨 */}
+      {/* FOR YOU / TOP POSTS FEED */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
@@ -349,15 +361,12 @@ export default function HomeExperience({ d }: { d: any }) {
           {hotVisible.map((p: any, i: number) => {
             const isExpanded = expandedPosts[p.id];
             const content = p.content || '';
-            
-            // 🚨 HARD CUTOFF AT 80 CHARACTERS 🚨
-            const isLong = content.length > 80; 
-            const displayContent = isExpanded ? content : content.slice(0, 80);
+            const isLong = content.length > 120;
+            const displayContent = isExpanded ? content : content.slice(0, 120);
 
             return (
               <div key={p.id} className="glass-card p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
                 
-                {/* CLICKABLE AUTHOR HEADER */}
                 <div className="flex items-center gap-2 mb-2">
                   <Link href={"/farmer/" + p.author_id} className="flex items-center gap-2 hover:opacity-80">
                     {p.author_avatar ? (
@@ -376,13 +385,11 @@ export default function HomeExperience({ d }: { d: any }) {
                   <span className="ml-auto text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">#{i + 1} 🔥</span>
                 </div>
 
-                {/* COLLAPSIBLE CONTENT */}
                 <div className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-line leading-relaxed">
                   {rich(displayContent)}
                   {isLong && !isExpanded && '...'}
                 </div>
 
-                {/* THE SEE MORE BUTTON */}
                 {isLong && (
                   <button 
                     onClick={() => toggleExpand(p.id)} 
@@ -398,7 +405,6 @@ export default function HomeExperience({ d }: { d: any }) {
                   </div>
                 )}
 
-                {/* ENGAGEMENT BAR */}
                 <div className="flex items-center gap-4 mt-3 pt-2 border-t border-gray-100 text-xs font-bold text-gray-600">
                   <button onClick={() => homeLike(p.id)} className="flex items-center gap-1 active:scale-90 text-red-500">
                     ❤️ {homeLikes[p.id] ?? p.likes ?? 0}
@@ -411,7 +417,6 @@ export default function HomeExperience({ d }: { d: any }) {
                   </button>
                 </div>
 
-                {/* 🚨 CLEAN SHARE ROW 🚨 */}
                 <div className="flex items-center gap-2 mt-2 bg-gray-50 dark:bg-forest-950 p-1.5 rounded-lg overflow-x-auto scrollbar-hide">
                   <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider pl-1 shrink-0">Share:</span>
                   <button onClick={() => homeShare(p, "wa")} className="text-lg bg-white p-1 rounded-md shadow-sm">📤</button>
@@ -422,7 +427,6 @@ export default function HomeExperience({ d }: { d: any }) {
                   <button onClick={() => homeShare(p, "copy")} className="text-lg bg-white p-1 rounded-md shadow-sm">🔗</button>
                 </div>
 
-                {/* COMMENTS SECTION */}
                 {homeOpenC === p.id && (
                   <div className="mt-3 space-y-2 border-t pt-2 border-gray-100">
                     {(homeComments[p.id] || []).map((c: any) => (
