@@ -2,21 +2,22 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTheme } from '@/components/ThemeProvider';
 import BackButton from './BackButton';
-import { Sprout, Bell, Mail, Search, Moon, Menu } from 'lucide-react';
+import { Sprout, Bell, Mail, Search, Moon, Sun, Menu } from 'lucide-react';
 
 export default function TopBar() {
   const pathname = usePathname();
   const isHome = pathname === '/';
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 dark:bg-forest-900/90 backdrop-blur-md border-b border-gray-100 dark:border-forest-800">
-      <div className="max-w-md mx-auto flex items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-40 bg-white dark:bg-forest-900 border-b border-gray-100 dark:border-forest-800">
+      <div className="max-w-md mx-auto flex items-center justify-between px-2 py-3">
         
         {/* LEFT: Back Button + Logo */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {!isHome && <BackButton />}
-          
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-forest-600 flex items-center justify-center text-white">
               <Sprout className="w-5 h-5" />
@@ -28,13 +29,18 @@ export default function TopBar() {
           </Link>
         </div>
 
-        {/* RIGHT: Icons (Bell, Mail, Search, Theme, Menu) */}
-        <div className="flex items-center gap-3 text-forest-700 dark:text-forest-200">
-          <Link href="/notifications"><Bell className="w-5 h-5" /></Link>
-          <Link href="/inbox"><Mail className="w-5 h-5" /></Link>
-          <Link href="/search"><Search className="w-5 h-5" /></Link>
-          <button><Moon className="w-5 h-5" /></button>
-          <button><Menu className="w-5 h-5" /></button>
+        {/* RIGHT: All Icons */}
+        <div className="flex items-center gap-2 text-forest-700 dark:text-forest-200">
+          <Link href="/notifications" className="p-1.5 active:scale-90 transition-transform"><Bell className="w-5 h-5" /></Link>
+          <Link href="/inbox" className="p-1.5 active:scale-90 transition-transform"><Mail className="w-5 h-5" /></Link>
+          <Link href="/search" className="p-1.5 active:scale-90 transition-transform"><Search className="w-5 h-5" /></Link>
+          
+          <button onClick={toggleTheme} className="p-1.5 active:scale-90 transition-transform">
+            {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+          </button>
+          
+          {/* Optional: Menu Button */}
+          <button className="p-1.5 active:scale-90 transition-transform"><Menu className="w-5 h-5" /></button>
         </div>
 
       </div>
