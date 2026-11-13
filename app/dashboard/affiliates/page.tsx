@@ -1,10 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { uploadToCloudinary } from '@/lib/upload';
 
 export default function UserAffiliatePage() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
   const [loaded, setLoaded] = useState(false);
   const [links, setLinks] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
@@ -18,21 +21,35 @@ export default function UserAffiliatePage() {
 
   async function load() {
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    
+    // 1. Get User
+    const { data: { user: u } } = await supabase.auth.getUser();
+    if (!u) {
+      router.push('/login');
+      return;
+    }
+    setUser(u);
 
-    // Fetch ONLY this user's links
-    const { data } = await supabase
+    // 2. Fetch Links (With error handling)
+    const { data, error } = await supabase
       .from('affiliate_links')
       .select('*')
-      .eq('owner_id', user.id) // 🚨 The magic filter
+      .eq('owner_id', u.id)
       .order('created_at', { ascending: false });
-      
-    setLinks(data || []);
+
+    if (error) {
+      console.error("Error loading affiliate links:", error);
+      alert('Could not load your links. Please try again.');
+    } else {
+      setLinks(data || []);
+    }
+    
     setLoaded(true);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+  }, []);
 
   function flash(t: string) {
     setMsg(t);
@@ -58,10 +75,8 @@ export default function UserAffiliatePage() {
     setBusy(true);
 
     const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    // We add a unique code to the slug so users don't clash with each other
+    
+    // Add a unique code to the slug so users don't clash
     const cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-');
     const userSlug = `${cleanSlug}-${user.id.slice(0, 4)}`; 
 
@@ -70,7 +85,7 @@ export default function UserAffiliatePage() {
       slug: userSlug,
       destination_url: destinationUrl,
       image_url: imageUrl || null,
-      owner_id: user.id, // 🚨 Link it to this user
+      owner_id: user.id,
     });
 
     if (error) {
@@ -103,7 +118,14 @@ export default function UserAffiliatePage() {
     }
   }
 
-  if (!loaded) return <p className="text-center p-10">Loading...</p>;
+  if (!loaded) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-10">
+        <div className="w-10 h-10 border-4 border-forest-200 border-t-forest-600 rounded-full animate-spin mb-4"></div>
+        <p className="text-sm font-bold text-forest-800">Loading your vault...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-6">
@@ -113,7 +135,7 @@ export default function UserAffiliatePage() {
         {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
       </div>
 
-      <form onSubmit={createLink} className="glass-card p-4 rounded-2xl space-y-3">
+      <form onSubmit={createLink} className="glass-card p-4 rounded-2xl space-y-3 bg-white border border-gray-100 shadow-sm">
         <p className="text-sm font-extrabold text-forest-700">1. NEW PRODUCT</p>
         
         <input className="w-full p-2 rounded-xl border border-gray-200 text-sm mt-1" placeholder="Product Name (e.g. 256 Egg Incubator)" value={title} onChange={(e) => handleTitleChange(e.target.value)} />
@@ -126,6 +148,7 @@ export default function UserAffiliatePage() {
         <input className="w-full p-2 rounded-xl border border-gray-200 text-sm mt-1" placeholder="Affiliate URL (AliExpress, Jumia, etc)" value={destinationUrl} onChange={(e) => setDestinationUrl(e.target.value)} />
 
         <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
+          <p className="text-[10px] font-bold text-amber-800 mb-1">Product Image (Optional)</p>
           <div className="flex gap-2 mt-2">
             <input className="flex-1 p-2 rounded-lg border border-amber-200 text-xs" placeholder="Paste Image URL..." value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
             <label className="bg-white border border-amber-300 text-amber-700 px-3 py-2 rounded-lg text-xs font-bold cursor-pointer whitespace-nowrap shadow-sm">
@@ -136,17 +159,29 @@ export default function UserAffiliatePage() {
           {imageUrl && <img src={imageUrl} className="h-16 object-contain mt-2" />}
         </div>
 
-        <button type="submit" disabled={busy} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold text-sm disabled:opacity-50">
+        <button type="submit" disabled={busy} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold text-sm disabled:opacity-50 mt-2">
           {busy ? 'Creating...' : '➕ CREATE LINK'}
         </button>
       </form>
 
       <div className="space-y-3">
         <p className="text-sm font-extrabold text-forest-700">2. MY PRODUCTS ({links.length})</p>
+        
+        {links.length === 0 && (
+          <div className="text-center py-8 bg-white rounded-2xl border border-gray-100">
+            <p className="text-3xl mb-2">📦</p>
+            <p className="text-sm font-bold text-gray-500">You haven't created any links yet.</p>
+          </div>
+        )}
+
         {links.map((link) => (
-          <div key={link.id} className="glass-card p-4 rounded-2xl flex gap-3 items-center border border-gray-100">
-            {link.image_url ? <img src={link.image_url} className="w-12 h-12 object-cover rounded-lg bg-white" /> : <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center text-xl">📦</div>}
-            <div className="flex-1">
+          <div key={link.id} className="glass-card p-4 rounded-2xl flex gap-3 items-center border border-gray-100 bg-white">
+            {link.image_url ? (
+              <img src={link.image_url} className="w-12 h-12 object-cover rounded-lg bg-white border border-gray-100" />
+            ) : (
+              <div className="w-12 h-12 bg-forest-100 rounded-lg flex items-center justify-center text-xl">📦</div>
+            )}
+            <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-forest-900 line-clamp-1">{link.title}</p>
               <p className="text-[10px] text-amber-600 font-bold">👁️ {link.clicks} clicks</p>
             </div>
