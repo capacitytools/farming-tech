@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from '@/components/ThemeProvider';
 import BackButton from './BackButton';
-import { Sprout, Bell, Mail, Search, Moon, Sun, Menu } from 'lucide-react';
+import MobileMenu from './MobileMenu'; // 🚨 Added the Menu
+import { Sprout, Bell, Mail, Search, Moon, Sun } from 'lucide-react';
 
 export default function TopBar() {
   const pathname = usePathname();
@@ -30,7 +31,7 @@ export default function TopBar() {
         </div>
 
         {/* RIGHT: All Icons */}
-        <div className="flex items-center gap-2 text-forest-700 dark:text-forest-200">
+        <div className="flex items-center gap-1 text-forest-700 dark:text-forest-200">
           <Link href="/notifications" className="p-1.5 active:scale-90 transition-transform"><Bell className="w-5 h-5" /></Link>
           <Link href="/inbox" className="p-1.5 active:scale-90 transition-transform"><Mail className="w-5 h-5" /></Link>
           <Link href="/search" className="p-1.5 active:scale-90 transition-transform"><Search className="w-5 h-5" /></Link>
@@ -39,8 +40,8 @@ export default function TopBar() {
             {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
           </button>
           
-          {/* Optional: Menu Button */}
-          <button className="p-1.5 active:scale-90 transition-transform"><Menu className="w-5 h-5" /></button>
+          {/* 🚨 The Working Menu Button 🚨 */}
+          <MobileMenu />
         </div>
 
       </div>
