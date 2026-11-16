@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 const PLATFORMS = [
@@ -12,7 +11,6 @@ const PLATFORMS = [
 ];
 
 export default function AdsHelperDashboard() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [generatedData, setGeneratedData] = useState<any>(null);
 
@@ -25,6 +23,7 @@ export default function AdsHelperDashboard() {
   async function generateAd() {
     if (!product || !audience) return alert('Please fill all fields');
     setLoading(true);
+    setGeneratedData(null);
 
     let key = localStorage.getItem('ftb_gemini_key') || '';
     if (!key) {
@@ -34,22 +33,24 @@ export default function AdsHelperDashboard() {
       localStorage.setItem('ftb_gemini_key', key);
     }
 
-    const systemPrompt = `You are an Expert Facebook/TikTok Ads Manager with 10 years of experience. 
-    Generate a complete ad campaign for the following:
-    Platform: ${platform}
+    const systemPrompt = `You are an Expert ${platform} Ads Manager with 10 years of experience. 
+    Generate a complete ad campaign for:
     Product: ${product}
     Target Audience: ${audience}
     Country: ${country}
     
-    Output the response in strict JSON format only:
+    You MUST output valid JSON only. Do not include any markdown formatting, backticks, or conversational text. Just the raw JSON object.
+    
+    Format:
     {
       "ad_plan": "A 3-sentence strategy on how to run this ad and budget.",
       "sales_copy": "A highly converting ad caption with emojis and a call to action.",
       "image_prompt": "A detailed prompt for an AI image generator to create the ad image.",
-      "landing_page": "/feeds" 
+      "landing_page": "/feeds"
     }`;
 
-    const models = ['gemini-flash-latest', 'gemini-2.5-flash'];
+    // 🚨 UPGRADED TO PRO MODEL FOR STRICT JSON 🚨
+    const models = ['gemini-2.5-pro', 'gemini-2.5-flash'];
     let text = '';
 
     for (let i = 0; i < models.length; i++) {
@@ -60,16 +61,21 @@ export default function AdsHelperDashboard() {
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
             contents: [{ parts: [{ text: 'Generate the campaign.' }] }],
+            generationConfig: {
+              responseMimeType: "application/json", // 🚨 FORCES AI TO RETURN STRICT JSON 🚨
+            }
           }),
         });
         const data = await res.json();
         text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         if (text) break;
-      } catch (err) {}
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     try {
-      // Clean the JSON string (remove markdown backticks)
+      // Clean the JSON string just in case
       const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       
@@ -90,10 +96,10 @@ export default function AdsHelperDashboard() {
         });
       }
 
-      setGeneratedData({ ...parsed, image_prompt: parsed.image_prompt });
+      setGeneratedData(parsed);
     } catch (e) {
+      console.error('Raw AI Output:', text);
       alert('AI failed to generate valid JSON. Please try again.');
-      console.error(text);
     }
     setLoading(false);
   }
@@ -147,7 +153,7 @@ export default function AdsHelperDashboard() {
 
         {/* RESULTS */}
         {generatedData && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-purple-900/50 p-4 rounded-2xl border border-purple-500">
               <p className="text-xs font-bold text-purple-300 uppercase mb-2">📊 Ad Strategy</p>
               <p className="text-sm">{generatedData.ad_plan}</p>
