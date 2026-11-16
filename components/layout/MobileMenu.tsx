@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { X, User, Shield, LogOut, FileText, Video, ShoppingBag, BookOpen, MessageSquare, Home, DollarSign, Link2, TrendingUp, Settings } from 'lucide-react';
+import { X, User, Shield, LogOut, FileText, Video, ShoppingBag, BookOpen, MessageSquare, Home, Link2, Rocket } from 'lucide-react';
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -65,12 +65,16 @@ export default function MobileMenu() {
               {/* 🚨 MONETIZATION SECTION 🚨 */}
               <div className="border-t border-gray-100 dark:border-forest-800 my-2 pt-2">
                  <p className="px-3 pb-1 text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">💰 Monetization</p>
+                 
                  <Link href="/dashboard/affiliates" onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50 dark:hover:bg-forest-800 text-sm font-bold text-amber-800 dark:text-amber-400">
                   <Link2 className="w-4 h-4" /> My Affiliate Vault
                 </Link>
-                <Link href="/admin/affiliates" onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-amber-50 dark:hover:bg-forest-800 text-sm font-bold text-amber-800 dark:text-amber-400">
-                  <DollarSign className="w-4 h-4" /> Admin Affiliates
+
+                {/* 🚨 NEW: ADS HELPER 🚨 */}
+                <Link href="/dashboard/ads-helper" onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-forest-800 text-sm font-bold text-purple-700 dark:text-purple-400">
+                  <Rocket className="w-4 h-4" /> Ads Helper
                 </Link>
+
               </div>
 
               {/* 🚨 ADMIN SECTION 🚨 */}
