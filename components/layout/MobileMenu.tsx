@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { X, User, Shield, LogOut, FileText, Video, ShoppingBag, BookOpen, MessageSquare, Home, Link2, Rocket } from 'lucide-react';
+import { X, User, Shield, LogOut, FileText, Video, ShoppingBag, BookOpen, MessageSquare, Home, Link2, Rocket, Filter } from 'lucide-react';
 
 export default function MobileMenu() {
   const [open, setOpen] = useState(false);
@@ -70,9 +70,13 @@ export default function MobileMenu() {
                   <Link2 className="w-4 h-4" /> My Affiliate Vault
                 </Link>
 
-                {/* 🚨 NEW: ADS HELPER 🚨 */}
                 <Link href="/dashboard/ads-helper" onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-forest-800 text-sm font-bold text-purple-700 dark:text-purple-400">
                   <Rocket className="w-4 h-4" /> Ads Helper
+                </Link>
+
+                {/* 🚨 NEW: FUNNEL BUILDER LINK 🚨 */}
+                <Link href="/dashboard/funnel-builder" onClick={() => setOpen(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-purple-50 dark:hover:bg-forest-800 text-sm font-bold text-purple-700 dark:text-purple-400">
+                  <Filter className="w-4 h-4" /> Funnel Builder
                 </Link>
 
               </div>
