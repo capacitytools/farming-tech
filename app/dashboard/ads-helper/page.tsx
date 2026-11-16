@@ -47,14 +47,14 @@ export default function AdsHelperDashboard() {
       "landing_page": "/feeds"
     }`;
 
-    // 🚨 REVERTED TO FLASH MODEL FOR SPEED 🚨
-    const models = ['gemini-flash-latest', 'gemini-2.5-flash'];
+    // 🚨 SWAPPED TO 2.5-FLASH FOR FASTER RESPONSE 🚨
+    const models = ['gemini-2.5-flash', 'gemini-flash-latest'];
     let text = '';
 
     for (let i = 0; i < models.length; i++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
         const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent?key=' + key, {
           method: 'POST',
@@ -74,9 +74,14 @@ export default function AdsHelperDashboard() {
         if (text) break;
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          alert('The AI took too long to respond. Please try again.');
-          setLoading(false);
-          return;
+          // If the first model times out, try the next one
+          if (i === models.length - 1) {
+            alert('Google AI is very busy right now. Please try again in a minute.');
+            setLoading(false);
+            return;
+          }
+          console.warn('Model timed out, trying fallback...');
+          continue;
         }
         console.error(err);
       }
@@ -156,7 +161,7 @@ export default function AdsHelperDashboard() {
           <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-red-500 outline-none" placeholder="Country" value={country} onChange={e => setCountry(e.target.value)} />
 
           <button onClick={generateAd} disabled={loading} className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-red-600 text-white py-4 rounded-xl font-extrabold text-lg shadow-xl active:scale-95 transition-transform disabled:opacity-50 mt-4">
-            {loading ? 'Generating...' : '✨ GENERATE CAMPAIGN'}
+            {loading ? 'Generating... (Please wait)' : '✨ GENERATE CAMPAIGN'}
           </button>
         </div>
 
