@@ -33,53 +33,65 @@ export default function AdsHelperDashboard() {
       localStorage.setItem('ftb_gemini_key', key);
     }
 
-    const systemPrompt = `You are an Expert ${platform} Ads Manager with 10 years of experience. 
-    Generate a complete ad campaign for:
+    const systemPrompt = `You are an Expert ${platform} Ads Manager. Generate a campaign for:
     Product: ${product}
-    Target Audience: ${audience}
+    Audience: ${audience}
     Country: ${country}
     
-    You MUST output valid JSON only. Do not include any markdown formatting, backticks, or conversational text. Just the raw JSON object.
-    
+    Output ONLY valid JSON. No markdown, no conversational text.
     Format:
     {
-      "ad_plan": "A 3-sentence strategy on how to run this ad and budget.",
-      "sales_copy": "A highly converting ad caption with emojis and a call to action.",
-      "image_prompt": "A detailed prompt for an AI image generator to create the ad image.",
+      "ad_plan": "3-sentence strategy.",
+      "sales_copy": "High-converting ad caption.",
+      "image_prompt": "AI image generator prompt.",
       "landing_page": "/feeds"
     }`;
 
-    // 🚨 UPGRADED TO PRO MODEL FOR STRICT JSON 🚨
-    const models = ['gemini-2.5-pro', 'gemini-2.5-flash'];
+    // 🚨 REVERTED TO FLASH MODEL FOR SPEED 🚨
+    const models = ['gemini-flash-latest', 'gemini-2.5-flash'];
     let text = '';
 
     for (let i = 0; i < models.length; i++) {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
         const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent?key=' + key, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemInstruction: { parts: [{ text: systemPrompt }] },
             contents: [{ parts: [{ text: 'Generate the campaign.' }] }],
-            generationConfig: {
-              responseMimeType: "application/json", // 🚨 FORCES AI TO RETURN STRICT JSON 🚨
-            }
+            generationConfig: { responseMimeType: "application/json" },
           }),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
+        
         const data = await res.json();
         text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
         if (text) break;
-      } catch (err) {
+      } catch (err: any) {
+        if (err.name === 'AbortError') {
+          alert('The AI took too long to respond. Please try again.');
+          setLoading(false);
+          return;
+        }
         console.error(err);
       }
     }
 
+    if (!text) {
+      alert('AI failed to respond. Please check your internet and try again.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Clean the JSON string just in case
       const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsed = JSON.parse(cleanJson);
       
-      // Save to database
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -98,8 +110,8 @@ export default function AdsHelperDashboard() {
 
       setGeneratedData(parsed);
     } catch (e) {
-      console.error('Raw AI Output:', text);
-      alert('AI failed to generate valid JSON. Please try again.');
+      console.error('Raw Output:', text);
+      alert('AI format error. Please try again.');
     }
     setLoading(false);
   }
@@ -112,7 +124,6 @@ export default function AdsHelperDashboard() {
   return (
     <div className="min-h-screen bg-gray-900 text-white pb-24 font-sans">
       
-      {/* HEADER */}
       <div className="bg-gradient-to-r from-purple-900 via-blue-900 to-red-900 p-6 rounded-b-3xl shadow-2xl">
         <h1 className="text-3xl font-extrabold">🚀 Ads Helper</h1>
         <p className="text-sm text-gray-300 mt-1">Generate ads, landing pages, and copy in seconds.</p>
@@ -120,7 +131,6 @@ export default function AdsHelperDashboard() {
 
       <div className="p-4 max-w-2xl mx-auto space-y-6 mt-4">
         
-        {/* PLATFORM SELECTION */}
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase mb-2">1. Select Platform</p>
           <div className="grid grid-cols-2 gap-3">
@@ -136,22 +146,20 @@ export default function AdsHelperDashboard() {
           </div>
         </div>
 
-        {/* AD DETAILS FORM */}
         <div className="bg-gray-800 p-4 rounded-2xl border border-gray-700 space-y-3">
           <p className="text-xs font-bold text-gray-400 uppercase mb-2">2. Campaign Details</p>
           
-          <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-purple-500 outline-none" placeholder="Product / Service (e.g. Feed Formulation E-book)" value={product} onChange={e => setProduct(e.target.value)} />
+          <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-purple-500 outline-none" placeholder="Product / Service" value={product} onChange={e => setProduct(e.target.value)} />
           
-          <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-blue-500 outline-none" placeholder="Target Audience (e.g. Poultry Farmers)" value={audience} onChange={e => setAudience(e.target.value)} />
+          <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-blue-500 outline-none" placeholder="Target Audience" value={audience} onChange={e => setAudience(e.target.value)} />
           
-          <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-red-500 outline-none" placeholder="Country (e.g. Nigeria)" value={country} onChange={e => setCountry(e.target.value)} />
+          <input className="w-full p-3 rounded-xl bg-gray-900 border border-gray-700 text-sm focus:border-red-500 outline-none" placeholder="Country" value={country} onChange={e => setCountry(e.target.value)} />
 
           <button onClick={generateAd} disabled={loading} className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-red-600 text-white py-4 rounded-xl font-extrabold text-lg shadow-xl active:scale-95 transition-transform disabled:opacity-50 mt-4">
-            {loading ? 'Analyzing & Generating...' : '✨ GENERATE CAMPAIGN'}
+            {loading ? 'Generating...' : '✨ GENERATE CAMPAIGN'}
           </button>
         </div>
 
-        {/* RESULTS */}
         {generatedData && (
           <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-purple-900/50 p-4 rounded-2xl border border-purple-500">
