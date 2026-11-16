@@ -62,6 +62,17 @@ export default function UserBlogDashboard() {
         <p className="text-xs text-gray-500">Manage all your blogs in one place.</p>
       </div>
 
+      {/* 🚨 NEW: 3-BUTTON GRID 🚨 */}
+      <div className="grid grid-cols-2 gap-2">
+        <Link href="/dashboard/affiliates" className="bg-amber-100 border-2 border-amber-400 text-amber-900 p-4 rounded-2xl font-bold text-center text-xs shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center gap-1">
+          <span className="text-2xl">🔗</span> Affiliate Vault
+        </Link>
+        
+        <Link href="/dashboard/funnel-builder" className="bg-purple-100 border-2 border-purple-400 text-purple-900 p-4 rounded-2xl font-bold text-center text-xs shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center gap-1">
+          <span className="text-2xl">🚀</span> Funnel Builder
+        </Link>
+      </div>
+
       <button onClick={() => setShowCreate(!showCreate)} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold shadow-md">
         {showCreate ? 'Cancel' : '➕ Create New Blog'}
       </button>
