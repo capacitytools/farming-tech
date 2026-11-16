@@ -32,14 +32,12 @@ export default function PublicFunnelPage() {
 
     const supabase = createClient();
     
-    // Save the lead to the database
     await supabase.from('funnel_leads').insert({
       funnel_id: funnel.id,
       name,
       whatsapp,
     });
 
-    // Unlock the page
     setIsUnlocked(true);
     setSubmitting(false);
   }
@@ -53,12 +51,18 @@ export default function PublicFunnelPage() {
   const cardClass = isDark || funnel.theme === 'theme-blue' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
   const btnClass = funnel.theme === 'theme-gold' ? 'bg-yellow-600 text-white' : funnel.theme === 'theme-blue' ? 'bg-blue-600 text-white' : 'bg-forest-600 text-white';
 
+  // CTA Logic
+  const isWhatsApp = funnel.cta_type === 'whatsapp';
+
   return (
     <div className={`min-h-screen py-12 px-4 ${bgClass}`}>
       <div className="max-w-xl mx-auto">
         
         {/* HEADER */}
         <div className="text-center mb-8">
+          {funnel.hero_image && (
+            <img src={funnel.hero_image} alt={funnel.title} className="w-full h-48 object-cover rounded-2xl shadow-lg mb-4" />
+          )}
           <h1 className="text-3xl font-extrabold leading-tight mb-3">{funnel.title}</h1>
           <p className="text-sm opacity-80">{funnel.subheadline}</p>
         </div>
@@ -111,7 +115,7 @@ export default function PublicFunnelPage() {
               target="_blank" 
               className={`block text-center w-full py-4 rounded-xl font-extrabold text-sm shadow-md ${btnClass}`}
             >
-              {funnel.cta_text}
+              {isWhatsApp ? '💬 Chat on WhatsApp' : funnel.cta_text}
             </a>
           </div>
         )}
