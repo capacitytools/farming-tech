@@ -10,7 +10,7 @@ export default function BlogControlRoom() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
   
-  // 🚨 NEW: Tab State 🚨
+  // Tab State
   const [activeTab, setActiveTab] = useState<'manage' | 'topics'>('manage');
 
   async function load() {
@@ -77,16 +77,34 @@ export default function BlogControlRoom() {
     window.open(facebookUrl, '_blank');
   }
 
-  // Format date to e.g., "Nov 17, 2026"
   function formatDate(dateString: string) {
     if (!dateString) return '';
     return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
-  // Format time to e.g., "2:30 PM"
   function formatTime(dateString: string) {
     if (!dateString) return '';
     return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // 🚨 NEW: COPY ALL TOPICS FUNCTION 🚨
+  function copyAllTopics() {
+    if (blogs.length === 0) return flash('No topics to copy.');
+    
+    let text = `FARMING TECH & BUSINESS - BLOG TOPIC LIST\nTotal Posts: ${blogs.length}\n\n`;
+    
+    blogs.forEach((b, index) => {
+      text += `${index + 1}. ${b.title}\n`;
+      text += `   Status: ${b.status.toUpperCase()} | Category: ${b.category || 'N/A'}\n`;
+      text += `   Created: ${formatDate(b.created_at)} at ${formatTime(b.created_at)}\n`;
+      if (b.updated_at && b.updated_at !== b.created_at) {
+        text += `   Last Edited: ${formatDate(b.updated_at)} at ${formatTime(b.updated_at)}\n`;
+      }
+      text += '\n';
+    });
+
+    navigator.clipboard.writeText(text);
+    flash('📋 All topics copied to clipboard!');
   }
 
   if (!loaded) return <p className="text-center p-10">Loading...</p>;
@@ -103,7 +121,7 @@ export default function BlogControlRoom() {
       <div>
         <h1 className="text-2xl font-extrabold text-forest-800">📰 Blog Control Room</h1>
         <p className="text-xs text-gray-500">Manage, view, and share your articles.</p>
-        {msg && <p className="text-xs font-bold text-green-700 mt-1">{msg}</p>}
+        {msg && <p className="text-xs font-bold text-green-700 mt-1 bg-green-50 p-2 rounded-lg">{msg}</p>}
       </div>
 
       {/* COUNTER STATS */}
@@ -122,7 +140,7 @@ export default function BlogControlRoom() {
         </div>
       </div>
 
-      {/* 🚨 NEW: TABS 🚨 */}
+      {/* TABS */}
       <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner">
         <button 
           onClick={() => setActiveTab('manage')} 
@@ -151,13 +169,12 @@ export default function BlogControlRoom() {
         </div>
       )}
 
-      {/* 🚨 TAB 1: MANAGE POSTS 🚨 */}
+      {/* TAB 1: MANAGE POSTS */}
       {activeTab === 'manage' && (
         <div className="space-y-4 mt-6">
           {blogs.map((b, index) => (
             <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex gap-3 border border-gray-100 shadow-sm relative">
               
-              {/* THE BIG NUMBER & DATES */}
               <div className="flex-shrink-0 flex flex-col items-center pt-1">
                 <div className="w-12 h-12 rounded-full bg-forest-100 flex items-center justify-center border-2 border-forest-300 shadow-sm">
                   <span className="text-lg font-extrabold text-forest-800">{index + 1}</span>
@@ -186,7 +203,6 @@ export default function BlogControlRoom() {
                   </div>
                 </div>
 
-                {/* ACTION BUTTONS */}
                 <div className="flex gap-2 mt-3">
                   <Link href={`/blog/${b.slug}`} target="_blank" className="flex-1 bg-blue-50 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold text-center">
                     👁️ View
@@ -231,43 +247,51 @@ export default function BlogControlRoom() {
         </div>
       )}
 
-      {/* 🚨 TAB 2: MY TOPIC LIST 🚨 */}
+      {/* TAB 2: MY TOPIC LIST */}
       {activeTab === 'topics' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-4">
-          {blogs.length === 0 && <p className="text-center p-6 text-gray-500">No topics yet.</p>}
+        <div className="space-y-3 mt-4">
           
-          {blogs.map((b, index) => (
-            <div key={b.id} className="flex items-start gap-3 p-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-              
-              {/* NUMBER */}
-              <div className="w-8 h-8 rounded-full bg-forest-50 flex items-center justify-center flex-shrink-0 border border-forest-200 mt-0.5">
-                <span className="text-xs font-extrabold text-forest-800">{index + 1}</span>
-              </div>
-              
-              {/* TOPIC INFO */}
-              <div className="flex-1 min-w-0">
-                <Link href={`/blog/${b.slug}`} target="_blank" className="text-sm font-bold text-forest-900 hover:underline line-clamp-2 leading-tight">
-                  {b.title}
+          {/* 🚨 NEW: COPY ALL BUTTON 🚨 */}
+          <button 
+            onClick={copyAllTopics} 
+            className="w-full bg-forest-800 text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
+          >
+            📋 Copy All Topics to Clipboard
+          </button>
+
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            {blogs.length === 0 && <p className="text-center p-6 text-gray-500">No topics yet.</p>}
+            
+            {blogs.map((b, index) => (
+              <div key={b.id} className="flex items-start gap-3 p-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                
+                <div className="w-8 h-8 rounded-full bg-forest-50 flex items-center justify-center flex-shrink-0 border border-forest-200 mt-0.5">
+                  <span className="text-xs font-extrabold text-forest-800">{index + 1}</span>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <Link href={`/blog/${b.slug}`} target="_blank" className="text-sm font-bold text-forest-900 hover:underline line-clamp-2 leading-tight">
+                    {b.title}
+                  </Link>
+                  
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[10px] text-gray-500 font-semibold">
+                    <span className={b.status === 'published' ? 'text-green-600' : 'text-amber-500'}>
+                      {b.status.toUpperCase()}
+                    </span>
+                    <span>• Created: {formatDate(b.created_at)} at {formatTime(b.created_at)}</span>
+                    {b.updated_at && b.updated_at !== b.created_at && (
+                      <span className="text-amber-600">• Edited: {formatDate(b.updated_at)} at {formatTime(b.updated_at)}</span>
+                    )}
+                  </div>
+                </div>
+                
+                <Link href={`/admin/blogs/edit/${b.id}`} className="w-8 h-8 bg-gray-100 rounded-lg text-xs flex items-center justify-center flex-shrink-0 active:scale-95">
+                  ✏️
                 </Link>
                 
-                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[10px] text-gray-500 font-semibold">
-                  <span className={b.status === 'published' ? 'text-green-600' : 'text-amber-500'}>
-                    {b.status.toUpperCase()}
-                  </span>
-                  <span>• Created: {formatDate(b.created_at)} at {formatTime(b.created_at)}</span>
-                  {b.updated_at && b.updated_at !== b.created_at && (
-                    <span className="text-amber-600">• Edited: {formatDate(b.updated_at)} at {formatTime(b.updated_at)}</span>
-                  )}
-                </div>
               </div>
-              
-              {/* EDIT BUTTON */}
-              <Link href={`/admin/blogs/edit/${b.id}`} className="w-8 h-8 bg-gray-100 rounded-lg text-xs flex items-center justify-center flex-shrink-0 active:scale-95">
-                ✏️
-              </Link>
-              
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
