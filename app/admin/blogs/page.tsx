@@ -20,7 +20,7 @@ export default function BlogControlRoom() {
 
     const { data: b } = await supabase
       .from('blogs')
-      .select('id,title,slug,category,cover_image_url,status,views_count,meta_description,excerpt,created_at')
+      .select('id,title,slug,category,cover_image_url,status,views_count,meta_description,excerpt,created_at,updated_at')
       .order('created_at', { ascending: false });
 
     setBlogs(b || []);
@@ -74,6 +74,12 @@ export default function BlogControlRoom() {
     window.open(facebookUrl, '_blank');
   }
 
+  // Format date to e.g., "Nov 17, 2026"
+  function formatDate(dateString: string) {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   if (!loaded) return <p className="text-center p-10">Loading...</p>;
   if (!admin) return <p className="text-center p-10">Admin access only.</p>;
 
@@ -118,15 +124,21 @@ export default function BlogControlRoom() {
         </Link>
       </div>
 
-      {/* BLOG LIST WITH NUMBERS */}
+      {/* BLOG LIST WITH NUMBERS AND DATES */}
       <div className="space-y-4 mt-6">
         {blogs.map((b, index) => (
           <div key={b.id} className="glass-card bg-white p-3 rounded-2xl flex gap-3 border border-gray-100 shadow-sm relative">
             
-            {/* 🚨 THE BIG NUMBER 🚨 */}
-            <div className="flex-shrink-0">
+            {/* 🚨 THE BIG NUMBER & DATES 🚨 */}
+            <div className="flex-shrink-0 flex flex-col items-center pt-1">
               <div className="w-12 h-12 rounded-full bg-forest-100 flex items-center justify-center border-2 border-forest-300 shadow-sm">
                 <span className="text-lg font-extrabold text-forest-800">{index + 1}</span>
+              </div>
+              <div className="text-center mt-1">
+                <p className="text-[9px] font-bold text-gray-700">{formatDate(b.created_at)}</p>
+                {b.updated_at && b.updated_at !== b.created_at && (
+                  <p className="text-[8px] text-amber-600 font-bold mt-0.5">Edit: {formatDate(b.updated_at)}</p>
+                )}
               </div>
             </div>
 
