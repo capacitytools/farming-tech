@@ -5,7 +5,8 @@ import AdBanner from '@/components/AdBanner';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
-export const revalidate = 3600;
+// 🚨 CHANGED: 3600 to 0 (Instant updates) 🚨
+export const revalidate = 0; 
 
 function sb() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
@@ -58,7 +59,6 @@ function inline(text: string) {
   });
 }
 
-// 🚨 FIXED PARSER: Now supports H1-H6 🚨
 function blocks(content: string) {
   const lines = (content || "").split("\n");
   const out: any[] = [];
@@ -74,7 +74,6 @@ function blocks(content: string) {
     if (s.startsWith("|")) { flushList(); table.push(s); continue; }
     flushTable();
 
-    // 🚨 HEADING DETECTION (longest match first) 🚨
     if (s.startsWith("###### ")) { flushList(); out.push({ t: "h6", text: s.slice(7) }); }
     else if (s.startsWith("##### ")) { flushList(); out.push({ t: "h5", text: s.slice(6) }); }
     else if (s.startsWith("#### ")) { flushList(); out.push({ t: "h4", text: s.slice(5) }); }
@@ -140,7 +139,6 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
 
       <article className="px-4 mt-8 space-y-4 text-gray-800">
         {parsedBlocks.map((blk: any, i: number) => {
-          // 🚨 RENDER ALL 6 HEADING LEVELS WITH PROPER TYPOGRAPHY 🚨
           if (blk.t === "h1") return <h1 key={i} className="text-3xl font-extrabold text-forest-900 pt-6">{inline(blk.text)}</h1>;
           if (blk.t === "h2") return <h2 id={slugify(blk.text)} key={i} className="text-2xl font-extrabold text-forest-800 pt-6 border-l-4 border-forest-300 pl-3 scroll-mt-20">{inline(blk.text)}</h2>;
           if (blk.t === "h3") return <h3 key={i} className="text-xl font-bold text-forest-700 pt-4">{inline(blk.text)}</h3>;
