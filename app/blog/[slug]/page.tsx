@@ -215,3 +215,19 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
     </div>
   );
 }
+// ... at the top:
+import BlogComments from '@/components/BlogComments';
+
+// ... inside the return statement, right before the final closing </div>:
+      <div className="px-4 mt-12 bg-forest-50 p-6 rounded-t-3xl">
+        {/* ... existing "Continue Learning" section ... */}
+      </div>
+
+      {/* 🚨 ADD THIS 🚨 */}
+      <div className="px-4 mt-8">
+        <BlogComments blogId={b.id} />
+      </div>
+      
+    </div>
+  );
+}
