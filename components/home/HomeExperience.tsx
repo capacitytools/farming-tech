@@ -161,8 +161,7 @@ export default function HomeExperience({ d }: { d: any }) {
     "✅ " + d.verifiedCount + " verified members share this month's ad pool",
   ];
 
-  const hotVisible = d.user ? d.hot : d.hot.slice(0, 3);
-  const hotLocked = d.user ? [] : d.hot.slice(3, 6);
+  const hotVisible = d.hot;
 
   return (
     <div className="pb-24">
@@ -194,7 +193,7 @@ export default function HomeExperience({ d }: { d: any }) {
         </div>
       </div>
 
-      {/* 🚨 COHORT BANNER 🚨 */}
+      {/* COHORT BANNER */}
       <div className="px-4 mt-4">
         <Link href="/cohort-2026" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform border-2 border-amber-300">
           <div className="flex items-center gap-3">
@@ -351,7 +350,7 @@ export default function HomeExperience({ d }: { d: any }) {
         </div>
       </div>
 
-      {/* FOR YOU / TOP POSTS FEED */}
+      {/* 🚨 FOR YOU / TOP POSTS FEED (Now Public) 🚨 */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
@@ -444,24 +443,6 @@ export default function HomeExperience({ d }: { d: any }) {
             );
           })}
 
-          {hotLocked.length > 0 && (
-            <div className="relative">
-              <div className="space-y-3 blur-sm select-none pointer-events-none">
-                {hotLocked.map((p: any) => (
-                  <div key={p.id} className="glass-card p-3 rounded-2xl">
-                    <p className="font-bold text-sm">{p.author_name}</p>
-                    <p className="text-sm text-gray-800 line-clamp-2">{p.content}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Link href="/login" className="bg-green-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl text-center">
-                  🔒 Register FREE to unlock more posts
-                  <span className="block text-[10px] font-semibold text-green-100">+ claim your 50 welcome points 🎁</span>
-                </Link>              
-              </div>
-            </div>
-          )}
           {d.hot.length === 0 && <p className="text-sm text-gray-500">No posts yet — be the first on the For You board!</p>}
         </div>
       </div>
