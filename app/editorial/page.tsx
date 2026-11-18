@@ -12,20 +12,32 @@ export default function EditorialPage() {
       </div>
 
       <div className="max-w-2xl mx-auto px-5 py-8 space-y-6 text-gray-800 dark:text-gray-200 leading-relaxed">
-        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">Our Commitment to Accuracy</h2>
-        <p>Farming Tech & Business is dedicated to providing accurate, practical, and actionable agricultural knowledge. Our editorial process is designed to ensure that every article published on this site is reliable.</p>
+        
+        <section>
+          <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300 mb-2">Our Commitment to Accuracy</h2>
+          <p>Farming Tech & Business is dedicated to providing accurate, practical, and actionable agricultural knowledge. Our editorial process is designed to ensure that every article published on this site is reliable.</p>
+        </section>
 
-        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">AI-Assisted Content</h2>
-        <p>We use advanced AI models to assist in drafting and structuring content. However, <strong>all AI-generated content is reviewed, fact-checked, and edited by our human editorial team</strong> before publication. We believe in the power of AI to scale knowledge, but human oversight is non-negotiable.</p>
+        <section>
+          <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300 mb-2">AI-Assisted Content</h2>
+          <p>We use advanced AI models to assist in drafting and structuring content. However, <strong>all AI-generated content is reviewed, fact-checked, and edited by our human editorial team</strong> before publication. We believe in the power of AI to scale knowledge, but human oversight is non-negotiable.</p>
+        </section>
 
-        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">Sourcing & References</h2>
-        <p>Where possible, our articles reference credible sources such as agricultural research papers, government extension agencies, and recognized industry experts.</p>
+        <section>
+          <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300 mb-2">Sourcing & References</h2>
+          <p>Where possible, our articles reference credible sources such as agricultural research papers, government extension agencies, and recognized industry experts.</p>
+        </section>
 
-        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">Corrections Policy</h2>
-        <p>We are committed to transparency. If we discover an error in an article, we will correct it promptly and note the correction. If you spot an error, please contact us immediately.</p>
+        <section>
+          <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300 mb-2">Corrections Policy</h2>
+          <p>We are committed to transparency. If we discover an error in an article, we will correct it promptly. If you spot an error, please contact us immediately at hello@farmingtechbusiness.com.</p>
+        </section>
 
-        <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300">Advertising & Independence</h2>
-        <p>We may display advertisements (like Google AdSense) or affiliate links. These do not influence our editorial content. We only recommend products or services we believe will add value to our readers.</p>
+        <section>
+          <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300 mb-2">Advertising & Independence</h2>
+          <p>We may display advertisements (like Google AdSense) or affiliate links. These do not influence our editorial content. We only recommend products or services we believe will add value to our readers.</p>
+        </section>
+
       </div>
     </div>
   );
