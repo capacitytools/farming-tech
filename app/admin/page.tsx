@@ -186,3 +186,8 @@ export default async function AdminDashboard() {
     </div>
   );
 }
+<Link href="/admin/watchers" className="glass-card p-4 rounded-2xl border-2 border-blue-300">
+  <div className="text-3xl mb-2">👀</div>
+  <h3 className="font-bold">Blog Watchers</h3>
+  <p className="text-sm text-gray-600">Emails from comments</p>
+</Link>
