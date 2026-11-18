@@ -24,7 +24,7 @@ export default function QuickPostPage() {
   const [videoUrl, setVideoUrl] = useState('');
   
   // Selections
-  const [selectedEbooks, setSelectedEbooks] = useState<string[]>([]); // 🚨 Array for ebooks
+  const [selectedEbooks, setSelectedEbooks] = useState<string[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   useEffect(() => {
@@ -71,7 +71,23 @@ export default function QuickPostPage() {
 
   async function publishPost() {
     if (!title || !content) return alert('Title and Content are required.');
-    
+
+    // 🚨 THE BOUNCER: CHECK FOR LEAKED SEO TEXT 🚨
+    const lowerContent = content.toLowerCase();
+    if (
+      lowerContent.includes('meta description:') || 
+      lowerContent.includes('suggested url slug:') || 
+      lowerContent.includes('meta title:') ||
+      lowerContent.includes('target keywords:')
+    ) {
+      return alert('🚨 PUBLISH BLOCKED: You have pasted the SEO Metadata inside the article body. Please delete the text that says "Meta description:", "Suggested URL slug:", etc., and try again.');
+    }
+
+    // Check for broken characters
+    if (content.includes('�')) {
+      return alert('🚨 PUBLISH BLOCKED: Your article contains broken text (�) from a copy-paste error. Please fix it.');
+    }
+
     setBusy(true);
     const supabase = createClient();
     const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now().toString().slice(-4);
@@ -83,7 +99,7 @@ export default function QuickPostPage() {
       category,
       cover_image_url: coverImage,
       status: 'published',
-      linked_ebooks: selectedEbooks, // 🚨 Save the array
+      linked_ebooks: selectedEbooks,
       linked_products: selectedProducts,
       video_url: videoUrl || null,
       author_name: 'Farming Tech & Business',
@@ -109,29 +125,37 @@ export default function QuickPostPage() {
 
       <div className="glass-card p-4 rounded-2xl space-y-4 border border-gray-100 shadow-sm">
         
-        <input className="w-full p-3 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="Article Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        
-        <select className="w-full p-3 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-        </select>
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Article Title</label>
+          <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm font-bold outline-none" placeholder="e.g. Broiler vs Noiler" value={title} onChange={(e) => setTitle(e.target.value)} />
+        </div>
 
-        <textarea className="w-full p-3 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste your formatted article here..." value={content} onChange={(e) => setContent(e.target.value)} />
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
+          <select className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
+            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold text-gray-500 uppercase">Article Body (Paste Clean Text)</label>
+          <textarea className="w-full p-3 mt-1 rounded-xl border border-gray-200 text-sm h-64 font-mono outline-none" placeholder="Paste the article you copied from the AI Engine here..." value={content} onChange={(e) => setContent(e.target.value)} />
+        </div>
 
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Cover Image</label>
           <div className="mt-1 flex items-center gap-3">
-            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer">
+            <label className="bg-gray-100 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-200">
               📷 Upload Image
               <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
             </label>
-            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md" />}
+            {coverImage && <img src={coverImage} alt="Cover" className="h-10 w-10 object-cover rounded-md border border-gray-200" />}
           </div>
         </div>
 
         {/* 🚨 SELECT MULTIPLE EBOOKS 🚨 */}
         <div className="bg-blue-50 p-3 rounded-xl border-2 border-blue-200 space-y-2">
           <p className="text-sm font-extrabold text-blue-800">📚 Select E-books to Advertise</p>
-          <p className="text-[10px] text-blue-600 mb-2">Tap to select. The first will show mid-article, the second at the bottom.</p>
           <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
             {ebooks.map(eb => (
               <div 
