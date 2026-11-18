@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Phone, Mail, Facebook, Instagram, Youtube } from 'lucide-react';
 
-// Real social links — update here if any of these ever change
 const SOCIAL_LINKS = [
   { icon: Facebook, href: 'https://www.facebook.com/share/1DLbDWeBd3/', label: 'Facebook' },
   { icon: Instagram, href: 'https://www.instagram.com/myfarmtech', label: 'Instagram' },
@@ -34,14 +33,15 @@ export default function Footer() {
             </span>
             +234 915 988 4244 (WhatsApp)
           </a>
+          {/* 🚨 UPDATED TO PROFESSIONAL EMAIL 🚨 */}
           <a
-            href="mailto:myrabbit101@gmail.com"
+            href="mailto:hello@farmingtechbusiness.com"
             className="flex items-center gap-2.5 text-sm font-semibold text-forest-700 dark:text-forest-200"
           >
             <span className="w-8 h-8 rounded-full bg-forest-100 dark:bg-forest-800 flex items-center justify-center">
               <Mail className="w-4 h-4 text-forest-600 dark:text-gold-400" />
             </span>
-            myrabbit101@gmail.com
+            hello@farmingtechbusiness.com
           </a>
         </div>
       </div>
@@ -61,7 +61,6 @@ export default function Footer() {
         ))}
       </div>
 
-      {/* 🚨 NEW: LEGAL & TRUST LINKS 🚨 */}
       <div className="mb-6">
         <p className="text-center text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-3">Legal & Trust</p>
         <div className="grid grid-cols-2 gap-y-2 gap-x-4 max-w-sm mx-auto text-center">
