@@ -17,22 +17,23 @@ export default function ContactPage() {
         </p>
 
         <div className="glass-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
-          <p className="font-bold text-forest-800 dark:text-white mb-1">Email Support</p>
-          <p className="text-sm">For general inquiries and support, email us at:<br/>
-          <strong className="text-green-700 dark:text-green-400">myrabbit101@gmail.com</strong></p>
+          <p className="font-bold text-forest-800 dark:text-white mb-1">General & Business Inquiries</p>
+          <p className="text-sm">For general questions, partnerships, or advertising:<br/>
+          <strong className="text-green-700 dark:text-green-400">hello@farmingtechbusiness.com</strong></p>
         </div>
 
         <div className="glass-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
-          <p className="font-bold text-forest-800 dark:text-white mb-1">Business & Partnerships</p>
-          <p className="text-sm">For advertising, sponsored posts, or partnerships:<br/>
-          <strong className="text-green-700 dark:text-green-400">myrabbit101@gmail.com</strong></p>
+          <p className="font-bold text-forest-800 dark:text-white mb-1">Technical Support</p>
+          <p className="text-sm">If you need help with your account or the AI Agri-Doctor:<br/>
+          <strong className="text-green-700 dark:text-green-400">support@farmingtechbusiness.com</strong></p>
         </div>
 
-        <div className="glass-card p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-forest-800 bg-white dark:bg-forest-900">
-          <p className="font-bold text-forest-800 dark:text-white mb-1">Report an Issue</p>
-          <p className="text-sm leading-relaxed">
-            If you spot a broken link, an inaccurate article, or a technical glitch, please let us know via email so we can fix it immediately.
-          </p>
+        <div className="glass-card p-5 rounded-2xl shadow-sm border border-forest-200 dark:border-forest-800 bg-forest-50 dark:bg-forest-900">
+          <p className="font-bold text-forest-800 dark:text-white mb-1">Direct WhatsApp Chat</p>
+          <p className="text-sm">Click the button below to chat with us immediately:<br/>
+          <a href="https://wa.me/2349159884244" target="_blank" rel="noopener noreferrer" className="inline-block mt-2 bg-green-600 text-white px-4 py-2 rounded-lg text-xs font-bold">
+            📲 Chat on WhatsApp
+          </a></p>
         </div>
       </div>
     </div>
