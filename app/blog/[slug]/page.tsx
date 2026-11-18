@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import BlogViewBumper from '@/components/BlogViewBumper';
 import AdBanner from '@/components/AdBanner';
+import BlogComments from '@/components/BlogComments'; // 🚨 Imported here
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
-// 🚨 CHANGED: 3600 to 0 (Instant updates) 🚨
 export const revalidate = 0; 
 
 function sb() {
@@ -201,6 +201,11 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
 
       <div className="mx-4 mt-8 mb-4"><AdBanner slot="blog_bottom" /></div>
 
+      {/* 🚨 THE COMMENT SECTION 🚨 */}
+      <div className="px-4 mt-8">
+        <BlogComments blogId={b.id} />
+      </div>
+
       <div className="px-4 mt-12 bg-forest-50 p-6 rounded-t-3xl">
         <h2 className="text-lg font-extrabold text-forest-800 mb-4">Continue Learning</h2>
         <div className="space-y-3">
@@ -212,22 +217,6 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
           ))}
         </div>
       </div>
-    </div>
-  );
-}
-// ... at the top:
-import BlogComments from '@/components/BlogComments';
-
-// ... inside the return statement, right before the final closing </div>:
-      <div className="px-4 mt-12 bg-forest-50 p-6 rounded-t-3xl">
-        {/* ... existing "Continue Learning" section ... */}
-      </div>
-
-      {/* 🚨 ADD THIS 🚨 */}
-      <div className="px-4 mt-8">
-        <BlogComments blogId={b.id} />
-      </div>
-      
     </div>
   );
 }
