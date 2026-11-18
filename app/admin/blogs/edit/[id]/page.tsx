@@ -58,6 +58,7 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
     setBusy(true);
     const supabase = createClient();
 
+    // 🚨 UPDATE THE ARTICLE 🚨
     const { error } = await supabase.from('blogs').update({
       title,
       content,
@@ -69,9 +70,13 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
       alert('Error updating: ' + error.message);
     } else {
       setMsg('✅ Article Updated Successfully!');
+      
+      // 🚨 THE FIX: Tell Next.js to instantly clear the cache for this page 🚨
+      await fetch('/api/revalidate?path=/blog/' + slug);
+      
       setTimeout(() => {
-        router.push('/admin/blogs'); // Redirect back to control room
-      }, 1500);
+        router.push('/admin/blogs');
+      }, 1000);
     }
     setBusy(false);
   }
@@ -92,7 +97,6 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
 
       <div className="glass-card p-4 rounded-2xl space-y-4 border border-gray-100 shadow-sm">
         
-        {/* TITLE */}
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Article Title</label>
           <input 
@@ -102,7 +106,6 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
           />
         </div>
 
-        {/* CATEGORY */}
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Category</label>
           <select 
@@ -119,7 +122,6 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
           </select>
         </div>
 
-        {/* CONTENT */}
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Article Body (Markdown)</label>
           <textarea 
@@ -129,7 +131,6 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
           />
         </div>
 
-        {/* COVER IMAGE */}
         <div>
           <label className="text-xs font-bold text-gray-500 uppercase">Cover Image</label>
           <div className="mt-1 flex items-center gap-3">
@@ -141,7 +142,6 @@ export default function EditBlogPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* SAVE BUTTON */}
         <button 
           onClick={saveChanges} 
           disabled={busy} 
