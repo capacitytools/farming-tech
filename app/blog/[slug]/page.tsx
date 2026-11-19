@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import BlogViewBumper from '@/components/BlogViewBumper';
 import AdBanner from '@/components/AdBanner';
-import BlogComments from '@/components/BlogComments'; // 🚨 Imported here
+import BlogComments from '@/components/BlogComments';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
@@ -59,6 +59,7 @@ function inline(text: string) {
   });
 }
 
+// 🚨 NEW PARSER: Detects Markdown Images (![alt](url)) 🚨
 function blocks(content: string) {
   const lines = (content || "").split("\n");
   const out: any[] = [];
@@ -74,7 +75,14 @@ function blocks(content: string) {
     if (s.startsWith("|")) { flushList(); table.push(s); continue; }
     flushTable();
 
-    if (s.startsWith("###### ")) { flushList(); out.push({ t: "h6", text: s.slice(7) }); }
+    // Check for image markdown: ![ALT TEXT](URL)
+    const imgMatch = s.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    
+    if (imgMatch) {
+      flushList(); 
+      out.push({ t: "img", alt: imgMatch[1], url: imgMatch[2] }); 
+    }
+    else if (s.startsWith("###### ")) { flushList(); out.push({ t: "h6", text: s.slice(7) }); }
     else if (s.startsWith("##### ")) { flushList(); out.push({ t: "h5", text: s.slice(6) }); }
     else if (s.startsWith("#### ")) { flushList(); out.push({ t: "h4", text: s.slice(5) }); }
     else if (s.startsWith("### ")) { flushList(); out.push({ t: "h3", text: s.slice(4) }); }
@@ -139,6 +147,21 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
 
       <article className="px-4 mt-8 space-y-4 text-gray-800">
         {parsedBlocks.map((blk: any, i: number) => {
+          // 🚨 RENDER THE IMAGE 🚨
+          if (blk.t === "img") {
+            return (
+              <div key={i} className="my-6">
+                <img 
+                  src={blk.url} 
+                  alt={blk.alt} 
+                  loading="lazy" 
+                  className="w-full object-cover rounded-xl shadow-sm border border-gray-100" 
+                />
+                <p className="text-center text-[10px] text-gray-500 mt-2 italic">{blk.alt}</p>
+              </div>
+            );
+          }
+
           if (blk.t === "h1") return <h1 key={i} className="text-3xl font-extrabold text-forest-900 pt-6">{inline(blk.text)}</h1>;
           if (blk.t === "h2") return <h2 id={slugify(blk.text)} key={i} className="text-2xl font-extrabold text-forest-800 pt-6 border-l-4 border-forest-300 pl-3 scroll-mt-20">{inline(blk.text)}</h2>;
           if (blk.t === "h3") return <h3 key={i} className="text-xl font-bold text-forest-700 pt-4">{inline(blk.text)}</h3>;
@@ -201,7 +224,6 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
 
       <div className="mx-4 mt-8 mb-4"><AdBanner slot="blog_bottom" /></div>
 
-      {/* 🚨 THE COMMENT SECTION 🚨 */}
       <div className="px-4 mt-8">
         <BlogComments blogId={b.id} />
       </div>
