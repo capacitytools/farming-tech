@@ -94,11 +94,17 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-600">AI Image Prompts</p>
         </Link>
 
-        {/* 🚨 NEW: DOC IMPORTER 🚨 */}
-        <Link href="/admin/doc-importer" className="glass-card p-4 rounded-2xl border-2 border-purple-300">
-          <div className="text-3xl mb-2">📄</div>
-          <h3 className="font-bold">Doc Importer</h3>
-          <p className="text-sm text-gray-600">Google Docs to SEO</p>
+        <Link href="/admin/quick-post" className="glass-card p-4 rounded-2xl border-2 border-amber-400">
+          <div className="text-3xl mb-2">⚡</div>
+          <h3 className="font-bold">Quick Post</h3>
+          <p className="text-sm text-gray-600">Fast Publishing</p>
+        </Link>
+
+        {/* 🚨 NEW: MEDIA LIBRARY BUTTON 🚨 */}
+        <Link href="/admin/media" className="glass-card p-4 rounded-2xl border-2 border-pink-300">
+          <div className="text-3xl mb-2">🖼️</div>
+          <h3 className="font-bold">Media Library</h3>
+          <p className="text-sm text-gray-600">Upload & copy codes</p>
         </Link>
 
         <Link href="/admin/pinterest-bulk" className="glass-card p-4 rounded-2xl border-2 border-red-300">
@@ -130,26 +136,31 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Blog Posts</h3>
           <p className="text-sm text-gray-600">{blogs.count || 0} posts</p>
         </Link>
+        
         <Link href="/admin/comments" className="glass-card p-4 rounded-2xl">          
           <div className="text-3xl mb-2">💬</div>
           <h3 className="font-bold">Comments</h3>
           <p className="text-sm text-gray-600">{comments.count || 0} to moderate</p>
         </Link>
+        
         <Link href="/admin/listings" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">🐄</div>
           <h3 className="font-bold">Pending Listings</h3>
           <p className="text-sm text-gray-600">{listings.count || 0} awaiting approval</p>
         </Link>
+        
         <Link href="/admin/notifications" className="glass-card p-4 rounded-2xl border-2 border-red-200">
           <div className="text-3xl mb-2">🔔</div>
           <h3 className="font-bold">Announcements</h3>
           <p className="text-sm text-gray-600">Broadcast + push</p>
         </Link>
+        
         <Link href="/admin/ebooks" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">📚</div>
           <h3 className="font-bold">E-books</h3>
           <p className="text-sm text-gray-600">{ebooks.count || 0} books for sale</p>
         </Link>
+        
         <Link href="/admin/tribes" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">🌾</div>
           <h3 className="font-bold">Tribes</h3>
@@ -167,16 +178,19 @@ export default async function AdminDashboard() {
           <h3 className="font-bold">Adsterra Ads</h3>
           <p className="text-sm text-gray-600">Manage ad scripts</p>
         </Link>
+        
         <Link href="/admin/notes" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">🗒️</div>
           <h3 className="font-bold">Notepad</h3>
           <p className="text-sm text-gray-600">{notes.count || 0} private documents</p>
         </Link>
+        
         <Link href="/admin/settings" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">⚙️</div>
           <h3 className="font-bold">Site Settings</h3>
           <p className="text-sm text-gray-600">Announcements and more</p>
         </Link>
+        
         <Link href="/leaderboard" className="glass-card p-4 rounded-2xl">
           <div className="text-3xl mb-2">🏆</div>
           <h3 className="font-bold">Leaderboard</h3>
@@ -186,8 +200,3 @@ export default async function AdminDashboard() {
     </div>
   );
 }
-<Link href="/admin/watchers" className="glass-card p-4 rounded-2xl border-2 border-blue-300">
-  <div className="text-3xl mb-2">👀</div>
-  <h3 className="font-bold">Blog Watchers</h3>
-  <p className="text-sm text-gray-600">Emails from comments</p>
-</Link>
