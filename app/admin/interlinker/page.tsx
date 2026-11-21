@@ -30,7 +30,7 @@ export default function InterlinkerPage() {
     const allBlogs = b || [];
     setBlogs(allBlogs);
     
-    // 🚨 RUN THE INTERLINK AUDIT (FIXED) 🚨
+    // 🚨 RUN THE INTERLINK AUDIT (TITLE DETECTION) 🚨
     const results: any[] = [];
 
     allBlogs.forEach((post) => {
@@ -39,18 +39,19 @@ export default function InterlinkerPage() {
       allBlogs.forEach((otherPost) => {
         if (post.id !== otherPost.id) {
           const content = otherPost.content || '';
-          // 🚨 CHECK FOR BOTH FULL URL AND SHORT URL 🚨
-          const shortLink = '/blog/' + post.slug;
-          const fullLink = 'farmingtechbusiness.com/blog/' + post.slug;
           
-          if (content.includes(shortLink) || content.includes(fullLink)) {
+          // 🚨 SMART DETECTION: Look for the short link OR the full title 🚨
+          const shortLink = '/blog/' + post.slug;
+          const titleAsLink = post.title; 
+          
+          if (content.includes(shortLink) || content.includes(titleAsLink)) {
             inboundLinks++;
           }
         }
       });
 
-      // If a post has 0 or 1 inbound links, it's orphaned
-      if (inboundLinks <= 1) {
+      // If a post has 0 inbound links, it's orphaned
+      if (inboundLinks === 0) {
         const suggestedParents = allBlogs
           .filter(p => p.category === post.category && p.id !== post.id && p.content.includes('##')) 
           .slice(0, 3); 
@@ -77,7 +78,7 @@ export default function InterlinkerPage() {
   }
 
   function copyMarkdown(post: any) {
-    // Now copies the Markdown format instead of HTML
+    // It copies the exact link you need to paste
     const markdown = `[${post.title}](/blog/${post.slug})`;
     navigator.clipboard.writeText(markdown);
     flash('📋 Markdown link copied!');
@@ -102,7 +103,7 @@ export default function InterlinkerPage() {
 
       <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl">
         <p className="text-xs font-bold text-blue-800">
-          💡 How this works: Google ranks sites higher when pages link to each other. We found <strong>{auditResults.length}</strong> articles that need more internal links.
+          💡 How this works: We check if your article's title or URL is mentioned in other posts. We found <strong>{auditResults.length}</strong> articles that still need links.
         </p>
       </div>
 
@@ -116,7 +117,7 @@ export default function InterlinkerPage() {
               </div>
               <div>
                 <p className="text-sm font-extrabold text-forest-900 leading-tight">{result.post.title}</p>
-                <p className="text-[10px] text-red-500 font-bold mt-1">⚠️ Only {result.inboundLinks} internal links point here.</p>
+                <p className="text-[10px] text-red-500 font-bold mt-1">⚠️ No links point here yet.</p>
               </div>
             </div>
 
