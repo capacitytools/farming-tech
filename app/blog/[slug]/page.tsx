@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
+import { createClient as createServerClient } from '@/lib/supabase/server'; // 🚨 Import server client to check auth
 import BlogViewBumper from '@/components/BlogViewBumper';
 import AdBanner from '@/components/AdBanner';
 import BlogComments from '@/components/BlogComments';
+import AdminQuickEdit from '@/components/AdminQuickEdit'; // 🚨 Import the new component
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL || 'https://farmingtechbusiness.com';
 
@@ -59,7 +61,6 @@ function inline(text: string) {
   });
 }
 
-// 🚨 NEW PARSER: Detects Markdown Images (![alt](url)) 🚨
 function blocks(content: string) {
   const lines = (content || "").split("\n");
   const out: any[] = [];
@@ -75,7 +76,6 @@ function blocks(content: string) {
     if (s.startsWith("|")) { flushList(); table.push(s); continue; }
     flushTable();
 
-    // Check for image markdown: ![ALT TEXT](URL)
     const imgMatch = s.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     
     if (imgMatch) {
@@ -125,6 +125,18 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
   const d = await getBlog(params.slug);
   if (!d) return <div className="p-10 text-center">Article not found</div>;
 
+  // 🚨 CHECK IF USER IS ADMIN 🚨
+  const serverSupabase = createServerClient();
+  const { data: { user } } = await serverSupabase.auth.getUser();
+  let isAdmin = false;
+  
+  if (user) {
+    const { data: profile } = await serverSupabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role === 'admin' || profile?.role === 'editor') {
+      isAdmin = true;
+    }
+  }
+
   const { b, rel, ebooks, products } = d;
   const parsedBlocks = blocks(b.content);
   
@@ -133,6 +145,9 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
   return (
     <div className="pb-24 max-w-2xl mx-auto bg-white shadow-sm min-h-screen">
       <BlogViewBumper id={b.id} />
+
+      {/* 🚨 SHOW QUICK EDIT BUTTON IF ADMIN 🚨 */}
+      {isAdmin && <AdminQuickEdit blog={b} />}
 
       <header className="px-4 pt-6">
         <span className="text-[10px] font-bold text-forest-600 bg-forest-50 px-3 py-1 rounded-full uppercase">{b.category}</span>
@@ -147,16 +162,10 @@ export default async function BlogArticlePage({ params }: { params: { slug: stri
 
       <article className="px-4 mt-8 space-y-4 text-gray-800">
         {parsedBlocks.map((blk: any, i: number) => {
-          // 🚨 RENDER THE IMAGE 🚨
           if (blk.t === "img") {
             return (
               <div key={i} className="my-6">
-                <img 
-                  src={blk.url} 
-                  alt={blk.alt} 
-                  loading="lazy" 
-                  className="w-full object-cover rounded-xl shadow-sm border border-gray-100" 
-                />
+                <img src={blk.url} alt={blk.alt} loading="lazy" className="w-full object-cover rounded-xl shadow-sm border border-gray-100" />
                 <p className="text-center text-[10px] text-gray-500 mt-2 italic">{blk.alt}</p>
               </div>
             );
