@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 
 const PAYSTACK_PUBLIC_KEY = "pk_live_00573ba36a45a7fa73d358fee60ae30f5ce1dd49"; 
 
+const WHATSAPP_NUMBER = '2347033143508';
+const WHATSAPP_MESSAGE = encodeURIComponent('Hello, I want to get the Feed Formulation Ebooks. Please send me the options and prices.');
+const SELAR_LINK = 'https://selar.co/your-selar-link'; // Put your link here later
+
 const PRODUCTS_DATA: any = {
   bundle: {
     name: 'The Complete Feed Formulation Bundle',
@@ -78,7 +82,6 @@ export default function FeedBundlePage() {
     checkAuth();
   }, []);
 
-  // 🚨 THE CART RESCUE: Save Lead when they type email 🚨
   async function captureLead() {
     if (!email || leadSaved) return;
     const supabase = createClient();
@@ -101,7 +104,6 @@ export default function FeedBundlePage() {
 
     const supabase = createClient();
     
-    // 1. Update Lead to Abandoned (until payment succeeds)
     await supabase.from('newsletter_subscribers').upsert({
       email: email,
       name: name,
@@ -112,11 +114,18 @@ export default function FeedBundlePage() {
       amount: PRODUCTS_DATA[selectedProduct].price
     }, { onConflict: 'email' });
 
-    // 2. Trigger WhatsApp Alert to YOU
-    const alertMsg = encodeURIComponent(`🔥 *New Checkout Started!*\n\nName: ${name}\nEmail: ${email}\nProduct: ${PRODUCTS_DATA[selectedProduct].name}\nAmount: ₦${PRODUCTS_DATA[selectedProduct].price.toLocaleString()}\n\n(They haven't paid yet. If they abandon, follow up!)`);
-    fetch(`https://api.callmebot.com/whatsapp.php?phone=2347033143508&text=${alertMsg}&apikey=YOUR_CALLMEBOT_API_KEY`).catch(() => {});
+    // 🚨 ALERT: CHECKOUT STARTED 🚨
+    fetch('/api/send-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'checkout_started',
+        name, email, whatsapp,
+        product: PRODUCTS_DATA[selectedProduct].name,
+        amount: PRODUCTS_DATA[selectedProduct].price
+      })
+    }).catch(() => {});
 
-    // 3. Trigger Paystack
     const selected = PRODUCTS_DATA[selectedProduct];
     const handler = (window as any).PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
@@ -124,25 +133,27 @@ export default function FeedBundlePage() {
       amount: selected.price * 100,
       currency: 'NGN',
       ref: 'FEED-' + Date.now(),
-      metadata: {
-        custom_fields: [
-          { display_name: "Product", variable_name: "product", value: selectedProduct },
-          { display_name: "Affiliate Status", variable_name: "affiliate", value: isAffiliate ? "Yes" : "No" }
-        ]
-      },
+      metadata: { custom_fields: [{ display_name: "Product", variable_name: "product", value: selectedProduct }] },
       callback: function (response: any) {
-        // 4. Update Lead to PAID
         supabase.from('newsletter_subscribers').update({ cart_status: 'paid' }).eq('email', email);
         
-        // 5. Send WhatsApp Alert (PAID)
-        const paidMsg = encodeURIComponent(`💰 *SALE CONFIRMED!*\n\nName: ${name}\nEmail: ${email}\nProduct: ${PRODUCTS_DATA[selectedProduct].name}\nAmount: ₦${PRODUCTS_DATA[selectedProduct].price.toLocaleString()}`);
-        fetch(`https://api.callmebot.com/whatsapp.php?phone=2347033143508&text=${paidMsg}&apikey=YOUR_CALLMEBOT_API_KEY`).catch(() => {});
+        // 🚨 ALERT: SALE CONFIRMED 🚨
+        fetch('/api/send-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'sale_confirmed',
+            name, email,
+            product: PRODUCTS_DATA[selectedProduct].name,
+            amount: PRODUCTS_DATA[selectedProduct].price
+          })
+        }).catch(() => {});
 
         router.push(`/feed-bundle/success?ref=${response.reference}&product=${selectedProduct}`);
       },
       onClose: function () {
         setBusy(false);
-        alert('Payment cancelled. If you had an issue, please try again or contact us on WhatsApp.');
+        alert('Payment cancelled. You can try again or use the WhatsApp/Selar options below.');
       }
     });
     handler.openIframe();
@@ -153,7 +164,6 @@ export default function FeedBundlePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       
-      {/* HERO */}
       <div className="bg-gradient-to-br from-forest-800 to-forest-950 text-white px-6 py-12 rounded-b-[3rem] shadow-xl text-center">
         <span className="inline-block bg-amber-400 text-forest-900 text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full mb-4">
           Limited Time Offer
@@ -166,7 +176,6 @@ export default function FeedBundlePage() {
         </p>
       </div>
 
-      {/* PRODUCT SHOWCASE */}
       <div className="px-4 -mt-6 relative z-10 max-w-md mx-auto mb-4">
         <div className="bg-white p-4 rounded-3xl shadow-xl border-2 border-forest-100">
           <div className="flex gap-3 items-start">
@@ -192,7 +201,6 @@ export default function FeedBundlePage() {
         </div>
       </div>
 
-      {/* SALES FORM */}
       <div className="px-4 relative z-10 max-w-md mx-auto">
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl shadow-xl border-2 border-forest-100 space-y-4">
           
@@ -234,8 +242,46 @@ export default function FeedBundlePage() {
           <button disabled={busy} className="w-full bg-forest-600 text-white py-4 rounded-xl font-extrabold text-lg shadow-[0_0_20px_rgba(22,101,52,0.4)] active:scale-95 transition-transform disabled:opacity-50">
             {busy ? 'Processing...' : `Pay ₦${currentProduct.price.toLocaleString()} Now`}
           </button>
-          <p className="text-[10px] text-gray-400 text-center">Secure payment powered by Paystack. Instant download after payment.</p>
         </form>
+
+        {/* 🚨 NEW: ALTERNATIVE CHANNELS 🚨 */}
+        <div className="mt-6 text-center">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Or buy through another channel</p>
+          
+          <div className="space-y-3">
+            {/* WHATSAPP */}
+            <a 
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center flex-shrink-0 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-xs font-extrabold text-gray-900">Get it on WhatsApp</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Chat with us to choose your options and pay directly.</p>
+              </div>
+            </a>
+
+            {/* SELAR */}
+            <a 
+              href={SELAR_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:scale-[0.98] transition-transform"
+            >
+              <div className="w-10 h-10 rounded-full bg-[#0F172A] flex items-center justify-center flex-shrink-0 text-white font-bold text-lg">
+                S
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-xs font-extrabold text-gray-900">Get it on Selar</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Buy securely through our Selar store page.</p>
+              </div>
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* AFFILIATE SECTION */}
