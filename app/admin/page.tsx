@@ -200,3 +200,8 @@ export default async function AdminDashboard() {
     </div>
   );
 }
+<Link href="/admin/funnel-products" className="glass-card p-4 rounded-2xl border-2 border-amber-400">
+  <div className="text-3xl mb-2">📦</div>
+  <h3 className="font-bold">Funnel Products</h3>
+  <p className="text-sm text-gray-600">Manage covers & TOCs</p>
+</Link>
