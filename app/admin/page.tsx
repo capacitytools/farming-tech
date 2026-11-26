@@ -211,3 +211,12 @@ export default async function AdminDashboard() {
     </div>
   );
 }
+<Link href="/admin/funnels" className="col-span-2 glass-card p-4 rounded-2xl border-2 border-forest-600 bg-forest-50 shadow-md">
+  <div className="flex items-center gap-4">
+    <div className="text-4xl">🚀</div>
+    <div>
+      <h3 className="font-extrabold text-forest-900 text-lg">Funnels</h3>
+      <p className="text-sm text-forest-700 font-medium">Create, edit, and share all your sales pages.</p>
+    </div>
+  </div>
+</Link>
