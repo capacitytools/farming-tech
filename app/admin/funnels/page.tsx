@@ -83,8 +83,8 @@ export default function FunnelsManager() {
       
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-extrabold text-forest-800">🚀 My Funnels</h1>
-          <p className="text-xs text-gray-500">Create and manage all your sales funnels.</p>
+          <h1 className="text-2xl font-extrabold text-forest-800">🚀 Funnels</h1>
+          <p className="text-xs text-gray-500">Manage all your sales pages in one place.</p>
         </div>
         <Link href="/admin" className="text-xs font-bold text-gray-500 bg-gray-200 px-3 py-2 rounded-lg">Back</Link>
       </div>
@@ -116,9 +116,9 @@ export default function FunnelsManager() {
               <div className="w-8 h-8 rounded-full bg-forest-100 flex items-center justify-center flex-shrink-0 font-extrabold text-forest-800">
                 {index + 1}
               </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-extrabold text-forest-900">{f.name}</h3>
-                <p className="text-[10px] text-forest-600 font-mono mt-0.5">/funnel/{f.slug}</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-extrabold text-forest-900 truncate">{f.name}</h3>
+                <p className="text-[10px] text-forest-600 font-mono mt-0.5 truncate">/funnel/{f.slug}</p>
                 <p className="text-[10px] text-gray-500 mt-1 line-clamp-1">{f.headline}</p>
               </div>
             </div>
