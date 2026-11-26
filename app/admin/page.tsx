@@ -42,6 +42,18 @@ export default async function AdminDashboard() {
       <p className="text-gray-600 mb-6">Welcome back, Site Admin 👋 Everything is one tap away.</p>
 
       <div className="grid grid-cols-2 gap-4">
+        
+        {/* 🚨 TOP PRIORITY: FUNNEL & AI 🚨 */}
+        <Link href="/admin/funnel-products" className="col-span-2 glass-card p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-md">
+          <div className="flex items-center gap-4">
+            <div className="text-4xl">📦</div>
+            <div>
+              <h3 className="font-extrabold text-amber-900 text-lg">Feed Bundle Funnel</h3>
+              <p className="text-sm text-amber-700 font-medium">Manage ebook covers, briefs, and tables of contents.</p>
+            </div>
+          </div>
+        </Link>
+
         <Link href="/admin/wallet" className="glass-card p-4 rounded-2xl border-2 border-green-300">
           <div className="text-3xl mb-2">💵</div>
           <h3 className="font-bold">Wallet Control</h3>
@@ -100,7 +112,6 @@ export default async function AdminDashboard() {
           <p className="text-sm text-gray-600">Fast Publishing</p>
         </Link>
 
-        {/* 🚨 NEW: MEDIA LIBRARY BUTTON 🚨 */}
         <Link href="/admin/media" className="glass-card p-4 rounded-2xl border-2 border-pink-300">
           <div className="text-3xl mb-2">🖼️</div>
           <h3 className="font-bold">Media Library</h3>
@@ -200,8 +211,3 @@ export default async function AdminDashboard() {
     </div>
   );
 }
-<Link href="/admin/funnel-products" className="glass-card p-4 rounded-2xl border-2 border-amber-400">
-  <div className="text-3xl mb-2">📦</div>
-  <h3 className="font-bold">Funnel Products</h3>
-  <p className="text-sm text-gray-600">Manage covers & TOCs</p>
-</Link>
