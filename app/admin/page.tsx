@@ -43,13 +43,13 @@ export default async function AdminDashboard() {
 
       <div className="grid grid-cols-2 gap-4">
         
-        {/* 🚨 TOP PRIORITY: FUNNEL & AI 🚨 */}
-        <Link href="/admin/funnel-products" className="col-span-2 glass-card p-4 rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-md">
+        {/* 🚨 THE FUNNELS MANAGER BUTTON 🚨 */}
+        <Link href="/admin/funnels" className="col-span-2 glass-card p-4 rounded-2xl border-2 border-forest-600 bg-forest-50 shadow-md">
           <div className="flex items-center gap-4">
-            <div className="text-4xl">📦</div>
+            <div className="text-4xl">🚀</div>
             <div>
-              <h3 className="font-extrabold text-amber-900 text-lg">Feed Bundle Funnel</h3>
-              <p className="text-sm text-amber-700 font-medium">Manage ebook covers, briefs, and tables of contents.</p>
+              <h3 className="font-extrabold text-forest-900 text-lg">Funnels</h3>
+              <p className="text-sm text-forest-700 font-medium">Create, edit, and copy links to all your sales pages.</p>
             </div>
           </div>
         </Link>
@@ -211,12 +211,3 @@ export default async function AdminDashboard() {
     </div>
   );
 }
-<Link href="/admin/funnels" className="col-span-2 glass-card p-4 rounded-2xl border-2 border-forest-600 bg-forest-50 shadow-md">
-  <div className="flex items-center gap-4">
-    <div className="text-4xl">🚀</div>
-    <div>
-      <h3 className="font-extrabold text-forest-900 text-lg">Funnels</h3>
-      <p className="text-sm text-forest-700 font-medium">Create, edit, and share all your sales pages.</p>
-    </div>
-  </div>
-</Link>
