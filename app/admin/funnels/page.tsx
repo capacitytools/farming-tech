@@ -91,12 +91,10 @@ export default function FunnelsManager() {
 
       {msg && <p className="text-xs font-bold text-green-700 mt-1 bg-green-50 p-2 rounded-lg">{msg}</p>}
 
-      {/* CREATE BUTTON */}
       <button onClick={() => setShowCreate(!showCreate)} className="w-full bg-forest-600 text-white py-3 rounded-xl font-extrabold shadow-md">
         {showCreate ? 'Cancel' : '➕ Create New Funnel'}
       </button>
 
-      {/* CREATE FORM */}
       {showCreate && (
         <form onSubmit={createFunnel} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm space-y-3">
           <input className="w-full p-2 rounded-lg border text-sm font-bold" placeholder="Funnel Name (e.g., Fish Breeding Masterclass)" value={name} onChange={e => { setName(e.target.value); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-')); }} />
@@ -107,7 +105,6 @@ export default function FunnelsManager() {
         </form>
       )}
 
-      {/* FUNNEL LIST */}
       <div className="space-y-4 mt-6">
         {funnels.map((f, index) => (
           <div key={f.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3">
