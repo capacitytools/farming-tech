@@ -20,10 +20,10 @@ export default function AboutPage() {
           <h2 className="text-xl font-extrabold text-forest-800 dark:text-forest-300 mb-4">👨🏾‍🌾 Meet the Founder</h2>
           
           <div className="flex flex-col sm:flex-row gap-4 items-center sm:items-start">
-            {/* ADD YOUR PHOTO HERE */}
+            {/* 🚨 YOUR PHOTO IS NOW LIVE HERE 🚨 */}
             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-forest-200 bg-gray-200 flex-shrink-0 relative">
               <img 
-                src="https://res.cloudinary.com/jnvtguiz/image/upload/v1/your-photo.jpg" 
+                src="https://res.cloudinary.com/jnvtguiz/image/upload/v1795706457/1795692376845.jpg" 
                 alt="Akinsuroju Olubunmi" 
                 className="w-full h-full object-cover" 
               />
@@ -33,7 +33,6 @@ export default function AboutPage() {
               <h3 className="text-lg font-extrabold text-forest-900 dark:text-white">Akinsuroju Olubunmi</h3>
               <p className="text-xs font-bold text-forest-600 uppercase tracking-wider mb-2">Founder & Lead Agricultural Consultant</p>
               
-              {/* 🚨 ADD YOUR REAL EXPERIENCE HERE 🚨 */}
               <p className="text-sm leading-relaxed">
                 With a background in Biochemistry and over a decade of practical experience in Nigerian agriculture, 
                 I built Farming Tech & Business to bridge the gap between scientific farming methods and everyday 
