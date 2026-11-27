@@ -10,7 +10,6 @@ export default function BlogControlRoom() {
   const [blogs, setBlogs] = useState<any[]>([]);
   const [msg, setMsg] = useState('');
   
-  // Tab State
   const [activeTab, setActiveTab] = useState<'manage' | 'topics'>('manage');
 
   async function load() {
@@ -21,9 +20,11 @@ export default function BlogControlRoom() {
       setAdmin(p?.role === 'admin' || p?.role === 'editor');
     }
 
+    // Do NOT fetch archived posts for the main list
     const { data: b } = await supabase
       .from('blogs')
       .select('id,title,slug,category,cover_image_url,status,views_count,meta_description,excerpt,created_at,updated_at')
+      .neq('status', 'archived') // 🚨 HIDE ARCHIVED POSTS 🚨
       .order('created_at', { ascending: false });
 
     setBlogs(b || []);
@@ -37,12 +38,22 @@ export default function BlogControlRoom() {
     setTimeout(() => setMsg(''), 3000);
   }
 
-  async function deleteBlog(id: string) {
-    if (!window.confirm('Delete this post permanently?')) return;
+  // 🚨 ARCHIVE INSTEAD OF DELETE 🚨
+  async function archiveBlog(id: string, slug: string) {
+    if (!window.confirm('Archive this post? It will disappear from the site and sitemap, but you will not lose the data.')) return;
     const supabase = createClient();
-    const { error } = await supabase.from('blogs').delete().eq('id', id);
-    if (error) alert('Error deleting: ' + error.message);
-    else load();
+    const { error } = await supabase.from('blogs').update({ status: 'archived' }).eq('id', id);
+    if (error) alert('Error archiving: ' + error.message);
+    else {
+      // Add a redirect to the homepage so it doesn't 404
+      await supabase.from('redirects').insert({
+        from_path: `/blog/${slug}`,
+        to_path: '/blog',
+        code: 301
+      });
+      flash('✅ Post archived!');
+      load();
+    }
   }
 
   async function toggleStatus(id: string, currentStatus: string) {
@@ -87,7 +98,6 @@ export default function BlogControlRoom() {
     return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
-  // 🚨 NEW: COPY ALL TOPICS FUNCTION 🚨
   function copyAllTopics() {
     if (blogs.length === 0) return flash('No topics to copy.');
     
@@ -110,37 +120,15 @@ export default function BlogControlRoom() {
   if (!loaded) return <p className="text-center p-10">Loading...</p>;
   if (!admin) return <p className="text-center p-10">Admin access only.</p>;
 
-  const totalPosts = blogs.length;
-  const publishedPosts = blogs.filter(b => b.status === 'published').length;
-  const draftPosts = blogs.filter(b => b.status !== 'published').length;
-
   return (
     <div className="p-4 pb-24 max-w-2xl mx-auto space-y-4">
       
-      {/* HEADER */}
       <div>
         <h1 className="text-2xl font-extrabold text-forest-800">📰 Blog Control Room</h1>
         <p className="text-xs text-gray-500">Manage, view, and share your articles.</p>
         {msg && <p className="text-xs font-bold text-green-700 mt-1 bg-green-50 p-2 rounded-lg">{msg}</p>}
       </div>
 
-      {/* COUNTER STATS */}
-      <div className="bg-forest-900 text-white p-4 rounded-2xl shadow-md flex justify-between items-center">
-        <div className="text-center flex-1 border-r border-forest-700">
-          <p className="text-2xl font-extrabold">{totalPosts}</p>
-          <p className="text-[10px] text-forest-300 uppercase font-bold">Total Posts</p>
-        </div>
-        <div className="text-center flex-1 border-r border-forest-700">
-          <p className="text-2xl font-extrabold text-green-400">{publishedPosts}</p>
-          <p className="text-[10px] text-forest-300 uppercase font-bold">Published</p>
-        </div>
-        <div className="text-center flex-1">
-          <p className="text-2xl font-extrabold text-amber-400">{draftPosts}</p>
-          <p className="text-[10px] text-forest-300 uppercase font-bold">Drafts</p>
-        </div>
-      </div>
-
-      {/* TABS */}
       <div className="flex bg-gray-100 p-1 rounded-xl shadow-inner">
         <button 
           onClick={() => setActiveTab('manage')} 
@@ -156,20 +144,17 @@ export default function BlogControlRoom() {
         </button>
       </div>
 
-      {/* ACTION BUTTONS (Only show on Manage tab) */}
       {activeTab === 'manage' && (
         <div className="space-y-2">
           <Link href="/admin/article-engine" className="block w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg text-center text-sm active:scale-95 transition-transform">
             🧠 OPEN THE AI ARTICLE & SEO ENGINE →
           </Link>
-
           <Link href="/admin/quick-post" className="block w-full bg-amber-100 text-amber-900 border-2 border-amber-400 p-3 rounded-2xl font-bold text-center text-sm active:scale-95 transition-transform">
             ⚡ Quick Post (Fast Publish)
           </Link>
         </div>
       )}
 
-      {/* TAB 1: MANAGE POSTS */}
       {activeTab === 'manage' && (
         <div className="space-y-4 mt-6">
           {blogs.map((b, index) => (
@@ -233,11 +218,13 @@ export default function BlogControlRoom() {
                     ✏️
                   </Link>
                   
+                  {/* 🚨 ARCHIVE INSTEAD OF DELETE 🚨 */}
                   <button 
-                    onClick={() => deleteBlog(b.id)} 
+                    onClick={() => archiveBlog(b.id, b.slug)} 
                     className="w-10 bg-red-50 text-red-500 rounded-lg text-sm flex items-center justify-center active:scale-95"
+                    title="Archive Post"
                   >
-                    🗑️
+                    📦
                   </button>
                 </div>
               </div>
@@ -247,11 +234,8 @@ export default function BlogControlRoom() {
         </div>
       )}
 
-      {/* TAB 2: MY TOPIC LIST */}
       {activeTab === 'topics' && (
         <div className="space-y-3 mt-4">
-          
-          {/* 🚨 NEW: COPY ALL BUTTON 🚨 */}
           <button 
             onClick={copyAllTopics} 
             className="w-full bg-forest-800 text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
