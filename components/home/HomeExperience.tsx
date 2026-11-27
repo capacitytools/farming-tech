@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import QuickScanWidget from "@/components/home/QuickScanWidget";
 import { currencySymbol } from "@/lib/currency";
 import SpinWheel from "@/components/home/SpinWheel";
-import EarnSim from "@/components/home/EarnSim";
 import Stories from "@/components/home/Stories";
 import HelperBubble from "@/components/home/HelperBubble";
 import EbookBanner from "@/components/home/EbookBanner";
@@ -153,14 +152,6 @@ export default function HomeExperience({ d }: { d: any }) {
 
   const P = persona ? PERSONAS[persona] : null;
   const TIP = TIPS[Math.floor(Date.now() / 86400000) % TIPS.length];
-
-  const tickerItems = [
-    ...d.tickerPosts.map((n: string) => "📣 " + n + " just posted on the Timeline"),
-    ...d.tickerSales.map((s: any) => "💰 " + s.name + " SOLD: " + s.title),
-    "👥 " + d.joinedToday + " new farmers joined today",
-    "✅ " + d.verifiedCount + " verified members share this month's ad pool",
-  ];
-
   const hotVisible = d.hot;
 
   return (
@@ -193,26 +184,21 @@ export default function HomeExperience({ d }: { d: any }) {
         </div>
       </div>
 
-      {/* COHORT BANNER */}
+      {/* COHORT BANNER - TONED DOWN FOR ADSENSE */}
       <div className="px-4 mt-4">
-        <Link href="/cohort-2026" className="block bg-gradient-to-r from-amber-500 to-orange-600 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform border-2 border-amber-300">
+        <Link href="/cohort-2026" className="block bg-gradient-to-r from-forest-600 to-forest-800 text-white p-4 rounded-2xl shadow-lg active:scale-[0.98] transition-transform border-2 border-forest-300">
           <div className="flex items-center gap-3">
             <span className="text-3xl">🎓</span>
             <div className="flex-1">
-              <p className="font-extrabold text-sm">Free Masterclass: Make Your First $500</p>
-              <p className="text-[11px] text-amber-100 font-medium mt-0.5">No followers needed. Register for the Nov 21st class →</p>
+              <p className="font-extrabold text-sm">Free Practical Masterclass</p>
+              <p className="text-[11px] text-forest-100 font-medium mt-0.5">Learn modern farming techniques with AI tools →</p>
             </div>
           </div>
         </Link>
       </div>
 
-      {/* LIVE ACTIVITY TICKER */}
-      <div className="bg-black overflow-hidden py-2 mt-4">
-        <p className="ftb-marquee text-xs font-bold text-green-400 px-4">{tickerItems.join("   ···   ")}</p>
-      </div>
-
       {/* MAGIC DEMO */}
-      <div className="p-4">
+      <div className="p-4 mt-2">
         <button onClick={() => setDemo("scan")} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 rounded-2xl font-bold shadow-lg active:scale-[0.98]">
           🩺 See the magic — watch a real diagnosis in 3 seconds (no signup)
         </button>
@@ -287,7 +273,7 @@ export default function HomeExperience({ d }: { d: any }) {
             <span className="text-3xl">📣</span>
             <div className="flex-1">
               <p className="font-bold">Farmer Timeline</p>
-              <p className="text-xs text-amber-100">Post, like, comment, share — EVERY action earns points = monthly money!</p>
+              <p className="text-xs text-amber-100">Post, like, comment, share — connect with other farmers.</p>
             </div>
             <span className="text-xl">→</span>
           </div>
@@ -350,7 +336,7 @@ export default function HomeExperience({ d }: { d: any }) {
         </div>
       </div>
 
-      {/* 🚨 FOR YOU / TOP POSTS FEED (Now Public) 🚨 */}
+      {/* FOR YOU / TOP POSTS FEED */}
       <div className="px-4 mt-8">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">🔥 For You — Top Posts</h2>
@@ -442,26 +428,17 @@ export default function HomeExperience({ d }: { d: any }) {
               </div>
             );
           })}
-
           {d.hot.length === 0 && <p className="text-sm text-gray-500">No posts yet — be the first on the For You board!</p>}
         </div>
       </div>
 
-      {/* CREATOR POOL COUNTDOWN */}
+      {/* CREATOR POOL COUNTDOWN - TONED DOWN */}
       <div className="px-4 mt-6">
-        <div className="bg-gradient-to-r from-green-700 to-forest-800 text-white p-4 rounded-2xl text-center">
-          <p className="text-xs font-bold text-green-200">💵 THIS MONTH'S CREATOR POOL — shared by verified members</p>
-          <div className="flex justify-center gap-3 mt-2 font-mono text-lg font-extrabold">
-            <span>{left.d}d</span><span>{left.h}h</span><span>{left.m}m</span><span className="text-amber-300">{left.s}s</span>
-          </div>
-          <p className="text-[10px] text-green-200 mt-1">left to earn points & claim your share · verified members get +10%</p>
-          <Link href="/wallet" className="inline-block bg-amber-400 text-forest-900 px-5 py-2 rounded-xl font-bold text-xs mt-2">See How It Works →</Link>
+        <div className="bg-gradient-to-r from-forest-700 to-forest-800 text-white p-4 rounded-2xl text-center">
+          <p className="text-xs font-bold text-green-200">💵 CREATOR SUPPORT PROGRAM</p>
+          <p className="text-[10px] text-green-200 mt-1">Earn points by posting and engaging with the community.</p>
+          <Link href="/wallet" className="inline-block bg-amber-400 text-forest-900 px-5 py-2 rounded-xl font-bold text-xs mt-2">Learn More →</Link>
         </div>
-      </div>
-
-      {/* EARNINGS SIMULATOR */}
-      <div className="px-4 mt-6">
-        <EarnSim />
       </div>
 
       {/* TESTIMONIALS */}
