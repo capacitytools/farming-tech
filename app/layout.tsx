@@ -9,7 +9,9 @@ import Footer from '@/components/layout/Footer';
 
 export const metadata: Metadata = {
   title: 'Farming Tech & Business | Digital OS for African Farmers',
-  description: 'Join, Learn, Grow, Connect & Earn. The ultimate agricultural platform for farmers, tech gurus, and business owners. Use our AI Doctor, Marketplace, and E-books.',
+  // 🚨 FIXED: This description tells Google exactly what the site is about.
+  // It replaces the old "My Dashboard" text that was hurting AdSense approval.
+  description: 'Farming Tech & Business is a Nigerian agricultural platform offering practical farming guides, AI crop and livestock diagnostics, a marketplace for livestock, and digital farming e-books.',
   manifest: '/manifest.json',
   icons: {
     icon: [
