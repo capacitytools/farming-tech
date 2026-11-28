@@ -20,11 +20,10 @@ export default function BlogControlRoom() {
       setAdmin(p?.role === 'admin' || p?.role === 'editor');
     }
 
-    // Do NOT fetch archived posts for the main list
     const { data: b } = await supabase
       .from('blogs')
       .select('id,title,slug,category,cover_image_url,status,views_count,meta_description,excerpt,created_at,updated_at')
-      .neq('status', 'archived') // 🚨 HIDE ARCHIVED POSTS 🚨
+      .neq('status', 'archived') 
       .order('created_at', { ascending: false });
 
     setBlogs(b || []);
@@ -40,12 +39,11 @@ export default function BlogControlRoom() {
 
   // 🚨 ARCHIVE INSTEAD OF DELETE 🚨
   async function archiveBlog(id: string, slug: string) {
-    if (!window.confirm('Archive this post? It will disappear from the site and sitemap, but you will not lose the data.')) return;
+    if (!window.confirm('Archive this post? It will disappear from the site.')) return;
     const supabase = createClient();
     const { error } = await supabase.from('blogs').update({ status: 'archived' }).eq('id', id);
     if (error) alert('Error archiving: ' + error.message);
     else {
-      // Add a redirect to the homepage so it doesn't 404
       await supabase.from('redirects').insert({
         from_path: `/blog/${slug}`,
         to_path: '/blog',
@@ -98,23 +96,20 @@ export default function BlogControlRoom() {
     return new Date(dateString).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
+  // 🚨 COPY TITLES & URLS 🚨
   function copyAllTopics() {
     if (blogs.length === 0) return flash('No topics to copy.');
     
-    let text = `FARMING TECH & BUSINESS - BLOG TOPIC LIST\nTotal Posts: ${blogs.length}\n\n`;
+    let text = `FARMING TECH & BUSINESS - TOPIC & URL LIST\n\n`;
     
     blogs.forEach((b, index) => {
+      const url = `https://www.farmingtechbusiness.com/blog/${b.slug}`;
       text += `${index + 1}. ${b.title}\n`;
-      text += `   Status: ${b.status.toUpperCase()} | Category: ${b.category || 'N/A'}\n`;
-      text += `   Created: ${formatDate(b.created_at)} at ${formatTime(b.created_at)}\n`;
-      if (b.updated_at && b.updated_at !== b.created_at) {
-        text += `   Last Edited: ${formatDate(b.updated_at)} at ${formatTime(b.updated_at)}\n`;
-      }
-      text += '\n';
+      text += `   URL: ${url}\n\n`;
     });
 
     navigator.clipboard.writeText(text);
-    flash('📋 All topics copied to clipboard!');
+    flash('📋 Titles & URLs copied to clipboard!');
   }
 
   if (!loaded) return <p className="text-center p-10">Loading...</p>;
@@ -140,7 +135,7 @@ export default function BlogControlRoom() {
           onClick={() => setActiveTab('topics')} 
           className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'topics' ? 'bg-white shadow text-forest-800' : 'text-gray-500'}`}
         >
-          📝 My Topic List
+          📝 Title & URL List
         </button>
       </div>
 
@@ -166,9 +161,6 @@ export default function BlogControlRoom() {
                 </div>
                 <div className="text-center mt-1">
                   <p className="text-[9px] font-bold text-gray-700">{formatDate(b.created_at)}</p>
-                  {b.updated_at && b.updated_at !== b.created_at && (
-                    <p className="text-[8px] text-amber-600 font-bold mt-0.5">Edit: {formatDate(b.updated_at)}</p>
-                  )}
                 </div>
               </div>
 
@@ -218,7 +210,6 @@ export default function BlogControlRoom() {
                     ✏️
                   </Link>
                   
-                  {/* 🚨 ARCHIVE INSTEAD OF DELETE 🚨 */}
                   <button 
                     onClick={() => archiveBlog(b.id, b.slug)} 
                     className="w-10 bg-red-50 text-red-500 rounded-lg text-sm flex items-center justify-center active:scale-95"
@@ -236,11 +227,13 @@ export default function BlogControlRoom() {
 
       {activeTab === 'topics' && (
         <div className="space-y-3 mt-4">
+          
+          {/* 🚨 COPY TITLES & URLS BUTTON 🚨 */}
           <button 
             onClick={copyAllTopics} 
             className="w-full bg-forest-800 text-white py-3 rounded-xl font-bold text-sm shadow-md active:scale-95 transition-transform flex items-center justify-center gap-2"
           >
-            📋 Copy All Topics to Clipboard
+            📋 Copy All Titles & URLs to Clipboard
           </button>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -254,18 +247,26 @@ export default function BlogControlRoom() {
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <Link href={`/blog/${b.slug}`} target="_blank" className="text-sm font-bold text-forest-900 hover:underline line-clamp-2 leading-tight">
-                    {b.title}
-                  </Link>
+                  <p className="text-sm font-bold text-forest-900 line-clamp-2 leading-tight">{b.title}</p>
                   
-                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-[10px] text-gray-500 font-semibold">
+                  {/* 🚨 THE URL IS NOW VISIBLE HERE 🚨 */}
+                  <div className="mt-1 bg-gray-100 p-1.5 rounded-md flex items-center justify-between">
+                    <p className="text-[10px] text-forest-700 font-mono truncate mr-2">
+                      https://www.farmingtechbusiness.com/blog/{b.slug}
+                    </p>
+                    <button 
+                      onClick={() => copyLink(b.slug)}
+                      className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded"
+                    >
+                      Copy
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-[9px] text-gray-400 font-semibold">
                     <span className={b.status === 'published' ? 'text-green-600' : 'text-amber-500'}>
                       {b.status.toUpperCase()}
                     </span>
                     <span>• Created: {formatDate(b.created_at)} at {formatTime(b.created_at)}</span>
-                    {b.updated_at && b.updated_at !== b.created_at && (
-                      <span className="text-amber-600">• Edited: {formatDate(b.updated_at)} at {formatTime(b.updated_at)}</span>
-                    )}
                   </div>
                 </div>
                 
